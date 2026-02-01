@@ -122,24 +122,51 @@
                     onClose();
                     setShowLoginScreen(true);
                 } else {
-                    alert(`${item.title}을(를) Playground에 적용합니다!`);
+                    const action = item.type === 'News' ? '공유' : '적용';
+                    alert(`${item.title}을(를) ${action}합니다!`);
+                }
+            };
+
+            const getGradient = (type) => {
+                switch(type) {
+                    case 'Agent': return 'bg-gradient-to-r from-blue-500 to-cyan-500';
+                    case 'Connector': return 'bg-gradient-to-r from-purple-500 to-pink-500';
+                    case 'News': return 'bg-gradient-to-r from-indigo-500 to-purple-600';
+                    case 'Workflow': return 'bg-gradient-to-r from-orange-400 to-amber-500';
+                    default: return 'bg-gradient-to-r from-gray-400 to-gray-500';
+                }
+            };
+
+            const getIcon = (type) => {
+                switch(type) {
+                    case 'Agent': return '🤖';
+                    case 'Connector': return '🔗';
+                    case 'News': return '📰';
+                    case 'Workflow': return '⚡';
+                    default: return '📦';
+                }
+            };
+
+            const getBadgeColor = (type) => {
+                switch(type) {
+                    case 'Agent': return 'bg-blue-100 text-blue-700';
+                    case 'Connector': return 'bg-purple-100 text-purple-700';
+                    case 'News': return 'bg-indigo-100 text-indigo-700';
+                    case 'Workflow': return 'bg-orange-100 text-orange-700';
+                    default: return 'bg-gray-100 text-gray-700';
                 }
             };
 
             return (
                 <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
-                        <div className={`h-32 w-full ${
-                            item.type === 'Agent' ? 'bg-gradient-to-r from-blue-500 to-cyan-500' :
-                            item.type === 'Connector' ? 'bg-gradient-to-r from-purple-500 to-pink-500' :
-                            'bg-gradient-to-r from-orange-400 to-amber-500'
-                        } relative`}>
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto relative" onClick={e => e.stopPropagation()}>
+                        <div className={`h-32 w-full ${getGradient(item.type)} relative`}>
                             <button onClick={onClose} className="absolute top-4 right-4 bg-black/20 hover:bg-black/40 text-white p-2 rounded-full transition-colors backdrop-blur-sm">
                                 <X size={20} />
                             </button>
                             <div className="absolute -bottom-10 left-8">
                                 <div className="w-20 h-20 bg-white rounded-2xl shadow-lg p-2 flex items-center justify-center text-3xl">
-                                    {item.type === 'Agent' ? '🤖' : item.type === 'Connector' ? '🔗' : '⚡'}
+                                    {getIcon(item.type)}
                                 </div>
                             </div>
                         </div>
@@ -147,23 +174,23 @@
                             <div className="flex justify-between items-start mb-4">
                                 <div>
                                     <div className="flex items-center gap-2 mb-1">
-                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                                            item.type === 'Agent' ? 'bg-blue-100 text-blue-700' :
-                                            item.type === 'Connector' ? 'bg-purple-100 text-purple-700' :
-                                            'bg-orange-100 text-orange-700'
-                                        }`}>
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${getBadgeColor(item.type)}`}>
                                             {item.type}
                                         </span>
-                                        <span className="text-gray-400 text-xs font-mono">v1.2.0</span>
+                                        {item.type !== 'News' && <span className="text-gray-400 text-xs font-mono">v1.2.0</span>}
                                     </div>
-                                    <h2 className="text-3xl font-bold text-gray-900">{item.title}</h2>
+                                    <h2 className="text-3xl font-bold text-gray-900 leading-tight">{item.title}</h2>
                                     <div className="flex items-center gap-2 mt-1 text-sm text-gray-500">
                                         <span className="font-medium text-gray-900">{item.author}</span>
-                                        <span>•</span>
-                                        <div className="flex items-center gap-1 text-yellow-500">
-                                            <Star size={14} fill="currentColor" />
-                                            <span className="text-gray-600">{(item.stars / 1000).toFixed(1)}k</span>
-                                        </div>
+                                        {item.stars !== undefined && (
+                                            <>
+                                                <span>•</span>
+                                                <div className="flex items-center gap-1 text-yellow-500">
+                                                    <Star size={14} fill="currentColor" />
+                                                    <span className="text-gray-600">{(item.stars / 1000).toFixed(1)}k</span>
+                                                </div>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
@@ -175,24 +202,28 @@
                                     </button>
                                 </div>
                             </div>
-                            <p className="text-gray-600 text-lg leading-relaxed mb-8">
+                            <p className="text-gray-600 text-lg leading-relaxed mb-8 whitespace-pre-line">
                                 {item.desc}
-                                <br/><br/>
-                                <span className="text-sm text-gray-400">
-                                    이 도구를 사용하면 업무 효율을 극대화할 수 있습니다. 
-                                    엔터프라이즈 보안 기준을 준수하며, 실시간 데이터 처리 파이프라인과 완벽하게 통합됩니다.
-                                </span>
+                                {item.type !== 'News' && (
+                                    <>
+                                        <br/><br/>
+                                        <span className="text-sm text-gray-400">
+                                            이 도구를 사용하면 업무 효율을 극대화할 수 있습니다. 
+                                            엔터프라이즈 보안 기준을 준수하며, 실시간 데이터 처리 파이프라인과 완벽하게 통합됩니다.
+                                        </span>
+                                    </>
+                                )}
                             </p>
                             <div className="flex flex-col sm:flex-row gap-3 pt-6 border-t border-gray-100">
                                 <button 
                                     onClick={handleActionClick}
                                     className="flex-1 bg-gray-900 text-white py-3.5 rounded-xl font-bold text-base hover:bg-gray-800 transition-all shadow-lg shadow-gray-200 flex items-center justify-center gap-2"
                                 >
-                                    {item.type === 'Workflow' ? <Play size={18} fill="currentColor"/> : <Download size={18} />}
-                                    PLAYGROUND 적용
+                                    {item.type === 'Workflow' ? <Play size={18} fill="currentColor"/> : item.type === 'News' ? <Share2 size={18} /> : <Download size={18} />}
+                                    {item.type === 'News' ? '공유하기' : 'PLAYGROUND 적용'}
                                 </button>
                                 <button className="px-6 py-3.5 border border-gray-200 text-gray-700 rounded-xl font-bold hover:bg-gray-50 transition-colors">
-                                    문서 보기
+                                    {item.type === 'News' ? '원문 보기' : '문서 보기'}
                                 </button>
                             </div>
                         </div>
@@ -414,7 +445,9 @@
                                         key={menu.name}
                                         onClick={() => handleNavClick(menu.name)}
                                         className={`w-full flex justify-between items-center px-4 py-4 text-base font-bold rounded-xl ${
-                                            currentTab === menu.name ? 'bg-blue-50 text-blue-600' : 'text-gray-700'
+                                            currentTab === menu.name 
+                                            ? 'bg-blue-50 text-blue-600' 
+                                            : 'text-gray-700'
                                         }`}
                                     >
                                         <div className="flex items-center gap-3">
@@ -895,53 +928,7 @@
         // 📄 저장할 파일명: pages/AINews.jsx
         // ==========================================
 
-        const NewsDetailModal = ({ item, onClose }) => {
-            if (!item) return null;
-
-            return (
-                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
-                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto relative" onClick={e => e.stopPropagation()}>
-                        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 z-10 bg-white/80 backdrop-blur-sm rounded-full p-2 transition-colors">
-                            <X size={20} />
-                        </button>
-                        
-                        <div className="relative">
-                             <div className="aspect-video w-full [&>div]:rounded-none [&>div]:h-full">
-                                <NewsThumbnail category={item.category} /> 
-                             </div>
-                             <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent opacity-90"></div>
-                        </div>
-
-                        <div className="px-8 pb-8 -mt-12 relative">
-                            <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold shadow-sm uppercase tracking-wide border border-gray-100 text-blue-600 inline-block mb-4">
-                                {item.category}
-                            </span>
-                            <h2 className="text-2xl font-bold text-gray-900 mb-2 leading-tight">{item.title}</h2>
-                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
-                                <span>{item.date}</span>
-                                <span>•</span>
-                                <span>Agent Hub Editors</span>
-                            </div>
-                            
-                            <div className="prose prose-slate prose-sm sm:prose-base max-w-none text-gray-600 leading-relaxed space-y-4 whitespace-pre-line">
-                                {item.content}
-                            </div>
-
-                            <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end gap-3">
-                                <button className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl text-sm font-bold transition-colors" onClick={onClose}>닫기</button>
-                                <button className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200 flex items-center gap-2">
-                                    <Share2 size={16}/> 공유하기
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            );
-        };
-
-        const AINews = () => {
-            const [selectedNews, setSelectedNews] = useState(null);
-
+        const AINews = ({ setSelectedItem }) => {
             const newsItems = [
                 { 
                     category: 'Model Update', 
@@ -971,14 +958,22 @@
 
             return (
                 <div className="space-y-8 animate-in relative">
-                    {selectedNews && <NewsDetailModal item={selectedNews} onClose={() => setSelectedNews(null)} />}
                     <div className="border-b border-gray-200 pb-4">
                         <h2 className="text-3xl font-bold text-gray-900">AI 뉴스</h2>
                         <p className="text-gray-500">전 세계의 혁신적인 AI 소식을 선별하여 전달합니다.</p>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                         {newsItems.map((news, i) => (
-                            <div key={i} className="group cursor-pointer" onClick={() => setSelectedNews(news)}>
+                            <div 
+                                key={i} 
+                                className="group cursor-pointer" 
+                                onClick={() => setSelectedItem({
+                                    type: 'News',
+                                    title: news.title,
+                                    desc: news.content,
+                                    author: `${news.date} • Agent Hub Editors`
+                                })}
+                            >
                                 <NewsThumbnail category={news.category} />
                                 <p className="text-xs text-gray-400 mb-2">{news.date}</p>
                                 <h3 className="text-xl font-bold text-gray-900 leading-snug group-hover:text-blue-600 transition-colors">
@@ -1638,7 +1633,7 @@ input: '안녕하세요, 오늘 날씨 알려줘!'
             const renderContent = () => {
                 switch (currentTab) {
                     case '개발자 콘솔': return <DeveloperConsole setShowCreateModal={setShowCreateModal} setSelectedItem={setSelectedItem} />;
-                    case 'AI 뉴스': return <AINews />;
+                    case 'AI 뉴스': return <AINews setSelectedItem={setSelectedItem} />;
                     case 'AI 워크플로우': return <AIWorkflow />;
                     case 'AI 스튜디오': return <AIStudio />;
                     case '통합 가이드': return <IntegrationGuide />;
