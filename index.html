@@ -40,21 +40,6 @@
         .animate-fade-in {
             animation: fadeIn 0.3s ease-out forwards;
         }
-        
-        /* Loader Animation */
-        .loader {
-            border: 3px solid #f3f3f3;
-            border-radius: 50%;
-            border-top: 3px solid #3b82f6;
-            width: 24px;
-            height: 24px;
-            -webkit-animation: spin 1s linear infinite; /* Safari */
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans antialiased">
@@ -70,7 +55,7 @@
             Plus, MessageSquare, Code, ArrowRight, Play, Settings,
             Link, Share2, LogIn, LogOut, Lock, Download, ExternalLink, Users, ChevronDown, Gamepad2, RefreshCw,
             Database, Key, Bot, GitBranch, Layers, ShieldCheck, Copy, Check, Terminal, FileText,
-            Image, Video, Mic, UploadCloud, Maximize2, ArrowLeft, MousePointer, Mail, Clock, Split, Box
+            Image, Video, Mic, UploadCloud, Maximize2, ArrowLeft, MousePointer, Mail, Clock, Split, Box, Library
         } from 'https://esm.sh/lucide-react@0.292.0?dev';
 
         // ==========================================
@@ -1005,10 +990,13 @@
             const [draggingNodeId, setDraggingNodeId] = useState(null);
             const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
             const canvasRef = useRef(null);
+            
+            // Sidebar Tab State
+            const [activeSidebarTab, setActiveSidebarTab] = useState('nodes'); // 'nodes' or 'library'
 
             // Icon mapping for dynamic rendering
             const IconMap = {
-                Globe, Bell, Cpu, MessageSquare, Mail, Database, Clock, Split, Box
+                Globe, Bell, Cpu, MessageSquare, Mail, Database, Clock, Split, Box, Bot, GitBranch
             };
 
             const toolCategories = {
@@ -1025,6 +1013,20 @@
                 'Logic': [
                     { type: 'logic', label: 'If/Else', iconName: 'Split' },
                     { type: 'helper', label: 'Formatter', iconName: 'Box' },
+                ]
+            };
+            
+            const libraryItems = {
+                '내 커넥터': [
+                    { id: 'c1', label: 'Nexon User API', type: 'connector', iconName: 'Database' },
+                    { id: 'c2', label: 'Slack Notifier', type: 'connector', iconName: 'MessageSquare' },
+                ],
+                '내 에이전트': [
+                    { id: 'a1', label: 'CS Responder', type: 'agent', iconName: 'Bot' },
+                    { id: 'a2', label: 'Data Analyst', type: 'agent', iconName: 'Bot' },
+                ],
+                '내 워크플로우': [
+                    { id: 'w1', label: 'Email Summary', type: 'workflow', iconName: 'GitBranch' },
                 ]
             };
 
@@ -1124,38 +1126,80 @@
                     </div>
 
                     <div className="flex-1 flex relative overflow-hidden">
-                        {/* Sidebar (Nodes) */}
+                        {/* Sidebar (Nodes & Library) */}
                         <div className="w-64 bg-white border-r border-gray-200 flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-                            <div className="p-4 border-b border-gray-100 font-bold text-sm text-gray-800 uppercase tracking-wider">Available Nodes</div>
+                             {/* Tab Header */}
+                            <div className="flex border-b border-gray-100">
+                                <button 
+                                    onClick={() => setActiveSidebarTab('nodes')}
+                                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeSidebarTab === 'nodes' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+                                >
+                                    기본 노드
+                                </button>
+                                <button 
+                                    onClick={() => setActiveSidebarTab('library')}
+                                    className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeSidebarTab === 'library' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
+                                >
+                                    도구 불러오기
+                                </button>
+                            </div>
+
                             <div className="p-3 space-y-4 overflow-y-auto flex-1">
-                                {Object.entries(toolCategories).map(([cat, tools]) => (
-                                    <div key={cat}>
-                                        <div className="text-xs font-bold text-gray-400 mb-2 px-1">{cat}</div>
-                                        <div className="space-y-2">
-                                            {tools.map((tool, i) => {
-                                                const ToolIcon = IconMap[tool.iconName] || Box;
-                                                return (
-                                                    <div 
-                                                        key={i} 
-                                                        className="group px-3 py-3 bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-200 rounded-lg cursor-grab active:cursor-grabbing flex items-center gap-3 transition-all"
-                                                        draggable
-                                                        onDragStart={(e) => handleSidebarDragStart(e, tool.type, tool.label, tool.iconName)}
-                                                    >
-                                                        <div className={`p-1.5 rounded-md ${
-                                                            tool.type === 'trigger' ? 'bg-orange-100 text-orange-600' :
-                                                            tool.type === 'action' ? 'bg-blue-100 text-blue-600' : 
-                                                            'bg-gray-200 text-gray-600'
-                                                        }`}>
-                                                            <ToolIcon size={16} />
+                                {activeSidebarTab === 'nodes' ? (
+                                    Object.entries(toolCategories).map(([cat, tools]) => (
+                                        <div key={cat}>
+                                            <div className="text-xs font-bold text-gray-400 mb-2 px-1">{cat}</div>
+                                            <div className="space-y-2">
+                                                {tools.map((tool, i) => {
+                                                    const ToolIcon = IconMap[tool.iconName] || Box;
+                                                    return (
+                                                        <div 
+                                                            key={i} 
+                                                            className="group px-3 py-3 bg-gray-50 hover:bg-white hover:shadow-md border border-transparent hover:border-gray-200 rounded-lg cursor-grab active:cursor-grabbing flex items-center gap-3 transition-all"
+                                                            draggable
+                                                            onDragStart={(e) => handleSidebarDragStart(e, tool.type, tool.label, tool.iconName)}
+                                                        >
+                                                            <div className={`p-1.5 rounded-md ${
+                                                                tool.type === 'trigger' ? 'bg-orange-100 text-orange-600' :
+                                                                tool.type === 'action' ? 'bg-blue-100 text-blue-600' : 
+                                                                'bg-gray-200 text-gray-600'
+                                                            }`}>
+                                                                <ToolIcon size={16} />
+                                                            </div>
+                                                            <span className="text-sm font-medium text-gray-700">{tool.label}</span>
+                                                            <Plus size={14} className="ml-auto text-gray-300 opacity-0 group-hover:opacity-100"/>
                                                         </div>
-                                                        <span className="text-sm font-medium text-gray-700">{tool.label}</span>
-                                                        <Plus size={14} className="ml-auto text-gray-300 opacity-0 group-hover:opacity-100"/>
-                                                    </div>
-                                                )
-                                            })}
+                                                    )
+                                                })}
+                                            </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))
+                                ) : (
+                                    Object.entries(libraryItems).map(([category, items]) => (
+                                        <div key={category}>
+                                            <div className="text-xs font-bold text-gray-400 mb-2 px-1">{category}</div>
+                                            <div className="space-y-2">
+                                                {items.map((item, i) => {
+                                                     const ToolIcon = IconMap[item.iconName] || Box;
+                                                     return (
+                                                        <div 
+                                                            key={item.id}
+                                                            className="group px-3 py-3 bg-white border border-gray-200 hover:border-indigo-300 hover:shadow-md rounded-lg cursor-grab active:cursor-grabbing flex items-center gap-3 transition-all"
+                                                            draggable
+                                                            onDragStart={(e) => handleSidebarDragStart(e, item.type, item.label, item.iconName)}
+                                                        >
+                                                            <div className="p-1.5 rounded-md bg-indigo-50 text-indigo-600">
+                                                                <ToolIcon size={16} />
+                                                            </div>
+                                                            <span className="text-sm font-medium text-gray-700 truncate">{item.label}</span>
+                                                            <Plus size={14} className="ml-auto text-gray-300 opacity-0 group-hover:opacity-100"/>
+                                                        </div>
+                                                    )
+                                                })}
+                                            </div>
+                                        </div>
+                                    ))
+                                )}
                             </div>
                         </div>
 
@@ -1195,6 +1239,7 @@
                             {nodes.map(node => {
                                 const NodeIcon = IconMap[node.iconName] || Box;
                                 const isDragging = draggingNodeId === node.id;
+                                const isLibraryItem = ['connector', 'agent', 'workflow'].includes(node.type);
 
                                 return (
                                     <div 
@@ -1205,14 +1250,17 @@
                                         }`}
                                         style={{ left: node.x, top: node.y }}
                                     >
-                                        <div className="p-3 flex items-center gap-3 border-b border-gray-50 bg-gradient-to-r from-gray-50 to-white rounded-t-xl select-none">
+                                        <div className={`p-3 flex items-center gap-3 border-b border-gray-50 bg-gradient-to-r rounded-t-xl select-none ${
+                                            isLibraryItem ? 'from-indigo-50 to-white' : 'from-gray-50 to-white'
+                                        }`}>
                                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm ${
                                                 node.type === 'trigger' ? 'bg-orange-500' : 
+                                                isLibraryItem ? 'bg-indigo-600' :
                                                 node.type === 'action' ? 'bg-blue-600' : 'bg-gray-500'
                                             }`}>
                                                 <NodeIcon size={16} />
                                             </div>
-                                            <div className="text-xs font-bold text-gray-700">{node.label}</div>
+                                            <div className="text-xs font-bold text-gray-700 truncate">{node.label}</div>
                                         </div>
                                         <div className="p-2 bg-white rounded-b-xl select-none">
                                             <div className="text-[10px] text-gray-400 flex justify-between px-1 font-mono">
