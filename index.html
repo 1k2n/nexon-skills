@@ -40,6 +40,21 @@
         .animate-fade-in {
             animation: fadeIn 0.3s ease-out forwards;
         }
+        
+        /* Loader Animation */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 24px;
+            height: 24px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans antialiased">
@@ -999,7 +1014,8 @@
             const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
             // Property Panel Logic
-            const [panelPosition, setPanelPosition] = useState({ x: window.innerWidth - 320, y: 80 }); 
+            const [selectedNodeId, setSelectedNodeId] = useState(null); // Currently selected node for properties
+            const [panelPosition, setPanelPosition] = useState({ x: window.innerWidth - 350, y: 100 }); 
             const [isPanelDragging, setIsPanelDragging] = useState(false);
             const [panelDragOffset, setPanelDragOffset] = useState({ x: 0, y: 0 });
 
@@ -1042,6 +1058,14 @@
                 ]
             };
 
+            // Node Property Update Handler
+            const handleNodeLabelChange = (newLabel) => {
+                setNodes(nds => nds.map(n => 
+                    n.id === selectedNodeId ? { ...n, label: newLabel } : n
+                ));
+            };
+
+            // Handlers
             const handlePanelMouseDown = (e) => {
                 e.stopPropagation();
                 setIsPanelDragging(true);
@@ -1062,8 +1086,15 @@
                 setDraggingNodeId(nodeId);
             };
 
+            const handleNodeSettingsClick = (e, nodeId) => {
+                e.stopPropagation();
+                setSelectedNodeId(nodeId);
+                // Optional: Bring panel to front or reset position if off-screen
+            };
+
             const handleNodeDelete = (e, nodeId) => {
                 e.stopPropagation();
+                if (selectedNodeId === nodeId) setSelectedNodeId(null); // Close panel if deleted
                 setNodes(nds => nds.filter(n => n.id !== nodeId));
                 setEdges(eds => eds.filter(edge => edge.source !== nodeId && edge.target !== nodeId));
             };
@@ -1155,6 +1186,7 @@
                         iconName
                     };
                     setNodes(nds => [...nds, newNode]);
+                    setSelectedNodeId(newNode.id); // Auto-select new node
                 }
             };
 
@@ -1166,6 +1198,8 @@
             const getPath = (sx, sy, tx, ty) => {
                 return `M ${sx} ${sy} C ${sx + 50} ${sy}, ${tx - 50} ${ty}, ${tx} ${ty}`;
             };
+
+            const selectedNode = nodes.find(n => n.id === selectedNodeId);
 
             return (
                 <div 
@@ -1316,14 +1350,15 @@
                             {nodes.map(node => {
                                 const NodeIcon = IconMap[node.iconName] || Box;
                                 const isDragging = draggingNodeId === node.id;
+                                const isSelected = selectedNodeId === node.id;
                                 const isLibraryItem = ['connector', 'agent', 'workflow'].includes(node.type);
 
                                 return (
                                     <div 
                                         key={node.id}
                                         onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
-                                        className={`absolute w-44 h-[88px] bg-white border rounded-xl shadow-sm p-0 flex flex-col group transition-shadow cursor-grab active:cursor-grabbing z-10 ${
-                                            isDragging ? 'shadow-xl ring-2 ring-blue-500 scale-105 z-50' : 'border-gray-200 hover:ring-2 hover:ring-blue-300'
+                                        className={`absolute w-44 h-[88px] bg-white border rounded-xl shadow-sm p-0 flex flex-col group transition-all cursor-grab active:cursor-grabbing z-10 ${
+                                            isDragging || isSelected ? 'shadow-xl ring-2 ring-blue-500 scale-105 z-50' : 'border-gray-200 hover:ring-2 hover:ring-blue-300'
                                         }`}
                                         style={{ left: node.x, top: node.y }}
                                     >
@@ -1337,11 +1372,20 @@
                                             }`}>
                                                 <NodeIcon size={16} />
                                             </div>
-                                            <div className="text-xs font-bold text-gray-700 truncate">{node.label}</div>
+                                            <div className="text-xs font-bold text-gray-700 truncate flex-1">{node.label}</div>
                                             
+                                            {/* Settings Button */}
+                                            <button 
+                                                onClick={(e) => handleNodeSettingsClick(e, node.id)}
+                                                className="bg-white rounded-full p-1 shadow-sm border border-gray-200 text-gray-400 hover:text-blue-500 hover:border-blue-200 transition-colors"
+                                            >
+                                                <Settings size={12} />
+                                            </button>
+
+                                            {/* Delete Button (On Hover) */}
                                             <button 
                                                 onClick={(e) => handleNodeDelete(e, node.id)}
-                                                className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200 opacity-0 group-hover:opacity-100 transition-all"
+                                                className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200 opacity-0 group-hover:opacity-100 transition-all z-20"
                                             >
                                                 <X size={12} />
                                             </button>
@@ -1368,36 +1412,58 @@
                             })}
                         </div>
                         
-                        <div 
-                            className="absolute w-72 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-30 flex flex-col"
-                            style={{ 
-                                left: panelPosition.x, 
-                                top: panelPosition.y,
-                                cursor: isPanelDragging ? 'grabbing' : 'default'
-                            }}
-                        >
+                        {/* Properties Panel (Floating - Only visible when node is selected) */}
+                        {selectedNode && (
                             <div 
-                                onMouseDown={handlePanelMouseDown}
-                                className="bg-gray-50 border-b border-gray-200 p-3 flex items-center justify-between cursor-grab active:cursor-grabbing"
+                                className="absolute w-72 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50 flex flex-col animate-in"
+                                style={{ 
+                                    left: panelPosition.x, 
+                                    top: panelPosition.y,
+                                    cursor: isPanelDragging ? 'grabbing' : 'default'
+                                }}
                             >
-                                <h4 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                                    <Settings size={14}/> 속성 패널
-                                </h4>
-                                <Move size={14} className="text-gray-400"/>
-                            </div>
-                            
-                            <div className="p-4 space-y-3">
-                                <p className="text-xs text-gray-500 mb-2">선택된 노드의 속성을 설정합니다.</p>
-                                <div className="space-y-1">
-                                    <div className="text-[10px] font-bold text-gray-400 uppercase">Node Name</div>
-                                    <div className="h-8 bg-gray-50 border border-gray-200 rounded px-2 flex items-center text-sm text-gray-400">Select a node...</div>
+                                <div 
+                                    onMouseDown={handlePanelMouseDown}
+                                    className="bg-gray-50 border-b border-gray-200 p-3 flex items-center justify-between cursor-grab active:cursor-grabbing"
+                                >
+                                    <h4 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                                        <Settings size={14}/> 속성 패널
+                                    </h4>
+                                    <div className="flex items-center gap-2">
+                                        <Move size={14} className="text-gray-400"/>
+                                        <button onClick={() => setSelectedNodeId(null)} className="text-gray-400 hover:text-red-500">
+                                            <X size={14}/>
+                                        </button>
+                                    </div>
                                 </div>
-                                <div className="space-y-1">
-                                    <div className="text-[10px] font-bold text-gray-400 uppercase">Configuration</div>
-                                    <div className="h-24 bg-gray-50 border border-gray-200 rounded"></div>
+                                
+                                <div className="p-4 space-y-4">
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase">Node Name</label>
+                                        <input 
+                                            type="text" 
+                                            value={selectedNode.label}
+                                            onChange={(e) => handleNodeLabelChange(e.target.value)}
+                                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                        />
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-[10px] font-bold text-gray-500 uppercase">Type</label>
+                                        <div className="px-3 py-2 bg-gray-50 rounded-lg text-xs text-gray-600 border border-gray-100 font-mono">
+                                            {selectedNode.type}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">Configuration</div>
+                                        <div className="h-24 bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-gray-400">
+                                            {selectedNode.type === 'trigger' ? 'Webhook URL settings...' : 
+                                             selectedNode.type === 'action' ? 'API Endpoint configuration...' : 
+                                             'Logic parameters...'}
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
-                        </div>
+                        )}
                     </div>
                 </div>
             );
