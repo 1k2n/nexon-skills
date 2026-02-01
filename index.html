@@ -40,6 +40,21 @@
         .animate-fade-in {
             animation: fadeIn 0.3s ease-out forwards;
         }
+        
+        /* Loader Animation */
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 24px;
+            height: 24px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans antialiased">
@@ -55,11 +70,11 @@
             Plus, MessageSquare, Code, ArrowRight, Play, Settings,
             Link, Share2, LogIn, LogOut, Lock, Download, ExternalLink, Users, ChevronDown, Gamepad2, RefreshCw,
             Database, Key, Bot, GitBranch, Layers, ShieldCheck, Copy, Check, Terminal, FileText,
-            Image, Video, Mic, UploadCloud, Maximize2, ArrowLeft, MousePointer, Mail, Clock, Split, Box, Library
+            Image, Video, Mic, UploadCloud, Maximize2, ArrowLeft, MousePointer, Mail, Clock, Split, Box, Library, Move
         } from 'https://esm.sh/lucide-react@0.292.0?dev';
 
         // ==========================================
-        // 📄 저장할 파일명: components/SharedComponents.jsx
+        // 1. Shared UI Components
         // ==========================================
 
         const DomainTooltip = ({ title, domain }) => (
@@ -86,7 +101,7 @@
                 } else if (category === 'Industry') {
                     return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><rect x="20" y="40" width="20" height="40" fill={colors.fill} opacity="0.6"/><rect x="45" y="25" width="20" height="55" fill={colors.fill} opacity="0.8"/><rect x="70" y="35" width="20" height="45" fill={colors.fill} opacity="0.4"/><line x1="10" y1="85" x2="90" y2="85" stroke={colors.fill} strokeWidth="4"/></svg>;
                 } else if (category === 'Tutorial') {
-                        return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><rect x="25" y="20" width="50" height="60" rx="4" fill="none" stroke={colors.fill} strokeWidth="4"/><line x1="35" y1="35" x2="65" y2="35" stroke={colors.fill} strokeWidth="4" opacity="0.6"/><line x1="35" y1="50" x2="65" y2="50" stroke={colors.fill} strokeWidth="4" opacity="0.6"/><line x1="35" y1="65" x2="50" y2="65" stroke={colors.fill} strokeWidth="4" opacity="0.6"/><circle cx="75" cy="80" r="12" fill={colors.fill} /><path d="M71 80 L74 83 L79 77" fill="none" stroke="white" strokeWidth="2"/></svg>;
+                    return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><rect x="25" y="20" width="50" height="60" rx="4" fill="none" stroke={colors.fill} strokeWidth="4"/><line x1="35" y1="35" x2="65" y2="35" stroke={colors.fill} strokeWidth="4" opacity="0.6"/><line x1="35" y1="50" x2="65" y2="50" stroke={colors.fill} strokeWidth="4" opacity="0.6"/><line x1="35" y1="65" x2="50" y2="65" stroke={colors.fill} strokeWidth="4" opacity="0.6"/><circle cx="75" cy="80" r="12" fill={colors.fill} /><path d="M71 80 L74 83 L79 77" fill="none" stroke="white" strokeWidth="2"/></svg>;
                 } else {
                     return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><circle cx="50" cy="40" r="15" fill={colors.fill}/><path d="M25 80 Q50 60 75 80" fill="none" stroke={colors.fill} strokeWidth="8" strokeLinecap="round"/><circle cx="25" cy="50" r="8" fill={colors.fill} opacity="0.5"/><circle cx="75" cy="50" r="8" fill={colors.fill} opacity="0.5"/></svg>;
                 }
@@ -98,6 +113,10 @@
                 </div>
             );
         };
+
+        // ==========================================
+        // 2. Modals
+        // ==========================================
 
         const ItemDetailModal = ({ item, onClose, isLoggedIn, setShowLoginScreen }) => {
             if (!item) return null;
@@ -280,7 +299,7 @@
         );
 
         // ==========================================
-        // 📄 저장할 파일명: components/GNB.jsx
+        // 3. Navigation Component
         // ==========================================
 
         const GNB = ({ 
@@ -473,7 +492,7 @@
         };
 
         // ==========================================
-        // 📄 저장할 파일명: pages/DeveloperConsole.jsx
+        // 4. View Components (Developer Console Sub-views)
         // ==========================================
 
         const DashboardView = ({ setShowCreateModal }) => (
@@ -839,6 +858,10 @@
             </div>
         );
 
+        // ==========================================
+        // 5. Main Pages
+        // ==========================================
+
         const DeveloperConsole = ({ setShowCreateModal, setSelectedItem }) => {
             const [activeMenu, setActiveMenu] = useState('대시보드');
             
@@ -989,12 +1012,20 @@
 
             const [draggingNodeId, setDraggingNodeId] = useState(null);
             const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+            
+            // Connecting Logic
+            const [connectingSource, setConnectingSource] = useState(null); 
+            const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+
+            // Property Panel Logic
+            const [panelPosition, setPanelPosition] = useState({ x: window.innerWidth - 320, y: 80 }); 
+            const [isPanelDragging, setIsPanelDragging] = useState(false);
+            const [panelDragOffset, setPanelDragOffset] = useState({ x: 0, y: 0 });
+
             const canvasRef = useRef(null);
             
-            // Sidebar Tab State
-            const [activeSidebarTab, setActiveSidebarTab] = useState('nodes'); // 'nodes' or 'library'
+            const [activeSidebarTab, setActiveSidebarTab] = useState('nodes');
 
-            // Icon mapping for dynamic rendering
             const IconMap = {
                 Globe, Bell, Cpu, MessageSquare, Mail, Database, Clock, Split, Box, Bot, GitBranch
             };
@@ -1030,7 +1061,15 @@
                 ]
             };
 
-            // Node Drag Handlers
+            const handlePanelMouseDown = (e) => {
+                e.stopPropagation();
+                setIsPanelDragging(true);
+                setPanelDragOffset({
+                    x: e.clientX - panelPosition.x,
+                    y: e.clientY - panelPosition.y
+                });
+            };
+
             const handleNodeMouseDown = (e, nodeId) => {
                 e.stopPropagation();
                 const node = nodes.find(n => n.id === nodeId);
@@ -1042,23 +1081,76 @@
                 setDraggingNodeId(nodeId);
             };
 
-            const handleMouseMove = (e) => {
-                if (draggingNodeId && canvasRef.current) {
-                    const canvasRect = canvasRef.current.getBoundingClientRect();
-                    const x = e.clientX - canvasRect.left - dragOffset.x;
-                    const y = e.clientY - canvasRect.top - dragOffset.y;
+            const handleNodeDelete = (e, nodeId) => {
+                e.stopPropagation();
+                setNodes(nds => nds.filter(n => n.id !== nodeId));
+                setEdges(eds => eds.filter(edge => edge.source !== nodeId && edge.target !== nodeId));
+            };
 
+            const handlePortMouseDown = (e, nodeId, portType) => {
+                e.stopPropagation();
+                e.preventDefault(); 
+                if (portType === 'source') { 
+                     const rect = e.currentTarget.getBoundingClientRect();
+                     const canvasRect = canvasRef.current.getBoundingClientRect();
+                     
+                     setConnectingSource({
+                         nodeId,
+                         x: rect.left + rect.width / 2 - canvasRect.left,
+                         y: rect.top + rect.height / 2 - canvasRect.top
+                     });
+                }
+            };
+
+            const handlePortMouseUp = (e, nodeId, portType) => {
+                e.stopPropagation();
+                if (connectingSource && portType === 'target') { 
+                    if (connectingSource.nodeId !== nodeId) { 
+                         const newEdge = {
+                             id: `e${connectingSource.nodeId}-${nodeId}-${Date.now()}`,
+                             source: connectingSource.nodeId,
+                             target: nodeId
+                         };
+                         const exists = edges.some(edge => edge.source === newEdge.source && edge.target === newEdge.target);
+                         if (!exists) {
+                            setEdges(eds => [...eds, newEdge]);
+                         }
+                    }
+                }
+                setConnectingSource(null);
+            };
+
+            const handleMouseMove = (e) => {
+                if (isPanelDragging) {
+                    setPanelPosition({
+                        x: e.clientX - panelDragOffset.x,
+                        y: e.clientY - panelDragOffset.y
+                    });
+                    return;
+                }
+
+                if (!canvasRef.current) return;
+                const canvasRect = canvasRef.current.getBoundingClientRect();
+                const x = e.clientX - canvasRect.left;
+                const y = e.clientY - canvasRect.top;
+
+                setMousePos({ x, y });
+
+                if (draggingNodeId) {
+                    const nodeX = x - dragOffset.x;
+                    const nodeY = y - dragOffset.y;
                     setNodes(nds => nds.map(n => 
-                        n.id === draggingNodeId ? { ...n, x, y } : n
+                        n.id === draggingNodeId ? { ...n, x: nodeX, y: nodeY } : n
                     ));
                 }
             };
 
             const handleMouseUp = () => {
                 setDraggingNodeId(null);
+                setIsPanelDragging(false);
+                setConnectingSource(null);
             };
 
-            // Drag and Drop from Sidebar
             const handleSidebarDragStart = (e, type, label, iconName) => {
                 e.dataTransfer.setData('application/reactflow', JSON.stringify({ type, label, iconName }));
                 e.dataTransfer.effectAllowed = 'move';
@@ -1070,8 +1162,8 @@
                 if (typeData && canvasRef.current) {
                     const { type, label, iconName } = JSON.parse(typeData);
                     const rect = canvasRef.current.getBoundingClientRect();
-                    const x = e.clientX - rect.left - 88; // approximate center width
-                    const y = e.clientY - rect.top - 40;  // approximate center height
+                    const x = e.clientX - rect.left - 88; 
+                    const y = e.clientY - rect.top - 40;
 
                     const newNode = {
                         id: Date.now(),
@@ -1090,20 +1182,17 @@
                 e.dataTransfer.dropEffect = 'move';
             };
 
-            // Calculate SVG Paths
-            const getPath = (source, target) => {
-                const sx = source.x + 176; // right side of source
-                const sy = source.y + 40;  // center y
-                const tx = target.x;       // left side of target
-                const ty = target.y + 40;
-                
-                // Simple Bezier
+            const getPath = (sx, sy, tx, ty) => {
                 return `M ${sx} ${sy} C ${sx + 50} ${sy}, ${tx - 50} ${ty}, ${tx} ${ty}`;
             };
 
             return (
-                <div className="flex flex-col h-[calc(100vh-140px)] bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden animate-in">
-                    {/* Toolbar */}
+                <div 
+                    className="flex flex-col h-[calc(100vh-140px)] bg-gray-50 border border-gray-200 rounded-2xl overflow-hidden animate-in"
+                    onMouseUp={handleMouseUp} 
+                    onMouseLeave={handleMouseUp}
+                    onMouseMove={handleMouseMove}
+                >
                     <div className="bg-white border-b border-gray-200 p-4 flex justify-between items-center z-20">
                         <div className="flex items-center gap-4">
                             <button onClick={onClose} className="p-2 hover:bg-gray-100 rounded-lg text-gray-500">
@@ -1126,9 +1215,8 @@
                     </div>
 
                     <div className="flex-1 flex relative overflow-hidden">
-                        {/* Sidebar (Nodes & Library) */}
+                        {/* Sidebar (Nodes) */}
                         <div className="w-64 bg-white border-r border-gray-200 flex flex-col z-20 shadow-[4px_0_24px_rgba(0,0,0,0.02)]">
-                             {/* Tab Header */}
                             <div className="flex border-b border-gray-100">
                                 <button 
                                     onClick={() => setActiveSidebarTab('nodes')}
@@ -1203,29 +1291,28 @@
                             </div>
                         </div>
 
-                        {/* Canvas */}
                         <div 
                             className="flex-1 bg-slate-50 relative overflow-hidden cursor-default" 
                             style={{backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '20px 20px'}}
                             ref={canvasRef}
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
-                            onMouseMove={handleMouseMove}
-                            onMouseUp={handleMouseUp}
-                            onMouseLeave={handleMouseUp}
                         >
-                            
-                            {/* SVG Connections */}
                             <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
                                 {edges.map(edge => {
                                     const sourceNode = nodes.find(n => n.id === edge.source);
                                     const targetNode = nodes.find(n => n.id === edge.target);
                                     if (!sourceNode || !targetNode) return null;
                                     
+                                    const sx = sourceNode.x + 176; 
+                                    const sy = sourceNode.y + 40;
+                                    const tx = targetNode.x;
+                                    const ty = targetNode.y + 40;
+
                                     return (
                                         <path 
                                             key={edge.id}
-                                            d={getPath(sourceNode, targetNode)}
+                                            d={getPath(sx, sy, tx, ty)}
                                             stroke="#94a3b8" 
                                             strokeWidth="3" 
                                             fill="none" 
@@ -1233,9 +1320,18 @@
                                         />
                                     );
                                 })}
+                                {connectingSource && (
+                                    <path 
+                                        d={getPath(connectingSource.x, connectingSource.y, mousePos.x, mousePos.y)}
+                                        stroke="#3b82f6" 
+                                        strokeWidth="3" 
+                                        fill="none" 
+                                        strokeDasharray="5,5"
+                                        className="drop-shadow-sm animate-pulse"
+                                    />
+                                )}
                             </svg>
 
-                            {/* Render Nodes */}
                             {nodes.map(node => {
                                 const NodeIcon = IconMap[node.iconName] || Box;
                                 const isDragging = draggingNodeId === node.id;
@@ -1250,7 +1346,7 @@
                                         }`}
                                         style={{ left: node.x, top: node.y }}
                                     >
-                                        <div className={`p-3 flex items-center gap-3 border-b border-gray-50 bg-gradient-to-r rounded-t-xl select-none ${
+                                        <div className={`p-3 flex items-center gap-3 border-b border-gray-50 bg-gradient-to-r rounded-t-xl select-none relative ${
                                             isLibraryItem ? 'from-indigo-50 to-white' : 'from-gray-50 to-white'
                                         }`}>
                                             <div className={`w-8 h-8 rounded-lg flex items-center justify-center text-white shadow-sm ${
@@ -1261,6 +1357,13 @@
                                                 <NodeIcon size={16} />
                                             </div>
                                             <div className="text-xs font-bold text-gray-700 truncate">{node.label}</div>
+                                            
+                                            <button 
+                                                onClick={(e) => handleNodeDelete(e, node.id)}
+                                                className="absolute -top-2 -right-2 bg-white rounded-full p-1 shadow-md border border-gray-200 text-gray-400 hover:text-red-500 hover:border-red-200 opacity-0 group-hover:opacity-100 transition-all"
+                                            >
+                                                <X size={12} />
+                                            </button>
                                         </div>
                                         <div className="p-2 bg-white rounded-b-xl select-none">
                                             <div className="text-[10px] text-gray-400 flex justify-between px-1 font-mono">
@@ -1269,21 +1372,41 @@
                                             </div>
                                         </div>
                                         
-                                        {/* Connection Points */}
-                                        <div className="absolute -left-1.5 top-1/2 w-3 h-3 bg-white border-2 border-gray-300 rounded-full hover:border-blue-500 hover:scale-125 transition-transform"></div>
-                                        <div className="absolute -right-1.5 top-1/2 w-3 h-3 bg-white border-2 border-gray-300 rounded-full hover:border-blue-500 hover:scale-125 transition-transform"></div>
+                                        <div 
+                                            onMouseUp={(e) => handlePortMouseUp(e, node.id, 'target')}
+                                            className="absolute -left-1.5 top-1/2 w-3 h-3 bg-white border-2 border-gray-300 rounded-full hover:border-blue-500 hover:bg-blue-50 transition-transform hover:scale-125 cursor-crosshair z-20"
+                                            title="Input"
+                                        ></div>
+                                        <div 
+                                            onMouseDown={(e) => handlePortMouseDown(e, node.id, 'source')}
+                                            className="absolute -right-1.5 top-1/2 w-3 h-3 bg-white border-2 border-gray-300 rounded-full hover:border-blue-500 hover:bg-blue-50 transition-transform hover:scale-125 cursor-crosshair z-20"
+                                            title="Output"
+                                        ></div>
                                     </div>
                                 );
                             })}
                         </div>
                         
-                        {/* Properties Panel (Optional/Floating) */}
-                        <div className="absolute right-4 top-4 w-72 bg-white rounded-xl shadow-xl border border-gray-200 p-4 hidden lg:block z-20">
-                            <h4 className="font-bold text-gray-800 mb-2 text-sm flex items-center gap-2">
-                                <Settings size={14}/> 속성 패널
-                            </h4>
-                            <p className="text-xs text-gray-500 mb-4">캔버스에서 노드를 선택하여 속성을 편집하세요.</p>
-                            <div className="space-y-3">
+                        <div 
+                            className="absolute w-72 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-30 flex flex-col"
+                            style={{ 
+                                left: panelPosition.x, 
+                                top: panelPosition.y,
+                                cursor: isPanelDragging ? 'grabbing' : 'default'
+                            }}
+                        >
+                            <div 
+                                onMouseDown={handlePanelMouseDown}
+                                className="bg-gray-50 border-b border-gray-200 p-3 flex items-center justify-between cursor-grab active:cursor-grabbing"
+                            >
+                                <h4 className="font-bold text-gray-800 text-sm flex items-center gap-2">
+                                    <Settings size={14}/> 속성 패널
+                                </h4>
+                                <Move size={14} className="text-gray-400"/>
+                            </div>
+                            
+                            <div className="p-4 space-y-3">
+                                <p className="text-xs text-gray-500 mb-2">선택된 노드의 속성을 설정합니다.</p>
                                 <div className="space-y-1">
                                     <div className="text-[10px] font-bold text-gray-400 uppercase">Node Name</div>
                                     <div className="h-8 bg-gray-50 border border-gray-200 rounded px-2 flex items-center text-sm text-gray-400">Select a node...</div>
@@ -1348,10 +1471,6 @@
                 </div>
             );
         };
-
-        // ==========================================
-        // 📄 저장할 파일명: pages/AIStudio.jsx
-        // ==========================================
 
         const AIStudio = () => {
             const [activeMode, setActiveMode] = useState('text'); // text, image, video
@@ -1524,10 +1643,6 @@
             );
         };
 
-        // ==========================================
-        // 📄 저장할 파일명: pages/IntegrationGuide.jsx
-        // ==========================================
-
         const IntegrationGuide = () => (
             <div className="space-y-8 animate-in max-w-4xl mx-auto">
                 <div>
@@ -1575,9 +1690,8 @@ input: '안녕하세요, 오늘 날씨 알려줘!'
         );
 
         // ==========================================
-        // 📄 저장할 파일명: pages/HomePage.jsx
+        // 6. HomePage Component
         // ==========================================
-
         const HomePage = ({ selectedGame, setSelectedGame, gameList, showStickySearch, setSelectedItem, isLoggedIn, setShowLoginScreen }) => {
             const initialItems = [
                 { type: 'Agent', title: 'Data Analysis Bot', desc: '복잡한 엑셀 데이터를 자동으로 분석하고 시각화 차트를 생성합니다.', author: 'DataWiz', stars: 1240 },
@@ -1766,7 +1880,7 @@ input: '안녕하세요, 오늘 날씨 알려줘!'
         };
 
         // ==========================================
-        // 📄 저장할 파일명: App.jsx (메인 진입점)
+        // 7. App Component (Entry Point)
         // ==========================================
 
         const App = () => {
@@ -1891,10 +2005,7 @@ input: '안녕하세요, 오늘 날씨 알려줘!'
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
                             <div className="flex items-center gap-2 text-gray-400">
                                 <img src="agent_hub.webp" alt="Logo" className="w-5 h-5 grayscale opacity-50" 
-                                     onError={(e) => {
-                                        e.target.style.display='none';
-                                        e.target.nextSibling.innerText = "AH";
-                                     }} />
+                                     onError={(e) => e.target.style.display='none'} />
                                 <span className="text-sm font-semibold">© 2026 Agent Hub Inc. All rights reserved.</span>
                             </div>
                             <div className="flex gap-8 text-sm font-medium text-gray-500">
