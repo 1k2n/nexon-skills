@@ -70,7 +70,8 @@
             Menu, X, Star, User, ChevronRight, Bell, Search, 
             Activity, Cpu, Zap, Layout, BookOpen, Globe, 
             Plus, MessageSquare, Code, ArrowRight, Play, Settings,
-            Link, Share2, LogIn, LogOut, Lock, Download, ExternalLink, Users, ChevronDown, Gamepad2, RefreshCw
+            Link, Share2, LogIn, LogOut, Lock, Download, ExternalLink, Users, ChevronDown, Gamepad2, RefreshCw,
+            Database, Key, Bot, GitBranch, Layers, ShieldCheck, Copy, Check, Terminal, FileText
         } from 'https://esm.sh/lucide-react@0.292.0?dev';
 
         const App = () => {
@@ -267,7 +268,8 @@
                 </div>
             );
 
-            const NewsThumbnail = ({ category }) => {
+            // ... (NewsThumbnail and other previous components are unchanged)
+             const NewsThumbnail = ({ category }) => {
                 const getColors = () => {
                     switch (category) {
                         case 'Model Update': return { bg: 'bg-indigo-50', text: 'text-indigo-600', fill: '#4F46E5' };
@@ -487,59 +489,359 @@
                 );
             };
 
-            const DeveloperConsole = () => (
-                <div className="space-y-8 animate-in">
-                    <div className="flex justify-between items-end">
-                        <div>
-                            <h2 className="text-3xl font-bold text-gray-900">개발자 콘솔</h2>
-                            <p className="text-gray-500">내 에이전트의 실시간 상태와 API 지표를 확인합니다.</p>
-                        </div>
-                        <button className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-blue-700">
-                            <Plus size={16} /> 신규 에이전트 생성
-                        </button>
-                    </div>
+            const DeveloperConsole = () => {
+                const [activeMenu, setActiveMenu] = useState('대시보드');
+                const [showCreateModal, setShowCreateModal] = useState(false);
+                
+                // LNB Items
+                const menuItems = [
+                    { id: '대시보드', icon: Activity, label: '대시보드' },
+                    { id: '내 커넥터', icon: Database, label: '내 커넥터' },
+                    { id: '내 에이전트', icon: Bot, label: '내 에이전트' },
+                    { id: '내 워크플로우', icon: GitBranch, label: '내 워크플로우' },
+                    { id: '내 크리덴셜', icon: Key, label: '내 크리덴셜' },
+                ];
 
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                        {[
-                            { label: '활성 에이전트', value: '12', trend: '+2' },
-                            { label: '총 API 호출', value: '1.2M', trend: '15%' },
-                            { label: '평균 응답 속도', value: '0.8s', trend: '-0.1s' },
-                            { label: '이번 달 비용', value: '$245.20', trend: '$42' },
-                        ].map((stat, i) => (
-                            <div key={i} className="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
-                                <p className="text-sm text-gray-500 font-medium">{stat.label}</p>
-                                <p className="text-2xl font-bold text-gray-900 mt-1">{stat.value}</p>
-                                <p className="text-xs text-green-600 mt-2 font-semibold">▲ {stat.trend} from last month</p>
+                // --- Helper Components ---
+                const CreateSelectionModal = ({ onClose }) => (
+                    <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
+                        <div className="bg-white rounded-2xl shadow-2xl w-full max-w-3xl overflow-hidden relative" onClick={e => e.stopPropagation()}>
+                            <div className="p-8">
+                                <div className="flex justify-between items-start mb-6">
+                                    <div>
+                                        <h2 className="text-2xl font-bold text-gray-900">새로운 리소스 생성</h2>
+                                        <p className="text-gray-500 mt-1">생성할 리소스의 유형을 선택하세요.</p>
+                                    </div>
+                                    <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded-full transition-colors"><X size={24} className="text-gray-400"/></button>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                    {[
+                                        { title: '커넥터', icon: Database, desc: 'API, DB 등 외부 데이터 소스를 연결합니다.', color: 'bg-blue-50 text-blue-600' },
+                                        { title: '에이전트', icon: Bot, desc: '특정 작업을 수행하는 AI 봇을 생성합니다.', color: 'bg-purple-50 text-purple-600' },
+                                        { title: '워크플로우', icon: GitBranch, desc: '여러 작업을 연결하여 자동화합니다.', color: 'bg-orange-50 text-orange-600' },
+                                    ].map((opt, i) => (
+                                        <button key={i} className="group flex flex-col items-start p-6 rounded-xl border border-gray-200 hover:border-blue-500 hover:shadow-md transition-all text-left bg-gray-50/30 hover:bg-white">
+                                            <div className={`p-3 rounded-lg mb-4 ${opt.color}`}>
+                                                <opt.icon size={24} />
+                                            </div>
+                                            <h3 className="font-bold text-lg text-gray-900 mb-2 group-hover:text-blue-600">{opt.title}</h3>
+                                            <p className="text-sm text-gray-500 leading-relaxed mb-4">{opt.desc}</p>
+                                            <div className="mt-auto flex items-center text-sm font-bold text-gray-400 group-hover:text-blue-600">
+                                                생성하기 <ArrowRight size={16} className="ml-1"/>
+                                            </div>
+                                        </button>
+                                    ))}
+                                </div>
                             </div>
-                        ))}
+                            <div className="bg-gray-50 p-4 border-t border-gray-100 flex justify-end">
+                                <button onClick={onClose} className="text-gray-500 font-medium text-sm hover:text-gray-900 px-4 py-2">취소</button>
+                            </div>
+                        </div>
                     </div>
+                );
 
-                    <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-                        <div className="px-6 py-4 border-b border-gray-50 font-bold text-gray-800">최근 배포된 에이전트</div>
-                        <div className="divide-y divide-gray-50 text-sm">
-                            {[
-                                { name: 'Customer Support Bot', status: 'Running', model: 'Gemini 2.0 Flash', calls: '824,102' },
-                                { name: 'Content Summarizer', status: 'Paused', model: 'GPT-4o', calls: '12,500' },
-                                { name: 'Sales Assistant', status: 'Running', model: 'Claude 3.5 Sonnet', calls: '45,200' },
-                            ].map((agent, i) => (
-                                <div key={i} className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 transition-colors cursor-pointer">
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-2.5 h-2.5 rounded-full ${agent.status === 'Running' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                // --- Sub Views ---
+                
+                const DashboardView = () => (
+                    <div className="space-y-6 animate-fade-in">
+                        <div className="flex justify-between items-end">
+                            <div>
+                                <h2 className="text-2xl font-bold text-gray-900">대시보드</h2>
+                                <p className="text-gray-500 text-sm">내 서비스의 실시간 상태를 확인합니다.</p>
+                            </div>
+                            <button 
+                                onClick={() => setShowCreateModal(true)}
+                                className="bg-blue-600 text-white px-4 py-2 rounded-lg text-sm font-medium flex items-center gap-2 hover:bg-blue-700 transition-colors shadow-sm"
+                            >
+                                <Plus size={16} /> 빠른 생성
+                            </button>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                             {[
+                                { label: '활성 서비스', value: '18', trend: '+3' },
+                                { label: '금일 API 호출', value: '142.5k', trend: '12%' },
+                                { label: '평균 응답 시간', value: '420ms', trend: '-50ms' },
+                                { label: '예상 청구액', value: '₩125,000', trend: '₩12k' },
+                            ].map((stat, i) => (
+                                <div key={i} className="bg-white p-5 rounded-xl border border-gray-100 shadow-sm">
+                                    <p className="text-xs text-gray-500 font-medium uppercase">{stat.label}</p>
+                                    <p className="text-2xl font-bold text-gray-900 mt-2">{stat.value}</p>
+                                    <p className="text-xs text-green-600 mt-2 font-semibold">▲ {stat.trend}</p>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="bg-white rounded-xl border border-gray-100 shadow-sm overflow-hidden">
+                             <div className="px-6 py-4 border-b border-gray-50 font-bold text-gray-800 text-sm">실시간 시스템 로그</div>
+                             <div className="p-6 text-sm font-mono text-gray-500 space-y-2 bg-gray-50/50">
+                                <div className="flex gap-4"><span className="text-gray-400">14:20:01</span> <span className="text-blue-600">[INFO]</span> Agent "ReviewBot" deployed successfully.</div>
+                                <div className="flex gap-4"><span className="text-gray-400">14:18:42</span> <span className="text-green-600">[SUCCESS]</span> Workflow "Daily Sync" completed in 2.4s.</div>
+                                <div className="flex gap-4"><span className="text-gray-400">14:15:10</span> <span className="text-yellow-600">[WARN]</span> High latency detected in "Nexon OpenAPI".</div>
+                             </div>
+                        </div>
+                    </div>
+                );
+
+                const ConnectorsView = () => {
+                    const [activeTab, setActiveTab] = useState('전체');
+                    const tabs = ['전체', 'MCP', 'RAG', 'Public API', 'Private API', 'Admin API', 'Sandbox API', 'NXCommand'];
+                    
+                    const connectors = [
+                        { name: 'Nexon User Info', type: 'Private API', status: 'Active', endpt: '/api/v1/user' },
+                        { name: 'Maple Inventory', type: 'Sandbox API', status: 'Dev', endpt: '/sandbox/maple/inv' },
+                        { name: 'Slack Notifier', type: 'MCP', status: 'Active', endpt: 'mcp://slack-bot' },
+                        { name: 'Internal Wiki RAG', type: 'RAG', status: 'Indexing', endpt: 'vec://wiki-prod' },
+                        { name: 'Global Weather', type: 'Public API', status: 'Active', endpt: 'api.weather.com' },
+                        { name: 'Server Restart Cmd', type: 'NXCommand', status: 'Active', endpt: 'cmd://restart-server' },
+                    ];
+
+                    const filtered = activeTab === '전체' ? connectors : connectors.filter(c => c.type === activeTab);
+
+                    return (
+                        <div className="space-y-6 animate-fade-in">
+                            <h2 className="text-2xl font-bold text-gray-900">내 커넥터</h2>
+                            {/* Tabs */}
+                            <div className="flex gap-2 overflow-x-auto pb-2 border-b border-gray-100 no-scrollbar">
+                                {tabs.map(tab => (
+                                    <button 
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${
+                                            activeTab === tab ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        {tab}
+                                    </button>
+                                ))}
+                            </div>
+                            {/* Grid */}
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {filtered.map((item, idx) => (
+                                    <div key={idx} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition-all flex flex-col gap-3">
+                                        <div className="flex justify-between items-start">
+                                            <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
+                                                item.type === 'MCP' ? 'bg-purple-100 text-purple-700' : 
+                                                item.type === 'RAG' ? 'bg-orange-100 text-orange-700' : 
+                                                item.type === 'NXCommand' ? 'bg-red-100 text-red-700' : 'bg-blue-100 text-blue-700'
+                                            }`}>{item.type}</span>
+                                            <div className={`w-2 h-2 rounded-full ${item.status === 'Active' ? 'bg-green-500' : 'bg-yellow-400'}`}></div>
+                                        </div>
                                         <div>
-                                            <div className="font-semibold text-gray-900">{agent.name}</div>
-                                            <div className="text-xs text-gray-400">{agent.model}</div>
+                                            <h3 className="font-bold text-gray-900">{item.name}</h3>
+                                            <p className="text-xs text-gray-400 font-mono mt-1 truncate">{item.endpt}</p>
+                                        </div>
+                                        <div className="mt-auto pt-3 border-t border-gray-50 flex justify-end gap-2">
+                                            <button className="text-xs font-medium text-gray-500 hover:text-gray-900">Config</button>
+                                            <button className="text-xs font-medium text-blue-600 hover:underline">Test</button>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <div className="text-gray-600 font-medium">{agent.calls} calls</div>
-                                        <div className="text-xs text-blue-600 hover:underline">상세보기</div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                };
+
+                const AgentsView = () => {
+                    const [activeTab, setActiveTab] = useState('전체');
+                    const tabs = ['전체', 'Custom', 'AI Studio', 'Gemini', 'Snowflake', 'ChatGPT', 'Claude'];
+                    
+                    const agents = [
+                        { name: 'CS Responder', vendor: 'Gemini', model: 'Gemini 2.5 Flash', status: 'Running' },
+                        { name: 'Data Analyst', vendor: 'Snowflake', model: 'Cortex Llama', status: 'Paused' },
+                        { name: 'Creative Writer', vendor: 'Claude', model: 'Claude 3.5 Sonnet', status: 'Running' },
+                        { name: 'Legacy Bot', vendor: 'Custom', model: 'In-house BERT', status: 'Stopped' },
+                    ];
+
+                    const filtered = activeTab === '전체' ? agents : agents.filter(a => a.vendor === activeTab);
+
+                    return (
+                        <div className="space-y-6 animate-fade-in">
+                            <h2 className="text-2xl font-bold text-gray-900">내 에이전트</h2>
+                            <div className="flex gap-2 overflow-x-auto pb-2 border-b border-gray-100 no-scrollbar">
+                                {tabs.map(tab => (
+                                    <button 
+                                        key={tab}
+                                        onClick={() => setActiveTab(tab)}
+                                        className={`px-3 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-colors ${
+                                            activeTab === tab ? 'bg-gray-900 text-white' : 'bg-gray-100 text-gray-500 hover:bg-gray-200'
+                                        }`}
+                                    >
+                                        {tab}
+                                    </button>
+                                ))}
+                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                {filtered.map((item, idx) => (
+                                    <div key={idx} className="bg-white p-5 rounded-xl border border-gray-200 shadow-sm hover:border-blue-300 transition-all group">
+                                        <div className="flex items-center gap-3 mb-3">
+                                            <div className="w-10 h-10 bg-gray-50 rounded-lg flex items-center justify-center text-xl">
+                                                {item.vendor === 'Gemini' ? '✨' : item.vendor === 'Claude' ? '🧠' : item.vendor === 'Snowflake' ? '❄️' : '🤖'}
+                                            </div>
+                                            <div>
+                                                <h3 className="font-bold text-gray-900 group-hover:text-blue-600 transition-colors">{item.name}</h3>
+                                                <p className="text-xs text-gray-500">{item.vendor} • {item.model}</p>
+                                            </div>
+                                        </div>
+                                        <div className="flex justify-between items-center text-xs mt-2">
+                                            <span className={`px-2 py-0.5 rounded ${item.status === 'Running' ? 'bg-green-50 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                                                {item.status}
+                                            </span>
+                                            <button className="text-gray-400 hover:text-gray-900"><Settings size={14}/></button>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    );
+                };
+
+                const WorkflowsView = () => (
+                    <div className="space-y-6 animate-fade-in">
+                        <div className="flex justify-between items-center">
+                            <h2 className="text-2xl font-bold text-gray-900">내 워크플로우</h2>
+                            <div className="flex gap-2 text-sm text-gray-500 bg-gray-100 p-1 rounded-lg">
+                                <button className="px-3 py-1 bg-white shadow-sm rounded-md text-gray-900 font-medium">전체</button>
+                                <button className="px-3 py-1 hover:text-gray-900">Active</button>
+                                <button className="px-3 py-1 hover:text-gray-900">Draft</button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {[
+                                { name: 'Email Summary to Slack', nodes: 5, runs: 120, status: 'Active' },
+                                { name: 'Jira Issue Classifier', nodes: 12, runs: 450, status: 'Active' },
+                                { name: 'Weekly Report Generator', nodes: 8, runs: 4, status: 'Draft' },
+                            ].map((wf, idx) => (
+                                <div key={idx} className="bg-white border border-gray-200 rounded-xl p-0 overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer">
+                                    <div className="h-32 bg-gray-50 relative p-4 flex items-center justify-center overflow-hidden">
+                                        {/* Mock Flow Visual */}
+                                        <div className="absolute inset-0 opacity-20" style={{backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '10px 10px'}}></div>
+                                        <div className="flex items-center gap-2 relative z-10">
+                                            <div className="w-8 h-8 bg-white rounded shadow-sm border border-gray-200 flex items-center justify-center text-xs">Trigger</div>
+                                            <div className="w-4 h-0.5 bg-gray-300"></div>
+                                            <div className="w-8 h-8 bg-blue-500 rounded shadow-sm flex items-center justify-center text-white text-xs">LLM</div>
+                                            <div className="w-4 h-0.5 bg-gray-300"></div>
+                                            <div className="w-8 h-8 bg-white rounded shadow-sm border border-gray-200 flex items-center justify-center text-xs">Act</div>
+                                        </div>
+                                    </div>
+                                    <div className="p-4">
+                                        <div className="flex justify-between items-start mb-2">
+                                            <h3 className="font-bold text-gray-900">{wf.name}</h3>
+                                            <div className={`w-2 h-2 rounded-full mt-1.5 ${wf.status === 'Active' ? 'bg-green-500' : 'bg-gray-300'}`}></div>
+                                        </div>
+                                        <div className="flex items-center gap-4 text-xs text-gray-500">
+                                            <span className="flex items-center gap-1"><Layers size={12}/> {wf.nodes} Nodes</span>
+                                            <span className="flex items-center gap-1"><Play size={12}/> {wf.runs} Runs</span>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </div>
-                </div>
-            );
+                );
+
+                const CredentialsView = () => (
+                    <div className="space-y-6 animate-fade-in">
+                        <h2 className="text-2xl font-bold text-gray-900">내 크리덴셜</h2>
+                        <div className="bg-white border border-gray-200 rounded-xl overflow-hidden shadow-sm">
+                            <table className="w-full text-sm text-left">
+                                <thead className="bg-gray-50 text-gray-500 font-medium border-b border-gray-200">
+                                    <tr>
+                                        <th className="px-6 py-4">Name</th>
+                                        <th className="px-6 py-4">Key Prefix</th>
+                                        <th className="px-6 py-4">Created</th>
+                                        <th className="px-6 py-4">Last Used</th>
+                                        <th className="px-6 py-4 text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-gray-100">
+                                    {[
+                                        { name: 'Prod API Key', prefix: 'nk_prod_...', created: '2025-01-10', used: 'Just now' },
+                                        { name: 'Dev Test Key', prefix: 'nk_dev_...', created: '2025-02-15', used: '2 days ago' },
+                                        { name: 'Legacy Key 2024', prefix: 'nk_old_...', created: '2024-11-20', used: 'Inactive' },
+                                    ].map((key, i) => (
+                                        <tr key={i} className="hover:bg-gray-50">
+                                            <td className="px-6 py-4 font-medium text-gray-900 flex items-center gap-2">
+                                                <ShieldCheck size={16} className="text-blue-500"/>
+                                                {key.name}
+                                            </td>
+                                            <td className="px-6 py-4 font-mono text-gray-500">{key.prefix}</td>
+                                            <td className="px-6 py-4 text-gray-500">{key.created}</td>
+                                            <td className="px-6 py-4 text-gray-500">{key.used}</td>
+                                            <td className="px-6 py-4 text-right">
+                                                <button className="text-gray-400 hover:text-blue-600 transition-colors"><Copy size={16}/></button>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            <div className="p-4 border-t border-gray-100 bg-gray-50 flex justify-end">
+                                <button className="bg-gray-900 text-white px-4 py-2 rounded-lg text-sm font-bold hover:bg-gray-800">
+                                    새 키 발급받기
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                );
+
+                const renderSubContent = () => {
+                    switch(activeMenu) {
+                        case '내 커넥터': return <ConnectorsView />;
+                        case '내 에이전트': return <AgentsView />;
+                        case '내 워크플로우': return <WorkflowsView />;
+                        case '내 크리덴셜': return <CredentialsView />;
+                        default: return <DashboardView />;
+                    }
+                };
+
+                return (
+                    <div className="flex flex-col md:flex-row gap-8 animate-in min-h-[600px] mt-8">
+                        {showCreateModal && <CreateSelectionModal onClose={() => setShowCreateModal(false)} />}
+                        
+                        {/* LNB Sidebar */}
+                        <aside className="w-full md:w-64 shrink-0">
+                            <div className="bg-white rounded-2xl border border-gray-200 p-3 shadow-sm sticky top-24">
+                                <div className="text-xs font-bold text-gray-400 px-3 py-2 uppercase mb-1">Menu</div>
+                                <nav className="space-y-1">
+                                    {menuItems.map((item) => (
+                                        <button
+                                            key={item.id}
+                                            onClick={() => setActiveMenu(item.id)}
+                                            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
+                                                activeMenu === item.id 
+                                                ? 'bg-blue-50 text-blue-700 shadow-sm' 
+                                                : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+                                            }`}
+                                        >
+                                            <item.icon size={18} className={activeMenu === item.id ? 'text-blue-600' : 'text-gray-400'} />
+                                            {item.label}
+                                            {activeMenu === item.id && <ChevronRight size={14} className="ml-auto text-blue-400"/>}
+                                        </button>
+                                    ))}
+                                </nav>
+                                
+                                <div className="mt-6 pt-6 border-t border-gray-100 px-3 pb-2">
+                                    <div className="bg-gray-900 rounded-xl p-4 text-white">
+                                        <div className="flex items-center gap-2 mb-2">
+                                            <BookOpen size={16} className="text-blue-400"/>
+                                            <div className="font-bold text-sm">개발자 가이드</div>
+                                        </div>
+                                        <p className="text-xs text-gray-400 mb-3 leading-relaxed">
+                                            Agent Hub의 모든 기능을<br/>완벽하게 활용해보세요.
+                                        </p>
+                                        <button className="w-full bg-white/10 hover:bg-white/20 text-xs py-2 rounded-lg transition-colors border border-white/10 font-bold flex items-center justify-center gap-1">
+                                            문서 보기 <ExternalLink size={10}/>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        </aside>
+
+                        {/* Main Content Area */}
+                        <section className="flex-1 min-w-0">
+                             {renderSubContent()}
+                        </section>
+                    </div>
+                );
+            };
 
             const AINews = () => (
                 <div className="space-y-8 animate-in">
@@ -566,7 +868,8 @@
                 </div>
             );
 
-            const AIWorkflow = () => (
+            // ... (AIWorkflow, AIStudio, IntegrationGuide remains the same)
+             const AIWorkflow = () => (
                 <div className="space-y-8 animate-in">
                     <div>
                         <h2 className="text-3xl font-bold text-gray-900">AI 워크플로우</h2>
