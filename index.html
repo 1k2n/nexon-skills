@@ -465,6 +465,7 @@
 
             const ConnectorsView = () => {
                 const [activeTab, setActiveTab] = useState('전체');
+                const [searchQuery, setSearchQuery] = useState('');
                 const tabs = ['전체', 'MCP', 'RAG', 'Public API', 'Private API', 'Admin API', 'Sandbox API', 'NXCommand'];
                 
                 const connectors = [
@@ -476,7 +477,10 @@
                     { name: 'Server Restart Cmd', type: 'NXCommand', status: 'Active', endpt: 'cmd://restart-server' },
                 ];
 
-                const filtered = activeTab === '전체' ? connectors : connectors.filter(c => c.type === activeTab);
+                const filtered = connectors.filter(c => 
+                    (activeTab === '전체' || c.type === activeTab) &&
+                    c.name.toLowerCase().includes(searchQuery.toLowerCase())
+                );
 
                 return (
                     <div className="space-y-6 animate-fade-in">
@@ -486,6 +490,17 @@
                                 MCP 및 RAG 기반의 차세대 연결 방식은 물론, 기존 API와 NXCommand 실행까지 지원합니다.<br className="hidden md:block"/> 
                                 파편화된 데이터 파이프라인을 단일 허브에서 통합 관리하세요.
                             </p>
+                        </div>
+                        {/* Search Bar */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                            <input 
+                                type="text" 
+                                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="커넥터 이름을 검색하세요..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
                         </div>
                         <div className="flex gap-2 overflow-x-auto pb-2 border-b border-gray-100 no-scrollbar">
                             {tabs.map(tab => (
@@ -528,6 +543,7 @@
 
             const AgentsView = () => {
                 const [activeTab, setActiveTab] = useState('전체');
+                const [searchQuery, setSearchQuery] = useState('');
                 const tabs = ['전체', 'Custom', 'AI Studio', 'Gemini', 'Snowflake', 'ChatGPT', 'Claude'];
                 
                 const agents = [
@@ -537,7 +553,10 @@
                     { name: 'Legacy Bot', vendor: 'Custom', model: 'In-house BERT', status: 'Stopped' },
                 ];
 
-                const filtered = activeTab === '전체' ? agents : agents.filter(a => a.vendor === activeTab);
+                const filtered = agents.filter(a => 
+                    (activeTab === '전체' || a.vendor === activeTab) &&
+                    a.name.toLowerCase().includes(searchQuery.toLowerCase())
+                );
 
                 return (
                     <div className="space-y-6 animate-fade-in">
@@ -547,6 +566,17 @@
                                 직접 개발한 Custom 봇, AI 스튜디오의 창작물, 그리고 주요 벤더의 상용 에이전트까지.<br className="hidden md:block"/>
                                 흩어져 있는 AI 리소스를 한 곳에서 조회하고 제어할 수 있습니다.
                             </p>
+                        </div>
+                        {/* Search Bar */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                            <input 
+                                type="text" 
+                                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="에이전트 이름을 검색하세요..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
                         </div>
                         <div className="flex gap-2 overflow-x-auto pb-2 border-b border-gray-100 no-scrollbar">
                             {tabs.map(tab => (
@@ -587,6 +617,20 @@
             };
 
             const WorkflowsView = () => {
+                const [searchQuery, setSearchQuery] = useState('');
+                const [activeFilter, setActiveFilter] = useState('전체');
+
+                const workflows = [
+                    { name: 'Email Summary to Slack', nodes: 5, runs: 120, status: 'Active' },
+                    { name: 'Jira Issue Classifier', nodes: 12, runs: 450, status: 'Active' },
+                    { name: 'Weekly Report Generator', nodes: 8, runs: 4, status: 'Draft' },
+                ];
+
+                const filtered = workflows.filter(wf => 
+                    (activeFilter === '전체' || wf.status === activeFilter) &&
+                    wf.name.toLowerCase().includes(searchQuery.toLowerCase())
+                );
+
                 return (
                     <div className="space-y-6 animate-fade-in">
                         <div className="flex justify-between items-end">
@@ -598,17 +642,39 @@
                                 </p>
                             </div>
                             <div className="flex gap-2 text-sm text-gray-500 bg-gray-100 p-1 rounded-lg shrink-0">
-                                <button className="px-3 py-1 bg-white shadow-sm rounded-md text-gray-900 font-medium">전체</button>
-                                <button className="px-3 py-1 hover:text-gray-900">Active</button>
-                                <button className="px-3 py-1 hover:text-gray-900">Draft</button>
+                                <button 
+                                    onClick={() => setActiveFilter('전체')}
+                                    className={`px-3 py-1 rounded-md font-medium transition-colors ${activeFilter === '전체' ? 'bg-white shadow-sm text-gray-900' : 'hover:text-gray-900'}`}
+                                >
+                                    전체
+                                </button>
+                                <button 
+                                    onClick={() => setActiveFilter('Active')}
+                                    className={`px-3 py-1 rounded-md font-medium transition-colors ${activeFilter === 'Active' ? 'bg-white shadow-sm text-gray-900' : 'hover:text-gray-900'}`}
+                                >
+                                    Active
+                                </button>
+                                <button 
+                                    onClick={() => setActiveFilter('Draft')}
+                                    className={`px-3 py-1 rounded-md font-medium transition-colors ${activeFilter === 'Draft' ? 'bg-white shadow-sm text-gray-900' : 'hover:text-gray-900'}`}
+                                >
+                                    Draft
+                                </button>
                             </div>
                         </div>
+                        {/* Search Bar */}
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" size={18} />
+                            <input 
+                                type="text" 
+                                className="w-full pl-10 pr-4 py-2 border border-gray-200 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                                placeholder="워크플로우 이름을 검색하세요..."
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                            />
+                        </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {[
-                                { name: 'Email Summary to Slack', nodes: 5, runs: 120, status: 'Active' },
-                                { name: 'Jira Issue Classifier', nodes: 12, runs: 450, status: 'Active' },
-                                { name: 'Weekly Report Generator', nodes: 8, runs: 4, status: 'Draft' },
-                            ].map((wf, idx) => (
+                            {filtered.map((wf, idx) => (
                                 <div key={idx} className="bg-white border border-gray-200 rounded-xl p-0 overflow-hidden shadow-sm hover:shadow-md transition-all cursor-pointer">
                                     <div className="h-32 bg-gray-50 relative p-4 flex items-center justify-center overflow-hidden">
                                         <div className="absolute inset-0 opacity-20" style={{backgroundImage: 'radial-gradient(#cbd5e1 1px, transparent 1px)', backgroundSize: '10px 10px'}}></div>
@@ -736,241 +802,6 @@
                     <section className="flex-1 min-w-0">
                             {renderSubContent()}
                     </section>
-                </div>
-            );
-        };
-
-        const AINews = () => (
-            <div className="space-y-8 animate-in">
-                <div className="border-b border-gray-200 pb-4">
-                    <h2 className="text-3xl font-bold text-gray-900">AI 뉴스</h2>
-                    <p className="text-gray-500">전 세계의 혁신적인 AI 소식을 선별하여 전달합니다.</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {[
-                        { category: 'Model Update', title: 'OpenAI, 추론 능력이 비약적으로 상승한 신모델 출시', date: '1시간 전' },
-                        { category: 'Industry', title: '엔비디아, 차세대 블랙웰 칩 생산량 확대 발표', date: '3시간 전' },
-                        { category: 'Tutorial', title: 'RAG 아키텍처를 최적화하는 5가지 핵심 기법', date: '어제' },
-                        { category: 'Community', title: 'Agent Hub 개발자 밋업: 서울 2026 참가 신청 안내', date: '2일 전' },
-                    ].map((news, i) => (
-                        <div key={i} className="group cursor-pointer">
-                            <NewsThumbnail category={news.category} />
-                            <p className="text-xs text-gray-400 mb-2">{news.date}</p>
-                            <h3 className="text-xl font-bold text-gray-900 leading-snug group-hover:text-blue-600 transition-colors">
-                                {news.title}
-                            </h3>
-                        </div>
-                    ))}
-                </div>
-            </div>
-        );
-
-        const AIWorkflow = () => (
-            <div className="space-y-8 animate-in">
-                <div>
-                    <h2 className="text-3xl font-bold text-gray-900">AI 워크플로우</h2>
-                    <p className="text-gray-500">복잡한 업무 프로세스를 자동화 에이전트로 연결하세요.</p>
-                </div>
-                <div className="bg-gray-900 rounded-3xl p-10 text-white relative overflow-hidden">
-                    <div className="relative z-10 flex flex-col md:flex-row items-center gap-12">
-                        <div className="space-y-6 flex-1">
-                            <h3 className="text-3xl font-bold">비주얼 빌더로 <br />쉽게 설계하세요.</h3>
-                            <p className="text-gray-400 leading-relaxed">
-                                드래그 앤 드롭으로 트리거를 설정하고, LLM과 커스텀 툴을 연결하여 완벽한 자동화 시나리오를 구성할 수 있습니다.
-                            </p>
-                            <button className="bg-blue-500 hover:bg-blue-600 px-6 py-3 rounded-xl font-bold transition-colors">
-                                새 워크플로우 만들기
-                            </button>
-                        </div>
-                        <div className="flex-1 w-full bg-white/10 backdrop-blur-md rounded-2xl border border-white/20 p-6 space-y-4">
-                            <div className="flex items-center gap-3 bg-white/10 p-3 rounded-lg border border-white/10">
-                                <div className="p-2 bg-blue-500 rounded-md"><MessageSquare size={16}/></div>
-                                <div className="text-sm font-medium">Customer Inbound</div>
-                            </div>
-                            <div className="flex justify-center"><ArrowRight size={20} className="rotate-90 text-white/30"/></div>
-                            <div className="flex items-center gap-3 bg-white/10 p-3 rounded-lg border border-white/10">
-                                <div className="p-2 bg-purple-500 rounded-md"><Cpu size={16}/></div>
-                                <div className="text-sm font-medium">Analyze Sentiment (LLM)</div>
-                            </div>
-                            <div className="flex justify-center"><ArrowRight size={20} className="rotate-90 text-white/30"/></div>
-                            <div className="flex items-center gap-3 bg-white/10 p-3 rounded-lg border border-white/10">
-                                <div className="p-2 bg-green-500 rounded-md"><Bell size={16}/></div>
-                                <div className="text-sm font-medium">Route to Slack/Email</div>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/20 blur-[100px] -z-0"></div>
-                </div>
-            </div>
-        );
-
-        const AIStudio = () => {
-            const [activeMode, setActiveMode] = useState('text'); // text, image, video
-            const [attachments, setAttachments] = useState([]);
-
-            return (
-                <div className="space-y-6 animate-in h-[calc(100vh-200px)] flex flex-col">
-                    {/* Header Controls */}
-                    <div className="flex justify-between items-center bg-white p-4 rounded-2xl border border-gray-200 shadow-sm">
-                        <div className="flex items-center gap-4">
-                            <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
-                                AI 스튜디오 <span className="text-sm font-normal text-gray-400 px-2 border-l border-gray-200">Multimodal Sandbox</span>
-                            </h2>
-                        </div>
-                        <div className="flex gap-3">
-                            <div className="flex bg-gray-100 p-1 rounded-lg">
-                                {['text', 'image', 'video'].map(m => (
-                                    <button 
-                                        key={m}
-                                        onClick={() => setActiveMode(m)}
-                                        className={`px-4 py-2 rounded-md text-sm font-bold capitalize transition-all ${activeMode === m ? 'bg-white text-blue-600 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}
-                                    >
-                                        {m}
-                                    </button>
-                                ))}
-                            </div>
-                            <div className="h-full w-[1px] bg-gray-200 mx-2"></div>
-                            <select className="bg-white border border-gray-200 rounded-lg px-4 py-2 text-sm font-medium focus:ring-2 focus:ring-blue-500 outline-none">
-                                <option>Gemini 2.5 Pro (Multimodal)</option>
-                                <option>GPT-4o</option>
-                                <option>Claude 3.5 Sonnet</option>
-                            </select>
-                        </div>
-                    </div>
-
-                    <div className="flex-1 flex gap-6 overflow-hidden">
-                        {/* Left Panel: Inputs & Configuration */}
-                        <div className="w-1/3 flex flex-col gap-4">
-                            {/* Context/System Prompt */}
-                            <div className="bg-white rounded-2xl border border-gray-200 flex-1 flex flex-col shadow-sm overflow-hidden">
-                                <div className="p-4 border-b border-gray-100 flex justify-between items-center bg-gray-50">
-                                    <span className="text-xs font-bold uppercase text-gray-500 flex items-center gap-2">
-                                        <Settings size={14}/> System Instructions
-                                    </span>
-                                </div>
-                                <textarea 
-                                    className="flex-1 p-4 text-sm focus:outline-none resize-none leading-relaxed text-gray-700"
-                                    placeholder="AI의 역할과 행동 지침을 정의하세요..."
-                                    defaultValue="당신은 시각적 데이터를 분석하고 창의적인 솔루션을 제안하는 멀티모달 AI 전문가입니다."
-                                ></textarea>
-                            </div>
-
-                            {/* Multimodal Input Zone */}
-                            <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm">
-                                <div className="text-xs font-bold uppercase text-gray-500 mb-3 flex items-center gap-2">
-                                    <UploadCloud size={14}/> Input Data
-                                </div>
-                                <div className="border-2 border-dashed border-gray-200 rounded-xl p-6 flex flex-col items-center justify-center text-center hover:border-blue-400 hover:bg-blue-50 transition-colors cursor-pointer group">
-                                    <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center mb-3 group-hover:bg-white transition-colors">
-                                        {activeMode === 'video' ? <Video size={24} className="text-gray-400 group-hover:text-blue-500"/> : <Image size={24} className="text-gray-400 group-hover:text-blue-500"/>}
-                                    </div>
-                                    <p className="text-sm font-bold text-gray-700">
-                                        {activeMode === 'video' ? '영상 업로드' : '이미지 업로드'}
-                                    </p>
-                                    <p className="text-xs text-gray-400 mt-1">드래그 앤 드롭 또는 클릭하여 업로드</p>
-                                </div>
-                                
-                                {/* Mock Attached Files */}
-                                <div className="mt-4 space-y-2">
-                                    <div className="flex items-center gap-3 p-2 bg-gray-50 rounded-lg border border-gray-100">
-                                        <div className="w-10 h-10 bg-gray-200 rounded-md overflow-hidden relative">
-                                            <div className="absolute inset-0 flex items-center justify-center text-xs font-bold text-gray-500">IMG</div>
-                                        </div>
-                                        <div className="flex-1 min-w-0">
-                                            <p className="text-xs font-bold text-gray-700 truncate">sample_product_design.png</p>
-                                            <p className="text-[10px] text-gray-400">2.4 MB</p>
-                                        </div>
-                                        <button className="text-gray-400 hover:text-red-500"><X size={14}/></button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        {/* Right Panel: Interactive Playground / Preview */}
-                        <div className="flex-1 bg-gray-50 rounded-2xl border border-gray-200 flex flex-col shadow-inner overflow-hidden relative">
-                            {/* Chat Area */}
-                            <div className="flex-1 p-6 space-y-6 overflow-y-auto">
-                                {/* User Message */}
-                                <div className="flex justify-end">
-                                    <div className="flex flex-col items-end gap-2 max-w-[80%]">
-                                        <div className="bg-white p-2 rounded-xl border border-gray-200 shadow-sm">
-                                            {/* User uploaded image preview in chat */}
-                                            <div className="w-48 h-32 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 mb-2">
-                                                <Image size={32}/>
-                                            </div>
-                                        </div>
-                                        <div className="bg-white border border-gray-200 px-4 py-3 rounded-2xl rounded-tr-none text-sm shadow-sm text-gray-800">
-                                            이 제품 디자인의 개선점을 분석하고, 더 모던한 스타일로 변형해줘.
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* AI Response */}
-                                <div className="flex justify-start">
-                                    <div className="flex flex-col items-start gap-2 max-w-[80%]">
-                                        <div className="flex items-center gap-2 mb-1">
-                                            <div className="w-6 h-6 rounded-full bg-gradient-to-r from-blue-500 to-purple-500 flex items-center justify-center text-white text-[10px] font-bold">AI</div>
-                                            <span className="text-xs font-bold text-gray-500">Gemini</span>
-                                        </div>
-                                        <div className="bg-white border border-gray-200 px-4 py-3 rounded-2xl rounded-tl-none text-sm shadow-sm text-gray-800">
-                                            <p className="mb-3">업로드하신 디자인은 미니멀하지만, 색상 대비가 부족하여 시인성이 낮습니다. 다음과 같이 개선을 제안합니다:</p>
-                                            <ul className="list-disc pl-4 space-y-1 mb-3 text-gray-600">
-                                                <li>메인 액션 버튼에 강조색(Accent Color) 적용</li>
-                                                <li>모서리 라운딩(Radius)을 12px에서 24px로 증가</li>
-                                                <li>그림자(Shadow) 심도를 낮춰 플랫한 느낌 강화</li>
-                                            </ul>
-                                            <p>제안 사항을 반영하여 생성한 시안입니다.</p>
-                                        </div>
-                                        {/* AI Generated Image */}
-                                        <div className="bg-white p-2 rounded-xl border border-gray-200 shadow-sm mt-1 group cursor-pointer relative overflow-hidden">
-                                            <div className="w-64 h-48 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-lg flex items-center justify-center">
-                                                {/* Abstract Graphic */}
-                                                <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-50">
-                                                    <rect x="20" y="20" width="60" height="60" rx="8" fill="#4F46E5" opacity="0.2"/>
-                                                    <circle cx="70" cy="30" r="5" fill="#4F46E5"/>
-                                                    <rect x="30" y="40" width="40" height="4" rx="2" fill="#4F46E5" opacity="0.6"/>
-                                                    <rect x="30" y="50" width="30" height="4" rx="2" fill="#4F46E5" opacity="0.4"/>
-                                                    <rect x="30" y="70" width="20" height="8" rx="4" fill="#4F46E5"/>
-                                                </svg>
-                                            </div>
-                                            <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100">
-                                                <Maximize2 className="text-white drop-shadow-md"/>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-
-                            {/* Prompt Input Area */}
-                            <div className="p-4 bg-white border-t border-gray-200">
-                                <div className="relative">
-                                    <textarea 
-                                        rows="1"
-                                        className="w-full bg-gray-50 border border-gray-200 rounded-xl pl-4 pr-12 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500/50 resize-none"
-                                        placeholder="메시지를 입력하거나 '/'를 눌러 명령어를 실행하세요..."
-                                    ></textarea>
-                                    <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex items-center gap-1">
-                                        <button className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
-                                            <Mic size={18}/>
-                                        </button>
-                                        <button className="p-1.5 bg-gray-900 text-white rounded-lg hover:bg-gray-800 transition-colors shadow-sm">
-                                            <ArrowRight size={18}/>
-                                        </button>
-                                    </div>
-                                </div>
-                                <div className="flex items-center gap-4 mt-3 px-1">
-                                    <button className="text-xs font-bold text-gray-500 hover:text-gray-900 flex items-center gap-1">
-                                        <Image size={14}/> 이미지 생성
-                                    </button>
-                                    <button className="text-xs font-bold text-gray-500 hover:text-gray-900 flex items-center gap-1">
-                                        <Video size={14}/> 비디오 분석
-                                    </button>
-                                    <div className="flex-1"></div>
-                                    <span className="text-[10px] text-gray-400">Shift + Enter for new line</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             );
         };
