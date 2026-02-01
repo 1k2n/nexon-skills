@@ -88,6 +88,22 @@
             // Game Selection State
             const [selectedGame, setSelectedGame] = useState('전체 게임');
             const gameList = ['메이플스토리', '마비노기', '던전앤파이터', 'FC온라인', '바람의나라', '카트라이더: 드리프트'];
+            
+            // Scroll Animation State
+            const [showStickySearch, setShowStickySearch] = useState(false);
+
+            useEffect(() => {
+                const handleScroll = () => {
+                    // 300px 이상 스크롤되면 상단 검색바 표시
+                    if (window.scrollY > 300) {
+                        setShowStickySearch(true);
+                    } else {
+                        setShowStickySearch(false);
+                    }
+                };
+                window.addEventListener('scroll', handleScroll);
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, []);
 
             const mainMenus = [
                 { name: '개발자 콘솔', icon: Activity, domain: 'console.hub.nexon.com', desc: '내 에이전트 현황을 한눈에' },
@@ -280,7 +296,7 @@
                 );
             };
 
-            const HomePage = ({ selectedGame, setSelectedGame, gameList }) => {
+            const HomePage = ({ selectedGame, setSelectedGame, gameList, showStickySearch }) => {
                 const initialItems = [
                     { type: 'Agent', title: 'Data Analysis Bot', desc: '복잡한 엑셀 데이터를 자동으로 분석하고 시각화 차트를 생성합니다.', author: 'DataWiz', stars: 1240 },
                     { type: 'Connector', title: 'Notion to Slack', desc: '노션 페이지 변경 사항을 슬랙 채널로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850 },
@@ -358,7 +374,8 @@
                                 통합 플랫폼 Agent Hub입니다.
                             </p>
 
-                            <div className="max-w-4xl mx-auto mt-10 relative z-10">
+                            {/* Main Search Bar (Hero) - Fades out when scrolling */}
+                            <div className={`max-w-4xl mx-auto mt-10 relative z-10 transition-all duration-500 ease-in-out ${showStickySearch ? 'opacity-0 translate-y-[-20px] pointer-events-none' : 'opacity-100 translate-y-0'}`}>
                                 {/* Unified Search Bar Container */}
                                 <div className="flex flex-col md:flex-row items-stretch md:items-center bg-white border border-gray-200 rounded-2xl md:rounded-full shadow-lg p-2 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all hover:shadow-xl">
                                     
@@ -389,7 +406,7 @@
                                             placeholder="필요한 에이전트, 커넥터, 워크플로우를 검색해보세요..."
                                         />
                                         <button 
-                                            onClick={() => !isLoggedIn && setShowLoginScreen(true)}
+                                            // onClick={() => !isLoggedIn && setShowLoginScreen(true)}
                                             className="md:hidden absolute right-2 p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors"
                                         >
                                             <ArrowRight size={18} />
@@ -398,7 +415,7 @@
 
                                     {/* Search Button (Desktop) */}
                                     <button 
-                                        onClick={() => !isLoggedIn && setShowLoginScreen(true)}
+                                        // onClick={() => !isLoggedIn && setShowLoginScreen(true)}
                                         className="hidden md:block px-8 py-3 bg-gray-900 text-white rounded-full font-bold hover:bg-gray-800 transition-colors shadow-md shrink-0 ml-2"
                                     >
                                         검색
@@ -704,7 +721,7 @@ input: '안녕하세요, 오늘 날씨 알려줘!'
                     case 'AI 워크플로우': return <AIWorkflow />;
                     case 'AI 스튜디오': return <AIStudio />;
                     case '통합 가이드': return <IntegrationGuide />;
-                    default: return <HomePage selectedGame={selectedGame} setSelectedGame={setSelectedGame} gameList={gameList} />;
+                    default: return <HomePage selectedGame={selectedGame} setSelectedGame={setSelectedGame} gameList={gameList} showStickySearch={showStickySearch} />;
                 }
             };
 
@@ -715,93 +732,118 @@ input: '안녕하세요, 오늘 날씨 알려줘!'
 
                     {/* Navigation Bar */}
                     <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
-                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-                            <div className="flex justify-between h-16 items-center">
-                                
-                                {/* Logo & Game Selector Section */}
-                                <div className="flex items-center gap-6">
-                                    {/* Logo Section */}
-                                    <div 
-                                        className="flex items-center gap-3 shrink-0 cursor-pointer group relative"
-                                        onClick={() => handleNavClick('홈')}
-                                    >
-                                        <img 
-                                            src="agent_hub.webp" 
-                                            alt="Agent Hub Logo" 
-                                            className="w-8 h-8 object-contain"
-                                            onError={(e) => {
-                                                e.target.style.display = 'none';
-                                                e.target.nextSibling.innerText = "AH (No Img)";
-                                            }}
-                                        />
-                                        <span className="text-xl font-bold tracking-tight text-gray-900">
-                                            Agent Hub
-                                        </span>
-                                        <DomainTooltip title="AI 에이전트 통합 플랫폼" domain="hub.nexon.com" />
-                                    </div>
+                        {/* Main Header Content - High Z-index to cover search bar when hidden */}
+                        <div className="relative z-20 bg-white">
+                            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+                                <div className="flex justify-between h-16 items-center">
                                     
-                                    {/* Moved Game Selector to Main Body */}
-                                </div>
-
-                                {/* Desktop Main Menu */}
-                                <div className="hidden md:flex items-center space-x-1">
-                                    {mainMenus.map((menu) => (
-                                        <div key={menu.name} className="relative group">
-                                            <button
-                                                onClick={() => handleNavClick(menu.name)}
-                                                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
-                                                    currentTab === menu.name 
-                                                    ? 'text-blue-600 bg-blue-50' 
-                                                    : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
-                                                }`}
-                                            >
-                                                {menu.name}
-                                            </button>
-                                            <DomainTooltip title={menu.desc} domain={menu.domain} />
+                                    {/* Logo & Game Selector Section */}
+                                    <div className="flex items-center gap-6">
+                                        {/* Logo Section */}
+                                        <div 
+                                            className="flex items-center gap-3 shrink-0 cursor-pointer group relative"
+                                            onClick={() => handleNavClick('홈')}
+                                        >
+                                            <img 
+                                                src="agent_hub.webp" 
+                                                alt="Agent Hub Logo" 
+                                                className="w-8 h-8 object-contain"
+                                                onError={(e) => {
+                                                    e.target.style.display = 'none';
+                                                    e.target.nextSibling.innerText = "AH (No Img)";
+                                                }}
+                                            />
+                                            <span className="text-xl font-bold tracking-tight text-gray-900">
+                                                Agent Hub
+                                            </span>
+                                            <DomainTooltip title="AI 에이전트 통합 플랫폼" domain="hub.nexon.com" />
                                         </div>
-                                    ))}
-                                </div>
+                                    </div>
 
-                                {/* Right Actions (Desktop) */}
-                                <div className="hidden md:flex items-center space-x-4">
-                                    <button className="text-gray-400 hover:text-yellow-500 transition-colors p-2">
-                                        <Star size={20} />
-                                    </button>
-                                    <div className="h-4 w-[1px] bg-gray-200"></div>
-                                    
-                                    {isLoggedIn ? (
-                                        <button 
-                                            onClick={handleLogout}
-                                            className="flex items-center gap-2 bg-gray-100 text-gray-900 px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all shadow-sm group relative"
-                                        >
-                                            <User size={16} />
-                                            <span>Nexon_Dev</span>
-                                            <div className="absolute top-full mt-2 right-0 hidden group-hover:block bg-white border border-gray-200 rounded-lg shadow-xl p-2 min-w-[120px]">
-                                                <div className="flex items-center gap-2 text-red-500 text-xs font-bold p-2 hover:bg-red-50 rounded">
-                                                    <LogOut size={12}/> 로그아웃
-                                                </div>
+                                    {/* Desktop Main Menu - Always visible now */}
+                                    <div className="hidden md:flex items-center space-x-1">
+                                        {mainMenus.map((menu) => (
+                                            <div key={menu.name} className="relative group">
+                                                <button
+                                                    onClick={() => handleNavClick(menu.name)}
+                                                    className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                                                        currentTab === menu.name 
+                                                        ? 'text-blue-600 bg-blue-50' 
+                                                        : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
+                                                    }`}
+                                                >
+                                                    {menu.name}
+                                                </button>
+                                                <DomainTooltip title={menu.desc} domain={menu.domain} />
                                             </div>
-                                        </button>
-                                    ) : (
-                                        <button 
-                                            onClick={() => setShowLoginScreen(true)}
-                                            className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 transition-all shadow-sm"
-                                        >
-                                            <LogIn size={16} />
-                                            <span>로그인</span>
-                                        </button>
-                                    )}
-                                </div>
+                                        ))}
+                                    </div>
 
-                                {/* Mobile Menu Button */}
-                                <div className="md:hidden flex items-center">
-                                    <button
-                                        onClick={() => setIsMenuOpen(!isMenuOpen)}
-                                        className="text-gray-600 p-2 hover:bg-gray-100 rounded-lg"
-                                    >
-                                        {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
-                                    </button>
+                                    {/* Right Actions (Desktop) */}
+                                    <div className="hidden md:flex items-center space-x-4">
+                                        <button className="text-gray-400 hover:text-yellow-500 transition-colors p-2">
+                                            <Star size={20} />
+                                        </button>
+                                        <div className="h-4 w-[1px] bg-gray-200"></div>
+                                        
+                                        {isLoggedIn ? (
+                                            <button 
+                                                onClick={handleLogout}
+                                                className="flex items-center gap-2 bg-gray-100 text-gray-900 px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-200 transition-all shadow-sm group relative"
+                                            >
+                                                <User size={16} />
+                                                <span>Nexon_Dev</span>
+                                                <div className="absolute top-full mt-2 right-0 hidden group-hover:block bg-white border border-gray-200 rounded-lg shadow-xl p-2 min-w-[120px]">
+                                                    <div className="flex items-center gap-2 text-red-500 text-xs font-bold p-2 hover:bg-red-50 rounded">
+                                                        <LogOut size={12}/> 로그아웃
+                                                    </div>
+                                                </div>
+                                            </button>
+                                        ) : (
+                                            <button 
+                                                onClick={() => setShowLoginScreen(true)}
+                                                className="flex items-center gap-2 bg-gray-900 text-white px-4 py-2 rounded-xl text-sm font-bold hover:bg-gray-800 transition-all shadow-sm"
+                                            >
+                                                <LogIn size={16} />
+                                                <span>로그인</span>
+                                            </button>
+                                        )}
+                                    </div>
+
+                                    {/* Mobile Menu Button */}
+                                    <div className="md:hidden flex items-center">
+                                        <button
+                                            onClick={() => setIsMenuOpen(!isMenuOpen)}
+                                            className="text-gray-600 p-2 hover:bg-gray-100 rounded-lg"
+                                        >
+                                            {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
+                                        </button>
+                                    </div>
                                 </div>
+                            </div>
+                        </div>
+
+                        {/* Dropdown Sticky Search Bar - Lower Z-index, slides down from under the header */}
+                        <div className={`absolute top-0 left-0 w-full bg-white/95 backdrop-blur shadow-md border-b border-gray-200 transition-all duration-300 -z-10 flex justify-center py-3 ${showStickySearch ? 'translate-y-16 opacity-100' : 'translate-y-0 opacity-0'}`}>
+                            <div className="flex items-center gap-2 bg-gray-100 border border-gray-200 rounded-full p-1 pl-4 pr-1">
+                                {/* Compact Game Selector */}
+                                <div className="flex items-center gap-2 border-r border-gray-300 pr-3 mr-1">
+                                    <Gamepad2 size={16} className="text-gray-400"/>
+                                    <select 
+                                        value={selectedGame}
+                                        onChange={(e) => setSelectedGame(e.target.value)}
+                                        className="bg-transparent text-xs font-bold text-gray-700 outline-none cursor-pointer max-w-[100px] truncate"
+                                    >
+                                        <option>전체 게임</option>
+                                        {gameList.map(game => (
+                                            <option key={game} value={game}>{game}</option>
+                                        ))}
+                                    </select>
+                                </div>
+                                {/* Compact Input */}
+                                <input type="text" placeholder="검색..." className="bg-transparent text-sm w-48 focus:outline-none" />
+                                {/* Compact Search Btn */}
+                                <button className="bg-gray-900 text-white p-2 rounded-full hover:bg-gray-800 shadow-sm"><Search size={14} /></button>
                             </div>
                         </div>
 
