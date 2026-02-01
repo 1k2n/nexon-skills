@@ -895,30 +895,101 @@
         // 📄 저장할 파일명: pages/AINews.jsx
         // ==========================================
 
-        const AINews = () => (
-            <div className="space-y-8 animate-in">
-                <div className="border-b border-gray-200 pb-4">
-                    <h2 className="text-3xl font-bold text-gray-900">AI 뉴스</h2>
-                    <p className="text-gray-500">전 세계의 혁신적인 AI 소식을 선별하여 전달합니다.</p>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                    {[
-                        { category: 'Model Update', title: 'OpenAI, 추론 능력이 비약적으로 상승한 신모델 출시', date: '1시간 전' },
-                        { category: 'Industry', title: '엔비디아, 차세대 블랙웰 칩 생산량 확대 발표', date: '3시간 전' },
-                        { category: 'Tutorial', title: 'RAG 아키텍처를 최적화하는 5가지 핵심 기법', date: '어제' },
-                        { category: 'Community', title: 'Agent Hub 개발자 밋업: 서울 2026 참가 신청 안내', date: '2일 전' },
-                    ].map((news, i) => (
-                        <div key={i} className="group cursor-pointer">
-                            <NewsThumbnail category={news.category} />
-                            <p className="text-xs text-gray-400 mb-2">{news.date}</p>
-                            <h3 className="text-xl font-bold text-gray-900 leading-snug group-hover:text-blue-600 transition-colors">
-                                {news.title}
-                            </h3>
+        const NewsDetailModal = ({ item, onClose }) => {
+            if (!item) return null;
+
+            return (
+                <div className="fixed inset-0 bg-gray-900/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in" onClick={onClose}>
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl max-h-[85vh] overflow-y-auto relative" onClick={e => e.stopPropagation()}>
+                        <button onClick={onClose} className="absolute top-4 right-4 text-gray-500 hover:text-gray-800 z-10 bg-white/80 backdrop-blur-sm rounded-full p-2 transition-colors">
+                            <X size={20} />
+                        </button>
+                        
+                        <div className="relative">
+                             <div className="aspect-video w-full [&>div]:rounded-none [&>div]:h-full">
+                                <NewsThumbnail category={item.category} /> 
+                             </div>
+                             <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-transparent opacity-90"></div>
                         </div>
-                    ))}
+
+                        <div className="px-8 pb-8 -mt-12 relative">
+                            <span className="bg-white/90 backdrop-blur px-3 py-1 rounded-full text-xs font-bold shadow-sm uppercase tracking-wide border border-gray-100 text-blue-600 inline-block mb-4">
+                                {item.category}
+                            </span>
+                            <h2 className="text-2xl font-bold text-gray-900 mb-2 leading-tight">{item.title}</h2>
+                            <div className="flex items-center gap-2 text-sm text-gray-500 mb-8">
+                                <span>{item.date}</span>
+                                <span>•</span>
+                                <span>Agent Hub Editors</span>
+                            </div>
+                            
+                            <div className="prose prose-slate prose-sm sm:prose-base max-w-none text-gray-600 leading-relaxed space-y-4 whitespace-pre-line">
+                                {item.content}
+                            </div>
+
+                            <div className="mt-8 pt-6 border-t border-gray-100 flex justify-end gap-3">
+                                <button className="px-5 py-2.5 text-gray-600 hover:bg-gray-100 rounded-xl text-sm font-bold transition-colors" onClick={onClose}>닫기</button>
+                                <button className="px-5 py-2.5 bg-gray-900 text-white rounded-xl text-sm font-bold hover:bg-gray-800 transition-colors shadow-lg shadow-gray-200 flex items-center gap-2">
+                                    <Share2 size={16}/> 공유하기
+                                </button>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-            </div>
-        );
+            );
+        };
+
+        const AINews = () => {
+            const [selectedNews, setSelectedNews] = useState(null);
+
+            const newsItems = [
+                { 
+                    category: 'Model Update', 
+                    title: 'OpenAI, 추론 능력이 비약적으로 상승한 신모델 출시', 
+                    date: '1시간 전',
+                    content: `OpenAI가 새로운 AI 모델을 공개했습니다. 이번 모델은 기존 GPT-4 대비 추론 능력이 약 30% 향상되었으며, 특히 복잡한 수학 문제 해결과 코딩 작업에서 비약적인 성능을 보여줍니다.\n\n새로운 'Chain of Thought' 프로세싱 기술이 적용되어, 모델이 답변을 생성하기 전에 내부적으로 사고 과정을 거치게 됩니다. 이를 통해 환각 현상(Hallucination)이 대폭 감소하였고, 논리적 정합성이 중요한 법률 및 의료 분야에서도 활용도가 높아질 것으로 기대됩니다.\n\nAPI 가격은 이전 모델과 동일하게 유지되며, 개발자들은 오늘부터 베타 버전에 접근할 수 있습니다. Agent Hub에서도 곧 해당 모델을 지원하는 커넥터를 출시할 예정입니다.` 
+                },
+                { 
+                    category: 'Industry', 
+                    title: '엔비디아, 차세대 블랙웰 칩 생산량 확대 발표', 
+                    date: '3시간 전',
+                    content: `엔비디아(Nvidia)가 차세대 AI 칩 '블랙웰(Blackwell)'의 생산량을 당초 계획보다 2배 확대한다고 발표했습니다. 이는 전 세계적인 AI 인프라 구축 수요가 예상치를 훨씬 웃돌고 있기 때문입니다.\n\n젠슨 황 CEO는 "AI는 이제 모든 산업의 핵심 동력이며, 블랙웰은 이러한 변화를 가속화할 엔진"이라고 강조했습니다. 특히 이번 증산 결정은 주요 클라우드 서비스 제공업체(CSP)들의 선주문 물량을 소화하기 위한 것으로 보입니다.\n\n시장 전문가들은 이번 발표가 반도체 공급망 전반에 긍정적인 영향을 미칠 것으로 분석하고 있습니다. 다만, 고대역폭 메모리(HBM) 등 핵심 부품의 수급 불균형이 여전히 변수로 남아있습니다.`
+                },
+                { 
+                    category: 'Tutorial', 
+                    title: 'RAG 아키텍처를 최적화하는 5가지 핵심 기법', 
+                    date: '어제',
+                    content: `검색 증강 생성(RAG) 시스템의 정확도와 속도를 높이고 싶으신가요? 현업 엔지니어들이 검증한 5가지 최적화 기법을 소개합니다.\n\n1. 하이브리드 검색(Hybrid Search): 키워드 검색(BM25)과 벡터 검색(Dense Retrieval)을 결합하여 문맥과 단어의 일치도를 모두 잡으세요.\n2. 청킹 전략(Chunking Strategy): 문서의 특성에 따라 청크 크기를 동적으로 조절해야 합니다. 의미 단위로 끊어주는 것이 핵심입니다.\n3. 리랭킹(Re-ranking): 검색된 상위 문서들을 정교한 모델로 다시 순위 매겨 관련성을 극대화하세요.\n4. 메타데이터 필터링: 날짜, 작성자, 카테고리 등의 메타데이터를 활용해 검색 범위를 좁히면 정확도가 높아집니다.\n5. 쿼리 확장(Query Expansion): 사용자의 질문을 AI가 더 검색하기 좋은 형태로 변형하거나 하위 질문으로 쪼개어 검색하세요.`
+                },
+                { 
+                    category: 'Community', 
+                    title: 'Agent Hub 개발자 밋업: 서울 2026 참가 신청 안내', 
+                    date: '2일 전',
+                    content: `국내 최대 AI 에이전트 개발자 커뮤니티, 'Agent Hub 밋업'이 오는 5월 서울에서 개최됩니다!\n\n이번 행사는 "Autonomous Agents: From Lab to Real World"를 주제로 진행되며, 네이버, 카카오, 넥슨 등 국내 유수 IT 기업의 AI 개발자들이 연사로 참여합니다.\n\n주요 세션:\n- LLM을 활용한 게임 NPC 지능화 사례\n- 엔터프라이즈 환경에서의 에이전트 보안 가이드\n- 오픈소스 에이전트 프레임워크 활용법\n\n참가 신청은 선착순으로 마감되니 서두르세요! 현장에서는 네트워킹 파티와 다양한 굿즈 증정 이벤트도 진행됩니다.`
+                },
+            ];
+
+            return (
+                <div className="space-y-8 animate-in relative">
+                    {selectedNews && <NewsDetailModal item={selectedNews} onClose={() => setSelectedNews(null)} />}
+                    <div className="border-b border-gray-200 pb-4">
+                        <h2 className="text-3xl font-bold text-gray-900">AI 뉴스</h2>
+                        <p className="text-gray-500">전 세계의 혁신적인 AI 소식을 선별하여 전달합니다.</p>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {newsItems.map((news, i) => (
+                            <div key={i} className="group cursor-pointer" onClick={() => setSelectedNews(news)}>
+                                <NewsThumbnail category={news.category} />
+                                <p className="text-xs text-gray-400 mb-2">{news.date}</p>
+                                <h3 className="text-xl font-bold text-gray-900 leading-snug group-hover:text-blue-600 transition-colors">
+                                    {news.title}
+                                </h3>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+            );
+        };
 
         // ==========================================
         // 📄 저장할 파일명: pages/AIWorkflow.jsx
