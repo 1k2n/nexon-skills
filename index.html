@@ -1018,8 +1018,8 @@
             ]);
             
             const [edges, setEdges] = useState([
-                { id: 'e1-2', source: 1, target: 2 },
-                { id: 'e2-3', source: 2, target: 3 },
+                { id: 'e1-2', source: 1, target: 2, label: '' },
+                { id: 'e2-3', source: 2, target: 3, label: 'JSON Data' },
             ]);
 
             const [draggingNodeId, setDraggingNodeId] = useState(null);
@@ -1030,8 +1030,8 @@
             const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
             // Property Panel Logic
-            const [selectedNodeId, setSelectedNodeId] = useState(null); // Currently selected node for properties
-            // FIX: Removed window.innerWidth dependency to ensure panel appears within container bounds
+            const [selectedNodeId, setSelectedNodeId] = useState(null); 
+            const [selectedEdgeId, setSelectedEdgeId] = useState(null);
             const [panelPosition, setPanelPosition] = useState({ x: 300, y: 100 }); 
             const [isPanelDragging, setIsPanelDragging] = useState(false);
             const [panelDragOffset, setPanelDragOffset] = useState({ x: 0, y: 0 });
@@ -1082,6 +1082,18 @@
                 ));
             };
 
+            // Edge Property Update Handler
+            const handleEdgeLabelChange = (newLabel) => {
+                setEdges(eds => eds.map(e => 
+                    e.id === selectedEdgeId ? { ...e, label: newLabel } : e
+                ));
+            };
+
+            const handleEdgeDelete = () => {
+                setEdges(eds => eds.filter(e => e.id !== selectedEdgeId));
+                setSelectedEdgeId(null);
+            };
+
             // Handlers
             const handlePanelMouseDown = (e) => {
                 e.stopPropagation();
@@ -1101,12 +1113,25 @@
                     y: e.clientY - rect.top
                 });
                 setDraggingNodeId(nodeId);
+                // Don't select on drag start immediately to allow smooth dragging, 
+                // but usually we want to see properties. Let's keep selection logic on click/settings button.
             };
 
             const handleNodeSettingsClick = (e, nodeId) => {
                 e.stopPropagation();
                 setSelectedNodeId(nodeId);
-                // Optional: Bring panel to front or reset position if off-screen
+                setSelectedEdgeId(null); // Clear edge selection
+            };
+
+            const handleEdgeClick = (e, edgeId) => {
+                e.stopPropagation();
+                setSelectedEdgeId(edgeId);
+                setSelectedNodeId(null); // Clear node selection
+            };
+
+            const handleCanvasClick = () => {
+                setSelectedNodeId(null);
+                setSelectedEdgeId(null);
             };
 
             const handleNodeDelete = (e, nodeId) => {
@@ -1138,7 +1163,8 @@
                          const newEdge = {
                              id: `e${connectingSource.nodeId}-${nodeId}-${Date.now()}`,
                              source: connectingSource.nodeId,
-                             target: nodeId
+                             target: nodeId,
+                             label: ''
                          };
                          const exists = edges.some(edge => edge.source === newEdge.source && edge.target === newEdge.target);
                          if (!exists) {
@@ -1204,6 +1230,7 @@
                     };
                     setNodes(nds => [...nds, newNode]);
                     setSelectedNodeId(newNode.id); // Auto-select new node
+                    setSelectedEdgeId(null);
                 }
             };
 
@@ -1216,7 +1243,9 @@
                 return `M ${sx} ${sy} C ${sx + 50} ${sy}, ${tx - 50} ${ty}, ${tx} ${ty}`;
             };
 
-            const selectedNode = nodes.find(n => n.id === selectedNodeId);
+            const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
+            const selectedEdge = selectedEdgeId ? edges.find(e => e.id === selectedEdgeId) : null;
+            const isPropertyPanelVisible = selectedNode || selectedEdge;
 
             return (
                 <div 
@@ -1332,10 +1361,11 @@
                             ref={canvasRef}
                             onDrop={handleDrop}
                             onDragOver={handleDragOver}
+                            onClick={handleCanvasClick}
                         >
                             
                             {/* SVG Connections */}
-                            <svg className="absolute inset-0 w-full h-full pointer-events-none z-0">
+                            <svg className="absolute inset-0 w-full h-full z-0 overflow-visible">
                                 {edges.map(edge => {
                                     const sourceNode = nodes.find(n => n.id === edge.source);
                                     const targetNode = nodes.find(n => n.id === edge.target);
@@ -1347,15 +1377,40 @@
                                     const tx = targetNode.x;
                                     const ty = targetNode.y + 44; // height/2
 
+                                    const path = getPath(sx, sy, tx, ty);
+                                    const isSelected = selectedEdgeId === edge.id;
+
                                     return (
-                                        <path 
-                                            key={edge.id}
-                                            d={getPath(sx, sy, tx, ty)}
-                                            stroke="#94a3b8" 
-                                            strokeWidth="3" 
-                                            fill="none" 
-                                            className="drop-shadow-sm"
-                                        />
+                                        <g 
+                                            key={edge.id} 
+                                            onClick={(e) => handleEdgeClick(e, edge.id)}
+                                            className="group cursor-pointer"
+                                        >
+                                            {/* Hit Area (Invisible but thicker) */}
+                                            <path 
+                                                d={path}
+                                                stroke="transparent" 
+                                                strokeWidth="20" 
+                                                fill="none" 
+                                            />
+                                            {/* Visible Line */}
+                                            <path 
+                                                d={path}
+                                                stroke={isSelected ? "#3b82f6" : "#94a3b8"} 
+                                                strokeWidth={isSelected ? "4" : "3"} 
+                                                fill="none" 
+                                                className={`transition-colors drop-shadow-sm ${!isSelected && 'group-hover:stroke-blue-400'}`}
+                                            />
+                                            {/* Edge Label */}
+                                            {edge.label && (
+                                                <g transform={`translate(${(sx + tx) / 2}, ${(sy + ty) / 2})`}>
+                                                    <rect x="-40" y="-12" width="80" height="24" rx="12" fill="white" stroke={isSelected ? "#3b82f6" : "#cbd5e1"} strokeWidth="1" className="shadow-sm"/>
+                                                    <text x="0" y="4" textAnchor="middle" className={`text-[10px] font-bold ${isSelected ? 'fill-blue-600' : 'fill-gray-500'}`}>
+                                                        {edge.label}
+                                                    </text>
+                                                </g>
+                                            )}
+                                        </g>
                                     );
                                 })}
                                 {/* Temporary Connection Line */}
@@ -1366,7 +1421,7 @@
                                         strokeWidth="3" 
                                         fill="none" 
                                         strokeDasharray="5,5"
-                                        className="drop-shadow-sm animate-pulse"
+                                        className="drop-shadow-sm animate-pulse pointer-events-none"
                                     />
                                 )}
                             </svg>
@@ -1438,8 +1493,8 @@
                             })}
                         </div>
                         
-                        {/* Properties Panel (Floating - Only visible when node is selected) */}
-                        {selectedNode && (
+                        {/* Properties Panel (Floating - Only visible when node or edge is selected) */}
+                        {isPropertyPanelVisible && (
                             <div 
                                 className="absolute w-72 bg-white rounded-xl shadow-2xl border border-gray-200 overflow-hidden z-50 flex flex-col animate-in"
                                 style={{ 
@@ -1451,43 +1506,74 @@
                                 {/* Drag Handle */}
                                 <div 
                                     onMouseDown={handlePanelMouseDown}
-                                    className="bg-gray-50 border-b border-gray-200 p-3 flex items-center justify-between cursor-grab active:cursor-grabbing"
+                                    className="bg-gray-50 border-b border-gray-200 p-3 flex items-center justify-between cursor-grab active:cursor-grabbing bg-gradient-to-r from-gray-50 to-white"
                                 >
                                     <h4 className="font-bold text-gray-800 text-sm flex items-center gap-2">
-                                        <Settings size={14}/> 속성 패널
+                                        <Settings size={14}/> {selectedNode ? '노드 속성' : '연결선 속성'}
                                     </h4>
                                     <div className="flex items-center gap-2">
                                         <Move size={14} className="text-gray-400"/>
-                                        <button onClick={() => setSelectedNodeId(null)} className="text-gray-400 hover:text-red-500">
+                                        <button onClick={() => { setSelectedNodeId(null); setSelectedEdgeId(null); }} className="text-gray-400 hover:text-red-500">
                                             <X size={14}/>
                                         </button>
                                     </div>
                                 </div>
                                 
                                 <div className="p-4 space-y-4">
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-gray-500 uppercase">Node Name</label>
-                                        <input 
-                                            type="text" 
-                                            value={selectedNode.label}
-                                            onChange={(e) => handleNodeLabelChange(e.target.value)}
-                                            className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                                        />
-                                    </div>
-                                    <div className="space-y-1">
-                                        <label className="text-[10px] font-bold text-gray-500 uppercase">Type</label>
-                                        <div className="px-3 py-2 bg-gray-50 rounded-lg text-xs text-gray-600 border border-gray-100 font-mono">
-                                            {selectedNode.type}
-                                        </div>
-                                    </div>
-                                    <div className="space-y-1">
-                                        <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">Configuration</div>
-                                        <div className="h-24 bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-gray-400">
-                                            {selectedNode.type === 'trigger' ? 'Webhook URL settings...' : 
-                                             selectedNode.type === 'action' ? 'API Endpoint configuration...' : 
-                                             'Logic parameters...'}
-                                        </div>
-                                    </div>
+                                    {selectedNode ? (
+                                        <>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase">Node Name</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={selectedNode.label}
+                                                    onChange={(e) => handleNodeLabelChange(e.target.value)}
+                                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+                                                />
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase">Type</label>
+                                                <div className="px-3 py-2 bg-gray-50 rounded-lg text-xs text-gray-600 border border-gray-100 font-mono">
+                                                    {selectedNode.type}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <div className="text-[10px] font-bold text-gray-500 uppercase mb-1">Configuration</div>
+                                                <div className="h-24 bg-gray-50 border border-gray-200 rounded-lg p-2 text-xs text-gray-400">
+                                                    {selectedNode.type === 'trigger' ? 'Webhook URL settings...' : 
+                                                     selectedNode.type === 'action' ? 'API Endpoint configuration...' : 
+                                                     'Logic parameters...'}
+                                                </div>
+                                            </div>
+                                        </>
+                                    ) : (
+                                        <>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase">Edge ID</label>
+                                                <div className="px-3 py-2 bg-gray-50 rounded-lg text-xs text-gray-400 border border-gray-100 font-mono truncate">
+                                                    {selectedEdge.id}
+                                                </div>
+                                            </div>
+                                            <div className="space-y-1">
+                                                <label className="text-[10px] font-bold text-gray-500 uppercase">Label (Optional)</label>
+                                                <input 
+                                                    type="text" 
+                                                    value={selectedEdge.label || ''}
+                                                    onChange={(e) => handleEdgeLabelChange(e.target.value)}
+                                                    placeholder="연결선 이름 입력..."
+                                                    className="w-full bg-white border border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-800 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-shadow"
+                                                />
+                                            </div>
+                                            <div className="pt-2 border-t border-gray-100 mt-2">
+                                                <button 
+                                                    onClick={handleEdgeDelete}
+                                                    className="w-full flex items-center justify-center gap-2 px-3 py-2 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-bold transition-colors"
+                                                >
+                                                    <X size={14}/> 연결 삭제
+                                                </button>
+                                            </div>
+                                        </>
+                                    )}
                                 </div>
                             </div>
                         )}
