@@ -2060,6 +2060,93 @@
         };
 
         // ==========================================
+        // 📄 저장할 파일명: pages/FavoritesView.jsx (새로 추가됨)
+        // ==========================================
+
+        const FavoritesView = ({ setSelectedItem }) => {
+            const favorites = [
+                { type: 'Agent', title: 'Code Reviewer Pro', desc: 'GitHub PR을 분석하여 잠재적인 버그와 성능 이슈를 코멘트로 남깁니다.', author: 'DevTools', stars: 1800 },
+                { type: 'Connector', title: 'Notion to Slack', desc: '노션 페이지 변경 사항을 슬랙 채널로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850 },
+                { type: 'Workflow', title: 'Daily News Summary', desc: '매일 아침 30분, 주요 뉴스 사이트를 크롤링하여 요약 리포트를 메일로 발송합니다.', author: 'Agent Hub Official', stars: 3200 },
+                { type: 'Agent', title: 'SQL Query Assistant', desc: '자연어를 입력하면 최적화된 SQL 쿼리로 변환해주는 데이터 분석 보조 도구입니다.', author: 'DataTeam', stars: 2100 },
+            ];
+
+            const getTypeStyle = (type) => {
+                switch (type) {
+                    case 'Agent': return 'bg-blue-100 text-blue-700';
+                    case 'Connector': return 'bg-purple-100 text-purple-700';
+                    case 'Workflow': return 'bg-orange-100 text-orange-700';
+                    default: return 'bg-gray-100 text-gray-700';
+                }
+            };
+
+            return (
+                <div className="animate-in space-y-8">
+                     <div className="border-b border-gray-200 pb-4">
+                        <div className="flex items-center gap-3">
+                            <div className="p-3 bg-yellow-100 rounded-2xl text-yellow-600">
+                                <Star size={24} className="fill-current"/>
+                            </div>
+                            <div>
+                                <h2 className="text-3xl font-bold text-gray-900">내 즐겨찾는 스킬들</h2>
+                                <p className="text-gray-500 mt-1">자주 사용하는 도구들을 한곳에서 모아보고 빠르게 실행하세요.</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        {favorites.map((item, idx) => (
+                            <div 
+                                key={idx} 
+                                onClick={() => setSelectedItem(item)}
+                                className="group bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer animate-fade-in relative overflow-hidden"
+                            >
+                                <div className="absolute top-0 right-0 p-4">
+                                    <Star size={20} className="text-yellow-400 fill-yellow-400" />
+                                </div>
+
+                                <div className="flex justify-between items-start mb-4">
+                                    <span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getTypeStyle(item.type)}`}>
+                                        {item.type}
+                                    </span>
+                                </div>
+                                
+                                <h3 className="text-xl font-bold text-gray-900 mb-2 group-hover:text-blue-600 transition-colors pr-6">
+                                    {item.title}
+                                </h3>
+                                <p className="text-gray-500 text-sm leading-relaxed mb-6 line-clamp-2 h-10">
+                                    {item.desc}
+                                </p>
+                                
+                                <div className="flex items-center justify-between pt-4 border-t border-gray-50">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-6 h-6 rounded-full bg-gray-200 flex items-center justify-center text-[10px] font-bold text-gray-500">
+                                            {item.author[0]}
+                                        </div>
+                                        <span className="text-xs text-gray-500 font-medium">{item.author}</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 text-gray-400 text-xs font-mono">
+                                        <Star size={12} className="fill-current" />
+                                        <span>{(item.stars / 1000).toFixed(1)}k</span>
+                                    </div>
+                                </div>
+                            </div>
+                        ))}
+                        
+                        {/* Add New Favorite Placeholder */}
+                        <div className="border-2 border-dashed border-gray-200 rounded-2xl p-6 flex flex-col items-center justify-center text-center hover:border-blue-300 hover:bg-blue-50/50 transition-all cursor-pointer group min-h-[200px]">
+                            <div className="w-12 h-12 bg-gray-100 rounded-full flex items-center justify-center text-gray-400 mb-4 group-hover:bg-white group-hover:text-blue-500 shadow-sm transition-colors">
+                                <Plus size={24} />
+                            </div>
+                            <h3 className="font-bold text-gray-900 mb-1">스킬 더 찾아보기</h3>
+                            <p className="text-xs text-gray-500">홈 화면에서 별표를 눌러<br/>이곳에 추가해보세요.</p>
+                        </div>
+                    </div>
+                </div>
+            );
+        };
+
+        // ==========================================
         // 📄 저장할 파일명: pages/HomePage.jsx
         // ==========================================
 
