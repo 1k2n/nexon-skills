@@ -197,7 +197,7 @@
                                     <>
                                         <br/><br/>
                                         <span className="text-sm text-gray-400">
-                                            이 도구를 사용하면 업무 효율을 극대화할 수 있습니다. 
+                                            이 스킬을 사용하면 업무 효율을 극대화할 수 있습니다. 
                                             엔터프라이즈 보안 기준을 준수하며, 실시간 데이터 처리 파이프라인과 완벽하게 통합됩니다.
                                         </span>
                                     </>
@@ -1000,7 +1000,8 @@
 
             // Property Panel Logic
             const [selectedNodeId, setSelectedNodeId] = useState(null); // Currently selected node for properties
-            const [panelPosition, setPanelPosition] = useState({ x: window.innerWidth - 350, y: 100 }); 
+            // FIX: Removed window.innerWidth dependency to ensure panel appears within container bounds
+            const [panelPosition, setPanelPosition] = useState({ x: 300, y: 100 }); 
             const [isPanelDragging, setIsPanelDragging] = useState(false);
             const [panelDragOffset, setPanelDragOffset] = useState({ x: 0, y: 0 });
 
@@ -1230,7 +1231,7 @@
                                     onClick={() => setActiveSidebarTab('library')}
                                     className={`flex-1 py-3 text-xs font-bold uppercase tracking-wider transition-colors ${activeSidebarTab === 'library' ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50/50' : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'}`}
                                 >
-                                    도구 불러오기
+                                    스킬 불러오기
                                 </button>
                             </div>
 
@@ -1587,7 +1588,7 @@
                             {/* Tool Loading Zone (Replaces Multimodal Input Zone) */}
                             <div className="bg-white rounded-2xl border border-gray-200 p-4 shadow-sm flex-none lg:flex-1 flex flex-col overflow-hidden min-h-[200px]">
                                 <div className="text-xs font-bold uppercase text-gray-500 mb-3 flex items-center gap-2 flex-shrink-0">
-                                    <Database size={14}/> 도구 불러오기 (My Connectors)
+                                    <Database size={14}/> 스킬 불러오기 (My Connectors)
                                 </div>
                                 
                                 <div className="flex-1 overflow-y-auto space-y-2 pr-1 h-32 lg:h-auto">
@@ -1995,7 +1996,7 @@
                     
                     <div className="max-w-7xl mx-auto px-4 mt-12 pb-20">
                         <div className="flex justify-between items-center mb-6">
-                            <h2 className="text-2xl font-bold text-gray-900">🔥 지금 뜨는 도구들</h2>
+                            <h2 className="text-2xl font-bold text-gray-900">🔥 지금 뜨는 스킬들</h2>
                         </div>
                         
                         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -2040,7 +2041,7 @@
                         {isLoading && (
                             <div className="flex justify-center items-center py-10">
                                 <div className="loader mr-3"></div>
-                                <span className="text-gray-500 font-medium">더 많은 도구를 불러오는 중...</span>
+                                <span className="text-gray-500 font-medium">더 많은 스킬을 불러오는 중...</span>
                             </div>
                         )}
                     </div>
