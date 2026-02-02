@@ -40,6 +40,30 @@
         .animate-fade-in {
             animation: fadeIn 0.3s ease-out forwards;
         }
+        
+        /* Utility for hiding scrollbar but allowing scroll */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+
+        .loader {
+            border: 3px solid #f3f3f3;
+            border-radius: 50%;
+            border-top: 3px solid #3b82f6;
+            width: 20px;
+            height: 20px;
+            -webkit-animation: spin 1s linear infinite; /* Safari */
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 font-sans antialiased">
@@ -313,15 +337,7 @@
                                     className="flex items-center gap-3 shrink-0 cursor-pointer group relative"
                                     onClick={() => handleNavClick('홈')}
                                 >
-                                    <img 
-                                        src="agent_hub.webp" 
-                                        alt="Agent Hub Logo" 
-                                        className="w-8 h-8 object-contain"
-                                        onError={(e) => {
-                                            e.target.style.display = 'none';
-                                            e.target.nextSibling.innerText = "AH (No Img)";
-                                        }}
-                                    />
+                                    <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-md">A</div>
                                     <span className="text-xl font-bold tracking-tight text-gray-900">
                                         Agent Hub
                                     </span>
@@ -334,13 +350,14 @@
                                         <div key={menu.name} className="relative group">
                                             <button
                                                 onClick={() => handleNavClick(menu.name)}
-                                                className={`px-4 py-2 text-sm font-medium rounded-lg transition-all ${
+                                                className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium rounded-lg transition-all ${
                                                     currentTab === menu.name 
                                                     ? 'text-blue-600 bg-blue-50' 
                                                     : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
                                                 }`}
                                             >
                                                 {menu.name}
+                                                {menu.authRequired && !isLoggedIn && <Lock size={12} className="text-gray-400 opacity-70" />}
                                             </button>
                                             <DomainTooltip title={menu.desc} domain={menu.domain} />
                                         </div>
@@ -443,7 +460,10 @@
                                             <menu.icon size={18} />
                                             {menu.name}
                                         </div>
-                                        <ChevronRight size={16} className="text-gray-400" />
+                                        <div className="flex items-center gap-2">
+                                            {menu.authRequired && !isLoggedIn && <Lock size={14} className="text-gray-400 opacity-70" />}
+                                            <ChevronRight size={16} className="text-gray-400" />
+                                        </div>
                                     </button>
                                 ))}
                                 <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t border-gray-100">
@@ -2086,7 +2106,7 @@
             }, []);
 
             const mainMenus = [
-                { name: '개발자 콘솔', icon: Activity, domain: 'console.hub.nexon.com', desc: '내 AI 스킬들의 현황을 한눈에' },
+                { name: '개발자 콘솔', icon: Activity, domain: 'console.hub.nexon.com', desc: '내 AI 스킬들의 현황을 한눈에', authRequired: true },
                 { name: 'AI 뉴스', icon: Globe, domain: 'news.hub.nexon.com', desc: '가장 빠른 AI 기술 트렌드' },
                 { name: 'AI 스튜디오', icon: Layout, domain: 'studio.hub.nexon.com', desc: '상상을 현실로 만드는 AI 실험실' },
                 { name: 'AI 워크플로우', icon: Zap, domain: 'workflows.hub.nexon.com', desc: '복잡한 업무를 자동으로 연결' },
@@ -2100,7 +2120,11 @@
                     return;
                 }
 
-                if (!isLoggedIn) {
+                // Check auth requirement
+                const targetMenu = mainMenus.find(m => m.name === tabName);
+                const requiresAuth = targetMenu ? targetMenu.authRequired : false;
+
+                if (requiresAuth && !isLoggedIn) {
                     setPendingTab(tabName);
                     setShowLoginScreen(true);
                     setIsMenuOpen(false);
@@ -2174,8 +2198,8 @@
                     <footer className="bg-white border-t border-gray-200 py-10">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
                             <div className="flex items-center gap-2 text-gray-400">
-                                <img src="agent_hub.webp" alt="Logo" className="w-5 h-5 grayscale opacity-50" 
-                                     onError={(e) => e.target.style.display='none'} />
+                                {/* Fallback for missing image */}
+                                <div className="w-5 h-5 bg-gray-200 rounded-sm"></div>
                                 <span className="text-sm font-semibold">© 2026 Agent Hub Inc. All rights reserved.</span>
                             </div>
                             <div className="flex gap-8 text-sm font-medium text-gray-500">
@@ -2194,9 +2218,3 @@
     </script>
 </body>
 </html>
-
-
-
-
-
-
