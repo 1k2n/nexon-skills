@@ -325,6 +325,8 @@
             gameList,
             mainMenus
         }) => {
+            const [logoError, setLogoError] = useState(false);
+
             return (
                 <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
                     {/* Main Header Content */}
@@ -337,7 +339,16 @@
                                     className="flex items-center gap-3 shrink-0 cursor-pointer group relative"
                                     onClick={() => handleNavClick('홈')}
                                 >
-                                    <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-md">A</div>
+                                    {!logoError ? (
+                                        <img 
+                                            src="agent_hub.webp" 
+                                            alt="Agent Hub" 
+                                            className="w-8 h-8 object-contain rounded-lg shadow-sm"
+                                            onError={() => setLogoError(true)}
+                                        />
+                                    ) : (
+                                        <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-md">A</div>
+                                    )}
                                     <span className="text-xl font-bold tracking-tight text-gray-900">
                                         Agent Hub
                                     </span>
@@ -2172,6 +2183,9 @@
             
             // Scroll Animation State
             const [showStickySearch, setShowStickySearch] = useState(false);
+            
+            // Footer Logo State
+            const [footerLogoError, setFooterLogoError] = useState(false);
 
             useEffect(() => {
                 const handleScroll = () => {
@@ -2192,7 +2206,8 @@
                 { name: 'AI 워크플로우', icon: Zap, domain: 'workflows.hub.nexon.com', desc: '복잡한 업무를 자동으로 연결' },
                 { name: '통합 가이드', icon: BookOpen, domain: 'docs.hub.nexon.com', desc: '개발을 돕는 친절한 길잡이' },
             ];
-
+            
+            // ... (rest of the handlers: handleNavClick, handleLogin, handleLogout) ...
             const handleNavClick = (tabName) => {
                 if (tabName === '홈') {
                     setCurrentTab('홈');
@@ -2278,8 +2293,16 @@
                     <footer className="bg-white border-t border-gray-200 py-10">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
                             <div className="flex items-center gap-2 text-gray-400">
-                                {/* Fallback for missing image */}
-                                <div className="w-5 h-5 bg-gray-200 rounded-sm"></div>
+                                {!footerLogoError ? (
+                                    <img 
+                                        src="agent_hub.webp" 
+                                        alt="Logo" 
+                                        className="w-5 h-5 grayscale opacity-50 object-contain" 
+                                        onError={() => setFooterLogoError(true)} 
+                                    />
+                                ) : (
+                                    <div className="w-5 h-5 bg-gray-200 rounded-sm"></div>
+                                )}
                                 <span className="text-sm font-semibold">© 2026 Agent Hub Inc. All rights reserved.</span>
                             </div>
                             <div className="flex gap-8 text-sm font-medium text-gray-500">
