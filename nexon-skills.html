@@ -298,7 +298,7 @@
                             <div className="flex justify-between h-16 items-center">
                                 <div className="flex items-center gap-3 shrink-0 cursor-pointer group relative" onClick={() => handleNavClick('홈')}>
                                     {!logoError ? (
-                                        <img src="agent_hub.webp" alt="NEXON Skills" className="w-8 h-8 object-contain rounded-lg shadow-sm" onError={() => setLogoError(true)} />
+                                        <img src="nexon_skills.webp" alt="NEXON Skills" className="w-8 h-8 object-contain rounded-lg shadow-sm" onError={() => setLogoError(true)} />
                                     ) : (
                                         <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-purple-600 rounded-lg flex items-center justify-center text-white font-bold text-lg shadow-md">N</div>
                                     )}
@@ -833,7 +833,7 @@
                     {showCreateModal && <CreateSelectionModal onClose={() => setShowCreateModal(false)} />}
                     <GNB currentTab={currentTab} isLoggedIn={isLoggedIn} isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} handleNavClick={handleNavClick} handleLogout={handleLogout} setShowLoginScreen={setShowLoginScreen} showStickySearch={showStickySearch} selectedGame={selectedGame} setSelectedGame={setSelectedGame} gameList={gameList} mainMenus={mainMenus} />
                     <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">{renderContent()}</main>
-                    <footer className="bg-white border-t border-gray-200 py-10"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6"><div className="flex items-center gap-2 text-gray-400">{!footerLogoError ? (<img src="agent_hub.webp" alt="Logo" className="w-5 h-5 grayscale opacity-50 object-contain" onError={() => setFooterLogoError(true)} />) : (<div className="w-5 h-5 bg-gray-200 rounded-sm"></div>)}<span className="text-sm font-semibold">© 2026 NEXON Skills Inc. All rights reserved.</span></div><div className="flex gap-8 text-sm font-medium text-gray-500"><a href="#" onClick={(e) => e.preventDefault()} className="hover:text-gray-900">Privacy Policy</a><a href="#" onClick={(e) => e.preventDefault()} className="hover:text-gray-900">Terms of Service</a><a href="#" onClick={(e) => e.preventDefault()} className="hover:text-gray-900">Contact Us</a></div></div></footer>
+                    <footer className="bg-white border-t border-gray-200 py-10"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6"><div className="flex items-center gap-2 text-gray-400">{!footerLogoError ? (<img src="nexon_skills.webp" alt="Logo" className="w-5 h-5 grayscale opacity-50 object-contain" onError={() => setFooterLogoError(true)} />) : (<div className="w-5 h-5 bg-gray-200 rounded-sm"></div>)}<span className="text-sm font-semibold">© 2026 NEXON Skills Inc. All rights reserved.</span></div><div className="flex gap-8 text-sm font-medium text-gray-500"><a href="#" onClick={(e) => e.preventDefault()} className="hover:text-gray-900">Privacy Policy</a><a href="#" onClick={(e) => e.preventDefault()} className="hover:text-gray-900">Terms of Service</a><a href="#" onClick={(e) => e.preventDefault()} className="hover:text-gray-900">Contact Us</a></div></div></footer>
                 </div>
             );
         };
