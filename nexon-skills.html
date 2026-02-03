@@ -300,28 +300,12 @@
                                     {!logoError ? (
                                         <img src="nexon_skills.webp" alt="NEXON Skills" className="w-8 h-8 object-contain rounded-lg shadow-sm" onError={() => setLogoError(true)} />
                                     ) : (
-                                        <svg width="40" height="40" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                          <defs>
-                                              <linearGradient id="grad1" x1="0" y1="0" x2="0" y2="1">
-                                                  <stop offset="0%" stop-color="#2f54eb"></stop>
-                                                  <stop offset="100%" stop-color="#1d39c4"></stop>
-                                              </linearGradient>
-                                              <linearGradient id="grad2" x1="0" y1="0" x2="0" y2="1">
-                                                  <stop offset="0%" stop-color="#5d40f0"></stop>
-                                                  <stop offset="100%" stop-color="#3b26c0"></stop>
-                                              </linearGradient>
-                                              <linearGradient id="grad3" x1="0" y1="0" x2="0" y2="1">
-                                                  <stop offset="0%" stop-color="#8b2cf5"></stop>
-                                                  <stop offset="100%" stop-color="#6b21a8"></stop>
-                                              </linearGradient>
-                                          </defs>
-                                          <rect x="15" y="55" width="20" height="30" rx="4" fill="url(#grad1)" class="animate-grow" style="animation-delay: 0s"></rect>
-                                          <rect x="40" y="35" width="20" height="50" rx="4" fill="url(#grad2)" class="animate-grow" style="animation-delay: 0.2s"></rect>
-                                          <rect x="65" y="15" width="20" height="70" rx="4" fill="url(#grad3)" class="animate-grow" style="animation-delay: 0.4s"></rect>
-                                          <path d="M75 25 L75 35 M70 30 L75 25 L80 30" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" class="animate-grow" style="animation-delay: 0.5s"></path>
-                                          <path d="M25 50 L50 30 L75 10" stroke="#8b2cf5" stroke-width="0" stroke-dasharray="4 4" opacity="0.3">
-                                          </path>
-                                      </svg>
+                                        <svg width="32" height="32" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                             <rect x="15" y="55" width="20" height="30" rx="4" fill="#2f54eb"></rect>
+                                             <rect x="40" y="35" width="20" height="50" rx="4" fill="#5d40f0"></rect>
+                                             <rect x="65" y="15" width="20" height="70" rx="4" fill="#8b2cf5"></rect>
+                                             <path d="M75 25 L75 35 M70 30 L75 25 L80 30" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"></path>
+                                        </svg>
                                     )}
                                     <span className="text-xl font-bold tracking-tight text-gray-900">NEXON Skills</span>
                                     <DomainTooltip title="AI 에이전트 통합 플랫폼" domain="skills.nexon.com" />
