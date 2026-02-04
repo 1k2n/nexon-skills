@@ -5,25 +5,34 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEXON Skills</title>
     
-    <!-- Tailwind CSS -->
+    <!-- Tailwind CSS: 스타일링을 위한 유틸리티 클래스 라이브러리 -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- React & ReactDOM -->
+    <!-- React & ReactDOM: UI 라이브러리 -->
     <script src="https://unpkg.com/@babel/standalone@7.24.5/babel.min.js"></script>
 
+    <!-- Global Styles -->
     <style>
+        /* 스크롤바 커스터마이징 */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
         ::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }
         
+        /* 애니메이션 정의 */
         @keyframes fadeIn {
             from { opacity: 0; transform: translateY(10px); }
             to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes grow {
+            from { transform: scaleY(0); transform-origin: bottom; opacity: 0; }
+            to { transform: scaleY(1); transform-origin: bottom; opacity: 1; }
+        }
         .animate-in { animation: fadeIn 0.5s ease-out forwards; }
         .animate-fade-in { animation: fadeIn 0.3s ease-out forwards; }
+        .animate-grow { animation: grow 0.5s ease-out forwards; }
         
+        /* 유틸리티 클래스 */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
 
@@ -44,7 +53,29 @@
 <body class="bg-gray-50 text-gray-900 font-sans antialiased">
     <div id="root"></div>
 
+    <!-- React Application Logic -->
     <script type="text/babel" data-type="module" data-presets="react">
+        /**
+         * [유지보수 및 프로젝트 구조화 가이드]
+         * * 현재 이 파일은 브라우저에서 바로 실행 가능한 단일 HTML 파일로 작성되어 있습니다.
+         * 실제 프로덕션 환경(Create React App, Vite, Next.js 등)으로 마이그레이션 할 때는
+         * 아래와 같은 디렉토리 구조로 파일을 분리하는 것을 권장합니다.
+         * * src/
+         * ├── components/          # 재사용 가능한 UI 컴포넌트
+         * │   ├── layout/          # GNB, Footer, Sidebar 등 (GNB.jsx, Footer.jsx)
+         * │   ├── common/          # Button, Modal, Tooltip 등 공용 컴포넌트 (ItemDetailModal.jsx 등)
+         * │   └── features/        # 특정 기능 관련 컴포넌트 (WorkflowEditor.jsx, DeveloperConsole.jsx)
+         * ├── pages/               # 라우팅 단위의 페이지 컴포넌트
+         * │   ├── HomePage.jsx
+         * │   ├── Dashboard.jsx
+         * │   ├── AINews.jsx
+         * │   ├── AIStudio.jsx
+         * │   └── ...
+         * ├── constants/           # 메뉴 목록, 더미 데이터 등 상수 데이터 (data.js)
+         * ├── hooks/               # 커스텀 React Hooks (useScroll.js 등)
+         * └── App.jsx              # 메인 진입점 및 라우팅 설정
+         */
+
         import React, { useState, useEffect, useCallback, useRef } from 'https://esm.sh/react@18.2.0?dev';
         import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client?dev';
         import { 
@@ -56,9 +87,48 @@
             Image, Video, Mic, UploadCloud, Maximize2, ArrowLeft, MousePointer, Mail, Clock, Split, Box, Library, Move
         } from 'https://esm.sh/lucide-react@0.292.0?dev';
 
-        // ==========================================
-        // 1. Shared UI Components
-        // ==========================================
+        // =================================================================================================
+        // [SECTION 1] CONSTANTS & MOCK DATA (상수 및 더미 데이터)
+        // 유지보수를 위해 데이터는 컴포넌트 외부로 분리합니다.
+        // =================================================================================================
+
+        const GAME_LIST = ['메이플스토리', '마비노기', '던전앤파이터', 'FC온라인', '바람의나라', '카트라이더: 드리프트'];
+
+        const MAIN_MENUS = [
+            { name: '개발자 콘솔', icon: null, domain: 'console.skills.nexon.com', desc: '내 AI 스킬들의 현황을 한눈에', authRequired: true },
+            { name: '스킬 트렌드', icon: null, domain: 'news.skills.nexon.com', desc: '가장 빠른 AI 기술 트렌드' },
+            { name: '스킬 가이드', icon: null, domain: 'docs.skills.nexon.com', desc: '개발을 돕는 친절한 길잡이' },
+            { name: 'AI 스튜디오', icon: Layout, domain: 'studio.skills.nexon.com', desc: '상상을 현실로 만드는 AI 실험실' },
+            { name: 'AI 워크플로우', icon: Zap, domain: 'workflows.skills.nexon.com', desc: '복잡한 업무를 자동으로 연결' },
+        ];
+
+        const NEWS_ITEMS = [
+            { category: 'Model Update', title: 'OpenAI, 추론 능력이 비약적으로 상승한 신모델 출시', date: '1시간 전', content: `OpenAI가 새로운 AI 모델을 공개했습니다...` },
+            { category: 'Industry', title: '엔비디아, 차세대 블랙웰 칩 생산량 확대 발표', date: '3시간 전', content: `엔비디아(Nvidia)가 차세대 AI 칩...` },
+            { category: 'Tutorial', title: 'RAG 아키텍처를 최적화하는 5가지 핵심 기법', date: '어제', content: `검색 증강 생성(RAG) 시스템의...` },
+            { category: 'Community', title: 'NEXON Skills 개발자 밋업: 서울 2026 참가 신청 안내', date: '2일 전', content: `국내 최대 AI 에이전트 개발자 커뮤니티...` },
+        ];
+
+        const FAVORITES_ITEMS = [ 
+            { type: 'Agent', title: 'Code Reviewer Pro', desc: 'GitHub PR을 분석하여 잠재적인 버그와 성능 이슈를 코멘트로 남깁니다.', author: 'DevTools', stars: 1800 }, 
+            { type: 'Connector', title: 'Notion to Slack', desc: '노션 페이지 변경 사항을 슬랙 채널로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850 }, 
+            { type: 'Workflow', title: 'Daily News Summary', desc: '매일 아침 30분, 주요 뉴스 사이트를 크롤링하여 요약 리포트를 메일로 발송합니다.', author: 'NEXON Skills Official', stars: 3200 }, 
+            { type: 'Agent', title: 'SQL Query Assistant', desc: '자연어를 입력하면 최적화된 SQL 쿼리로 변환해주는 데이터 분석 보조 도구입니다.', author: 'DataTeam', stars: 2100 } 
+        ];
+
+        const HOME_INITIAL_ITEMS = [ 
+            { type: 'Agent', title: 'Data Wizard Bot', desc: '복잡한 로그 데이터를 미니맵처럼 한눈에 파악하고 시각화합니다.', author: 'DataGuild', stars: 1240 }, 
+            { type: 'Connector', title: 'Notion Guild Messenger', desc: '노션 페이지 변경 사항을 길드 채널(슬랙)로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850 }, 
+            { type: 'Workflow', title: 'Daily Quest Summary', desc: '매일 아침 30분, 주요 뉴스 퀘스트를 클리어하고 요약 리포트를 전송합니다.', author: 'NEXON Skills Official', stars: 3200 }, 
+            { type: 'Agent', title: 'Code Reviewer Pro', desc: 'GitHub PR을 분석하여 잠재적인 버그와 성능 이슈를 코멘트로 남깁니다.', author: 'DevTools', stars: 1800 }, 
+            { type: 'Connector', title: 'Gmail <-> Trello', desc: '중요 메일을 자동으로 트렐로 카드로 변환하여 할 일 목록에 추가합니다.', author: 'ProductivityKing', stars: 620 }, 
+            { type: 'Workflow', title: 'Insta Marketing Auto', desc: '트렌드 키워드를 분석하여 인스타그램 포스팅 문구와 이미지를 생성하고 업로드합니다.', author: 'MarketingAI', stars: 940 } 
+        ];
+
+        // =================================================================================================
+        // [SECTION 2] SHARED UI COMPONENTS (공용 컴포넌트)
+        // src/components/common/ 폴더에 위치할 컴포넌트들입니다.
+        // =================================================================================================
 
         const DomainTooltip = ({ title, domain }) => (
             <div className="absolute opacity-0 group-hover:opacity-100 transition-all duration-200 top-full mt-3 left-1/2 transform -translate-x-1/2 px-3 py-2 bg-gray-900/95 backdrop-blur-sm text-white rounded-lg shadow-xl z-50 pointer-events-none min-w-[max-content] text-center border border-white/10">
@@ -79,15 +149,11 @@
             };
             const colors = getColors();
             const renderGraphic = () => {
-                if (category === 'Model Update') {
-                    return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><circle cx="50" cy="50" r="30" fill={colors.fill} opacity="0.2"/><path d="M50 20 L80 50 L50 80 L20 50 Z" fill="none" stroke={colors.fill} strokeWidth="4"/><circle cx="50" cy="50" r="10" fill={colors.fill}/><circle cx="50" cy="20" r="4" fill={colors.fill}/><circle cx="80" cy="50" r="4" fill={colors.fill}/><circle cx="50" cy="80" r="4" fill={colors.fill}/><circle cx="20" cy="50" r="4" fill={colors.fill}/></svg>;
-                } else if (category === 'Industry') {
-                    return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><rect x="20" y="40" width="20" height="40" fill={colors.fill} opacity="0.6"/><rect x="45" y="25" width="20" height="55" fill={colors.fill} opacity="0.8"/><rect x="70" y="35" width="20" height="45" fill={colors.fill} opacity="0.4"/><line x1="10" y1="85" x2="90" y2="85" stroke={colors.fill} strokeWidth="4"/></svg>;
-                } else if (category === 'Tutorial') {
-                    return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><rect x="25" y="20" width="50" height="60" rx="4" fill="none" stroke={colors.fill} strokeWidth="4"/><line x1="35" y1="35" x2="65" y2="35" stroke={colors.fill} strokeWidth="4" opacity="0.6"/><line x1="35" y1="50" x2="65" y2="50" stroke={colors.fill} strokeWidth="4" opacity="0.6"/><line x1="35" y1="65" x2="50" y2="65" stroke={colors.fill} strokeWidth="4" opacity="0.6"/><circle cx="75" cy="80" r="12" fill={colors.fill} /><path d="M71 80 L74 83 L79 77" fill="none" stroke="white" strokeWidth="2"/></svg>;
-                } else {
-                    return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><circle cx="50" cy="40" r="15" fill={colors.fill}/><path d="M25 80 Q50 60 75 80" fill="none" stroke={colors.fill} strokeWidth="8" strokeLinecap="round"/><circle cx="25" cy="50" r="8" fill={colors.fill} opacity="0.5"/><circle cx="75" cy="50" r="8" fill={colors.fill} opacity="0.5"/></svg>;
-                }
+                // SVG rendering logic preserved
+                if (category === 'Model Update') return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><circle cx="50" cy="50" r="30" fill={colors.fill} opacity="0.2"/><path d="M50 20 L80 50 L50 80 L20 50 Z" fill="none" stroke={colors.fill} strokeWidth="4"/><circle cx="50" cy="50" r="10" fill={colors.fill}/><circle cx="50" cy="20" r="4" fill={colors.fill}/><circle cx="80" cy="50" r="4" fill={colors.fill}/><circle cx="50" cy="80" r="4" fill={colors.fill}/><circle cx="20" cy="50" r="4" fill={colors.fill}/></svg>;
+                if (category === 'Industry') return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><rect x="20" y="40" width="20" height="40" fill={colors.fill} opacity="0.6"/><rect x="45" y="25" width="20" height="55" fill={colors.fill} opacity="0.8"/><rect x="70" y="35" width="20" height="45" fill={colors.fill} opacity="0.4"/><line x1="10" y1="85" x2="90" y2="85" stroke={colors.fill} strokeWidth="4"/></svg>;
+                if (category === 'Tutorial') return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><rect x="25" y="20" width="50" height="60" rx="4" fill="none" stroke={colors.fill} strokeWidth="4"/><line x1="35" y1="35" x2="65" y2="35" stroke={colors.fill} strokeWidth="4" opacity="0.6"/><line x1="35" y1="50" x2="65" y2="50" stroke={colors.fill} strokeWidth="4" opacity="0.6"/><line x1="35" y1="65" x2="50" y2="65" stroke={colors.fill} strokeWidth="4" opacity="0.6"/><circle cx="75" cy="80" r="12" fill={colors.fill} /><path d="M71 80 L74 83 L79 77" fill="none" stroke="white" strokeWidth="2"/></svg>;
+                return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><circle cx="50" cy="40" r="15" fill={colors.fill}/><path d="M25 80 Q50 60 75 80" fill="none" stroke={colors.fill} strokeWidth="8" strokeLinecap="round"/><circle cx="25" cy="50" r="8" fill={colors.fill} opacity="0.5"/><circle cx="75" cy="50" r="8" fill={colors.fill} opacity="0.5"/></svg>;
             };
             return (
                 <div className={`aspect-video ${colors.bg} rounded-2xl mb-4 overflow-hidden relative group-hover:shadow-md transition-all`}>
@@ -96,10 +162,6 @@
                 </div>
             );
         };
-
-        // ==========================================
-        // 2. Modals & Screens
-        // ==========================================
 
         const ItemDetailModal = ({ item, onClose, isLoggedIn, setShowLoginScreen }) => {
             if (!item) return null;
@@ -181,12 +243,8 @@
                                     </div>
                                 </div>
                                 <div className="flex gap-2">
-                                    <button className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-500">
-                                        <Share2 size={20} />
-                                    </button>
-                                    <button className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-500">
-                                        <Star size={20} />
-                                    </button>
+                                    <button className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-500"><Share2 size={20} /></button>
+                                    <button className="p-2 border border-gray-200 rounded-xl hover:bg-gray-50 text-gray-500"><Star size={20} /></button>
                                 </div>
                             </div>
                             <p className="text-gray-600 text-lg leading-relaxed mb-8 whitespace-pre-line">
@@ -281,9 +339,10 @@
             </div>
         );
 
-        // ==========================================
-        // 3. Navigation Component (GNB)
-        // ==========================================
+        // =================================================================================================
+        // [SECTION 3] LAYOUT COMPONENTS (레이아웃 컴포넌트)
+        // src/components/layout/ 폴더에 위치할 컴포넌트들입니다. (GNB, Footer 등)
+        // =================================================================================================
 
         const GNB = ({ 
             currentTab, isLoggedIn, isMenuOpen, setIsMenuOpen, handleNavClick, 
@@ -296,6 +355,7 @@
                     <div className="relative z-20 bg-white">
                         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                             <div className="flex justify-between h-16 items-center">
+                                {/* Logo Area */}
                                 <div className="flex items-center gap-3 shrink-0 cursor-pointer group relative" onClick={() => handleNavClick('홈')}>
                                     {!logoError ? (
                                         <img src="nexon_skills.webp" alt="NEXON Skills" className="w-8 h-8 object-contain rounded-lg shadow-sm" onError={() => setLogoError(true)} />
@@ -310,6 +370,8 @@
                                     <span className="text-xl font-bold tracking-tight text-gray-900">NEXON Skills</span>
                                     <DomainTooltip title="AI 스킬 통합 플랫폼" domain="skills.nexon.com" />
                                 </div>
+
+                                {/* Desktop Navigation */}
                                 <div className="hidden md:flex items-center space-x-1">
                                     {mainMenus.map((menu) => (
                                         <div key={menu.name} className="relative group">
@@ -327,6 +389,8 @@
                                         </div>
                                     ))}
                                 </div>
+
+                                {/* Right Actions */}
                                 <div className="hidden md:flex items-center space-x-4">
                                     <button onClick={() => handleNavClick('즐겨찾기')} className={`transition-colors p-2 rounded-lg ${currentTab === '즐겨찾기' ? 'bg-yellow-50 text-yellow-500' : 'text-gray-400 hover:text-yellow-500'}`} title="내 즐겨찾기">
                                         <Star size={20} className={currentTab === '즐겨찾기' ? 'fill-yellow-500' : ''} />
@@ -345,6 +409,8 @@
                                         </button>
                                     )}
                                 </div>
+
+                                {/* Mobile Menu Trigger */}
                                 <div className="md:hidden flex items-center">
                                     <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-gray-600 p-2 hover:bg-gray-100 rounded-lg">
                                         {isMenuOpen ? <X size={24} /> : <Menu size={24} />}
@@ -353,6 +419,8 @@
                             </div>
                         </div>
                     </div>
+
+                    {/* Sticky Search Bar */}
                     <div className={`absolute top-0 left-0 w-full bg-white/95 backdrop-blur shadow-md border-b border-gray-200 transition-all duration-300 -z-10 flex justify-center py-3 ${showStickySearch ? 'translate-y-16 opacity-100' : 'translate-y-0 opacity-0'}`}>
                         <div className="flex items-center gap-2 bg-gray-100 border border-gray-200 rounded-full p-1 pl-4 pr-1">
                             <div className="flex items-center gap-2 border-r border-gray-300 pr-3 mr-1">
@@ -366,6 +434,8 @@
                             <button className="bg-gray-900 text-white p-2 rounded-full hover:bg-gray-800 shadow-sm"><Search size={14} /></button>
                         </div>
                     </div>
+
+                    {/* Mobile Menu */}
                     {isMenuOpen && (
                         <div className="md:hidden absolute top-16 left-0 w-full bg-white border-b border-gray-200 shadow-xl z-40">
                             <div className="px-4 py-4 space-y-1">
@@ -390,9 +460,10 @@
             );
         };
 
-        // ==========================================
-        // 4. View Components (Developer Console Sub-views)
-        // ==========================================
+        // =================================================================================================
+        // [SECTION 4] FEATURE COMPONENTS (기능별 컴포넌트)
+        // src/components/features/ 폴더에 위치합니다. (Dashboard, Console Views)
+        // =================================================================================================
 
         const DashboardView = ({ setShowCreateModal }) => (
             <div className="space-y-6 animate-fade-in">
@@ -523,6 +594,11 @@
             </div>
         );
 
+        // =================================================================================================
+        // [SECTION 5] PAGE COMPONENTS (페이지 컴포넌트)
+        // src/pages/ 폴더에 위치할 컴포넌트들입니다. (각 탭에 해당하는 메인 컨텐츠)
+        // =================================================================================================
+
         const DeveloperConsole = ({ setShowCreateModal, setSelectedItem }) => {
             const [activeMenu, setActiveMenu] = useState('대시보드');
             const menuItems = [
@@ -556,22 +632,12 @@
         };
 
         const AINews = ({ setSelectedItem }) => {
-            const newsItems = [
-                { category: 'Model Update', title: 'OpenAI, 추론 능력이 비약적으로 상승한 신모델 출시', date: '1시간 전', content: `OpenAI가 새로운 AI 모델을 공개했습니다...` },
-                { category: 'Industry', title: '엔비디아, 차세대 블랙웰 칩 생산량 확대 발표', date: '3시간 전', content: `엔비디아(Nvidia)가 차세대 AI 칩...` },
-                { category: 'Tutorial', title: 'RAG 아키텍처를 최적화하는 5가지 핵심 기법', date: '어제', content: `검색 증강 생성(RAG) 시스템의...` },
-                { category: 'Community', title: 'NEXON Skills 개발자 밋업: 서울 2026 참가 신청 안내', date: '2일 전', content: `국내 최대 AI 에이전트 개발자 커뮤니티...` },
-            ];
             return (
                 <div className="space-y-8 animate-in relative"><div className="border-b border-gray-200 pb-4"><h2 className="text-3xl font-bold text-gray-900">스킬 트렌드</h2><p className="text-gray-500">전 세계의 혁신적인 AI 소식을 선별하여 전달합니다.</p></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{newsItems.map((news, i) => (<div key={i} className="group cursor-pointer" onClick={() => setSelectedItem({ type: 'News', title: news.title, desc: news.content, author: `${news.date} • NEXON Skills Editors` })}><NewsThumbnail category={news.category} /><p className="text-xs text-gray-400 mb-2">{news.date}</p><h3 className="text-xl font-bold text-gray-900 leading-snug group-hover:text-blue-600 transition-colors">{news.title}</h3></div>))}</div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{NEWS_ITEMS.map((news, i) => (<div key={i} className="group cursor-pointer" onClick={() => setSelectedItem({ type: 'News', title: news.title, desc: news.content, author: `${news.date} • NEXON Skills Editors` })}><NewsThumbnail category={news.category} /><p className="text-xs text-gray-400 mb-2">{news.date}</p><h3 className="text-xl font-bold text-gray-900 leading-snug group-hover:text-blue-600 transition-colors">{news.title}</h3></div>))}</div>
                 </div>
             );
         };
-
-        // ==========================================
-        // 5. Workflow Editor Components
-        // ==========================================
 
         const WorkflowEditor = ({ onClose }) => {
             const [nodes, setNodes] = useState([ { id: 1, type: 'trigger', label: 'Webhook (Start)', x: 100, y: 150, iconName: 'Globe' }, { id: 2, type: 'action', label: 'Analyze Text (LLM)', x: 400, y: 150, iconName: 'Cpu' }, { id: 3, type: 'action', label: 'Send to Slack', x: 700, y: 150, iconName: 'MessageSquare' } ]);
@@ -600,7 +666,7 @@
             const handleNodeSettingsClick = (e, nodeId) => { e.stopPropagation(); setSelectedNodeId(nodeId); setSelectedEdgeId(null); };
             const handleEdgeClick = (e, edgeId) => { e.stopPropagation(); setSelectedEdgeId(edgeId); setSelectedNodeId(null); };
             const handleCanvasClick = () => { setSelectedNodeId(null); setSelectedEdgeId(null); };
-            const handleNodeDelete = (e, nodeId) => { e.stopPropagation(); if (selectedNodeId === nodeId) setSelectedNodeId(null); setNodes(nds => nds.filter(n => n.id === nodeId ? false : true)); setEdges(eds => eds.filter(edge => edge.source !== nodeId && edge.target !== nodeId)); };
+            const handleNodeDelete = (e, nodeId) => { e.stopPropagation(); if (selectedNodeId === nodeId) setSelectedNodeId(null); setNodes(nds => nds.filter(n => n.id !== nodeId)); setEdges(eds => eds.filter(edge => edge.source !== nodeId && edge.target !== nodeId)); };
             const handlePortMouseDown = (e, nodeId, portType) => { e.stopPropagation(); e.preventDefault(); if (portType === 'source') { const rect = e.currentTarget.getBoundingClientRect(); const canvasRect = canvasRef.current.getBoundingClientRect(); setConnectingSource({ nodeId, x: rect.left + rect.width / 2 - canvasRect.left, y: rect.top + rect.height / 2 - canvasRect.top }); } };
             const handlePortMouseUp = (e, nodeId, portType) => { e.stopPropagation(); if (connectingSource && portType === 'target') { if (connectingSource.nodeId !== nodeId) { const newEdge = { id: `e${connectingSource.nodeId}-${nodeId}-${Date.now()}`, source: connectingSource.nodeId, target: nodeId, label: '' }; if (!edges.some(edge => edge.source === newEdge.source && edge.target === newEdge.target)) setEdges(eds => [...eds, newEdge]); } } setConnectingSource(null); };
             const handleMouseMove = (e) => { if (isPanelDragging) { setPanelPosition({ x: e.clientX - panelDragOffset.x, y: e.clientY - panelDragOffset.y }); return; } if (!canvasRef.current) return; const canvasRect = canvasRef.current.getBoundingClientRect(); const x = e.clientX - canvasRect.left; const y = e.clientY - canvasRect.top; setMousePos({ x, y }); if (draggingNodeId) { const nodeX = x - dragOffset.x; const nodeY = y - dragOffset.y; setNodes(nds => nds.map(n => n.id === draggingNodeId ? { ...n, x: nodeX, y: nodeY } : n)); } };
@@ -739,13 +805,12 @@
         };
 
         const FavoritesView = ({ setSelectedItem }) => {
-            const favorites = [ { type: 'Agent', title: 'Code Reviewer Pro', desc: 'GitHub PR을 분석하여 잠재적인 버그와 성능 이슈를 코멘트로 남깁니다.', author: 'DevTools', stars: 1800 }, { type: 'Connector', title: 'Notion to Slack', desc: '노션 페이지 변경 사항을 슬랙 채널로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850 }, { type: 'Workflow', title: 'Daily News Summary', desc: '매일 아침 30분, 주요 뉴스 사이트를 크롤링하여 요약 리포트를 메일로 발송합니다.', author: 'NEXON Skills Official', stars: 3200 }, { type: 'Agent', title: 'SQL Query Assistant', desc: '자연어를 입력하면 최적화된 SQL 쿼리로 변환해주는 데이터 분석 보조 도구입니다.', author: 'DataTeam', stars: 2100 } ];
             const getTypeStyle = (type) => { switch (type) { case 'Agent': return 'bg-blue-100 text-blue-700'; case 'Connector': return 'bg-purple-100 text-purple-700'; case 'Workflow': return 'bg-orange-100 text-orange-700'; default: return 'bg-gray-100 text-gray-700'; } };
             return (
                 <div className="animate-in space-y-8">
                      <div className="border-b border-gray-200 pb-4"><div className="flex items-center gap-3"><div className="p-3 bg-yellow-100 rounded-2xl text-yellow-600"><Star size={24} className="fill-current"/></div><div><h2 className="text-3xl font-bold text-gray-900">내 즐겨찾는 스킬들</h2><p className="text-gray-500 mt-1">자주 사용하는 도구들을 한곳에서 모아보고 빠르게 실행하세요.</p></div></div></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                        {favorites.map((item, idx) => (
+                        {FAVORITES_ITEMS.map((item, idx) => (
                             <div key={idx} onClick={() => setSelectedItem(item)} className="group bg-white border border-gray-100 rounded-2xl p-6 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all duration-300 cursor-pointer animate-fade-in relative overflow-hidden">
                                 <div className="absolute top-0 right-0 p-4"><Star size={20} className="text-yellow-400 fill-yellow-400" /></div>
                                 <div className="flex justify-between items-start mb-4"><span className={`px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${getTypeStyle(item.type)}`}>{item.type}</span></div>
@@ -762,13 +827,35 @@
         };
 
         const HomePage = ({ selectedGame, setSelectedGame, gameList, showStickySearch, setSelectedItem, isLoggedIn, setShowLoginScreen }) => {
-            const [items, setItems] = useState([ { type: 'Agent', title: 'Data Wizard Bot', desc: '복잡한 로그 데이터를 미니맵처럼 한눈에 파악하고 시각화합니다.', author: 'DataGuild', stars: 1240 }, { type: 'Connector', title: 'Notion Guild Messenger', desc: '노션 페이지 변경 사항을 길드 채널(슬랙)로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850 }, { type: 'Workflow', title: 'Daily Quest Summary', desc: '매일 아침 30분, 주요 뉴스 퀘스트를 클리어하고 요약 리포트를 전송합니다.', author: 'NEXON Skills Official', stars: 3200 }, { type: 'Agent', title: 'Code Reviewer Pro', desc: 'GitHub PR을 분석하여 잠재적인 버그와 성능 이슈를 코멘트로 남깁니다.', author: 'DevTools', stars: 1800 }, { type: 'Connector', title: 'Gmail <-> Trello', desc: '중요 메일을 자동으로 트렐로 카드로 변환하여 할 일 목록에 추가합니다.', author: 'ProductivityKing', stars: 620 }, { type: 'Workflow', title: 'Insta Marketing Auto', desc: '트렌드 키워드를 분석하여 인스타그램 포스팅 문구와 이미지를 생성하고 업로드합니다.', author: 'MarketingAI', stars: 940 } ]);
+            const [items, setItems] = useState(HOME_INITIAL_ITEMS);
             const [isLoading, setIsLoading] = useState(false);
             const loadingRef = useRef(isLoading);
+            
             useEffect(() => { loadingRef.current = isLoading; }, [isLoading]);
+            
             const generateRandomItems = (count) => { const types = ['Agent', 'Connector', 'Workflow']; const titles = ['Super AI', 'Auto Notion', 'Slack Bot', 'Data Miner', 'Email Wiz', 'Code Fixer', 'Image Gen', 'Text Sum', 'Game Ops', 'Server Mon']; const descs = [ '운영 효율을 극대화하는 패시브 스킬입니다.', '복잡한 데이터를 미니맵처럼 한눈에 파악하세요.', '반복 퀘스트를 자동화하여 개발 시간을 절약하세요.', '팀의 생산성 버프를 200% 향상시킵니다.', '강력한 AI 엔진을 장착했습니다.' ]; const authors = ['Nexon_Dev', 'AI_Lab', 'AutomateIt', 'DevTeam_A', 'SoloDev', 'CreativeMinds']; return Array.from({ length: count }).map((_, i) => ({ type: types[Math.floor(Math.random() * types.length)], title: `${titles[Math.floor(Math.random() * titles.length)]} v${Math.floor(Math.random() * 10)}.0`, desc: descs[Math.floor(Math.random() * descs.length)], author: authors[Math.floor(Math.random() * authors.length)], stars: Math.floor(Math.random() * 5000) + 100 })); };
-            const loadMore = useCallback(() => { if (loadingRef.current) return; setIsLoading(true); setTimeout(() => { const newItems = generateRandomItems(6); setItems(prev => [...prev, ...newItems]); setIsLoading(false); }, 800); }, []);
-            useEffect(() => { const handleScroll = () => { const { scrollTop, clientHeight, scrollHeight } = document.documentElement; if (scrollTop + clientHeight >= scrollHeight - 200 && !loadingRef.current) { loadMore(); } }; window.addEventListener('scroll', handleScroll); return () => window.removeEventListener('scroll', handleScroll); }, [loadMore]);
+            
+            const loadMore = useCallback(() => { 
+                if (loadingRef.current) return; 
+                setIsLoading(true); 
+                setTimeout(() => { 
+                    const newItems = generateRandomItems(6); 
+                    setItems(prev => [...prev, ...newItems]); 
+                    setIsLoading(false); 
+                }, 800); 
+            }, []);
+            
+            useEffect(() => { 
+                const handleScroll = () => { 
+                    const { scrollTop, clientHeight, scrollHeight } = document.documentElement; 
+                    if (scrollTop + clientHeight >= scrollHeight - 200 && !loadingRef.current) { 
+                        loadMore(); 
+                    } 
+                }; 
+                window.addEventListener('scroll', handleScroll); 
+                return () => window.removeEventListener('scroll', handleScroll); 
+            }, [loadMore]);
+            
             const getTypeStyle = (type) => { switch (type) { case 'Agent': return 'bg-blue-100 text-blue-700'; case 'Connector': return 'bg-purple-100 text-purple-700'; case 'Workflow': return 'bg-orange-100 text-orange-700'; default: return 'bg-gray-100 text-gray-700'; } };
 
             return (
@@ -794,6 +881,11 @@
             );
         };
 
+        // =================================================================================================
+        // [SECTION 6] MAIN APP COMPONENT (메인 앱 컴포넌트)
+        // src/App.jsx 에 해당합니다.
+        // =================================================================================================
+
         const App = () => {
             const [isMenuOpen, setIsMenuOpen] = useState(false);
             const [currentTab, setCurrentTab] = useState('홈');
@@ -803,23 +895,40 @@
             const [selectedItem, setSelectedItem] = useState(null);
             const [showCreateModal, setShowCreateModal] = useState(false);
             const [selectedGame, setSelectedGame] = useState('전체 게임');
-            const gameList = ['메이플스토리', '마비노기', '던전앤파이터', 'FC온라인', '바람의나라', '카트라이더: 드리프트'];
             const [showStickySearch, setShowStickySearch] = useState(false);
             const [footerLogoError, setFooterLogoError] = useState(false);
 
-            useEffect(() => { const handleScroll = () => { if (window.scrollY > 300) { setShowStickySearch(true); } else { setShowStickySearch(false); } }; window.addEventListener('scroll', handleScroll); return () => window.removeEventListener('scroll', handleScroll); }, []);
-
-            const mainMenus = [
-                { name: '개발자 콘솔', icon: null, domain: 'console.skills.nexon.com', desc: '내 AI 스킬들의 현황을 한눈에', authRequired: true },
-                { name: '스킬 트렌드', icon: null, domain: 'news.skills.nexon.com', desc: '가장 빠른 AI 기술 트렌드' },
-                { name: '스킬 가이드', icon: null, domain: 'docs.skills.nexon.com', desc: '개발을 돕는 친절한 길잡이' },
-                { name: 'AI 스튜디오', icon: Layout, domain: 'studio.skills.nexon.com', desc: '상상을 현실로 만드는 AI 실험실' },
-                { name: 'AI 워크플로우', icon: Zap, domain: 'workflows.skills.nexon.com', desc: '복잡한 업무를 자동으로 연결' },
-            ];
+            useEffect(() => { 
+                const handleScroll = () => { 
+                    if (window.scrollY > 300) { setShowStickySearch(true); } 
+                    else { setShowStickySearch(false); } 
+                }; 
+                window.addEventListener('scroll', handleScroll); 
+                return () => window.removeEventListener('scroll', handleScroll); 
+            }, []);
             
-            const handleNavClick = (tabName) => { if (tabName === '홈') { setCurrentTab('홈'); setIsMenuOpen(false); return; } const targetMenu = mainMenus.find(m => m.name === tabName); if (targetMenu?.authRequired && !isLoggedIn) { setPendingTab(tabName); setShowLoginScreen(true); setIsMenuOpen(false); } else { setCurrentTab(tabName); setIsMenuOpen(false); } };
-            const handleLogin = (e) => { e.preventDefault(); setIsLoggedIn(true); setShowLoginScreen(false); if (pendingTab) { setCurrentTab(pendingTab); setPendingTab(null); } };
+            const handleNavClick = (tabName) => { 
+                if (tabName === '홈') { setCurrentTab('홈'); setIsMenuOpen(false); return; } 
+                const targetMenu = MAIN_MENUS.find(m => m.name === tabName); 
+                if (targetMenu?.authRequired && !isLoggedIn) { 
+                    setPendingTab(tabName); 
+                    setShowLoginScreen(true); 
+                    setIsMenuOpen(false); 
+                } else { 
+                    setCurrentTab(tabName); 
+                    setIsMenuOpen(false); 
+                } 
+            };
+            
+            const handleLogin = (e) => { 
+                e.preventDefault(); 
+                setIsLoggedIn(true); 
+                setShowLoginScreen(false); 
+                if (pendingTab) { setCurrentTab(pendingTab); setPendingTab(null); } 
+            };
+            
             const handleLogout = () => { setIsLoggedIn(false); setCurrentTab('홈'); };
+            
             const renderContent = () => {
                 switch (currentTab) {
                     case '개발자 콘솔': return <DeveloperConsole setShowCreateModal={setShowCreateModal} setSelectedItem={setSelectedItem} />;
@@ -828,18 +937,56 @@
                     case 'AI 워크플로우': return <AIWorkflow />;
                     case 'AI 스튜디오': return <AIStudio />;
                     case '즐겨찾기': return <FavoritesView setSelectedItem={setSelectedItem} />;
-                    default: return <HomePage selectedGame={selectedGame} setSelectedGame={setSelectedGame} gameList={gameList} showStickySearch={showStickySearch} setSelectedItem={setSelectedItem} isLoggedIn={isLoggedIn} setShowLoginScreen={setShowLoginScreen} />;
+                    default: return <HomePage selectedGame={selectedGame} setSelectedGame={setSelectedGame} gameList={GAME_LIST} showStickySearch={showStickySearch} setSelectedItem={setSelectedItem} isLoggedIn={isLoggedIn} setShowLoginScreen={setShowLoginScreen} />;
                 }
             };
 
             return (
                 <div className="min-h-screen bg-gray-50 text-gray-900 flex flex-col relative">
+                    {/* Modals Layer */}
                     {showLoginScreen && <LoginScreen onClose={() => setShowLoginScreen(false)} onLogin={handleLogin} />}
                     {selectedItem && <ItemDetailModal item={selectedItem} onClose={() => setSelectedItem(null)} isLoggedIn={isLoggedIn} setShowLoginScreen={setShowLoginScreen} />}
                     {showCreateModal && <CreateSelectionModal onClose={() => setShowCreateModal(false)} />}
-                    <GNB currentTab={currentTab} isLoggedIn={isLoggedIn} isMenuOpen={isMenuOpen} setIsMenuOpen={setIsMenuOpen} handleNavClick={handleNavClick} handleLogout={handleLogout} setShowLoginScreen={setShowLoginScreen} showStickySearch={showStickySearch} selectedGame={selectedGame} setSelectedGame={setSelectedGame} gameList={gameList} mainMenus={mainMenus} />
-                    <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">{renderContent()}</main>
-                    <footer className="bg-white border-t border-gray-200 py-10"><div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6"><div className="flex items-center gap-2 text-gray-400">{!footerLogoError ? (<img src="nexon_skills.webp" alt="Logo" className="w-5 h-5 grayscale opacity-50 object-contain" onError={() => setFooterLogoError(true)} />) : (<div className="w-5 h-5 bg-gray-200 rounded-sm"></div>)}<span className="text-sm font-semibold">© 2026 NEXON Skills Inc. All rights reserved.</span></div><div className="flex gap-8 text-sm font-medium text-gray-500"><a href="#" onClick={(e) => e.preventDefault()} className="hover:text-gray-900">Privacy Policy</a><a href="#" onClick={(e) => e.preventDefault()} className="hover:text-gray-900">Terms of Service</a><a href="#" onClick={(e) => e.preventDefault()} className="hover:text-gray-900">Contact Us</a></div></div></footer>
+
+                    {/* Navigation Bar */}
+                    <GNB 
+                        currentTab={currentTab} 
+                        isLoggedIn={isLoggedIn} 
+                        isMenuOpen={isMenuOpen} 
+                        setIsMenuOpen={setIsMenuOpen} 
+                        handleNavClick={handleNavClick} 
+                        handleLogout={handleLogout} 
+                        setShowLoginScreen={setShowLoginScreen} 
+                        showStickySearch={showStickySearch} 
+                        selectedGame={selectedGame} 
+                        setSelectedGame={setSelectedGame} 
+                        gameList={GAME_LIST} 
+                        mainMenus={MAIN_MENUS} 
+                    />
+
+                    {/* Main Content Area */}
+                    <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
+                        {renderContent()}
+                    </main>
+
+                    {/* Footer */}
+                    <footer className="bg-white border-t border-gray-200 py-10">
+                        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row justify-between items-center gap-6">
+                            <div className="flex items-center gap-2 text-gray-400">
+                                {!footerLogoError ? (
+                                    <img src="nexon_skills.webp" alt="Logo" className="w-5 h-5 grayscale opacity-50 object-contain" onError={() => setFooterLogoError(true)} />
+                                ) : (
+                                    <div className="w-5 h-5 bg-gray-200 rounded-sm"></div>
+                                )}
+                                <span className="text-sm font-semibold">© 2026 NEXON Skills Inc. All rights reserved.</span>
+                            </div>
+                            <div className="flex gap-8 text-sm font-medium text-gray-500">
+                                <a href="#" onClick={(e) => e.preventDefault()} className="hover:text-gray-900">Privacy Policy</a>
+                                <a href="#" onClick={(e) => e.preventDefault()} className="hover:text-gray-900">Terms of Service</a>
+                                <a href="#" onClick={(e) => e.preventDefault()} className="hover:text-gray-900">Contact Us</a>
+                            </div>
+                        </div>
+                    </footer>
                 </div>
             );
         };
