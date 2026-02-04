@@ -562,7 +562,7 @@
                 { category: 'Community', title: 'NEXON Skills 개발자 밋업: 서울 2026 참가 신청 안내', date: '2일 전', content: `국내 최대 AI 에이전트 개발자 커뮤니티...` },
             ];
             return (
-                <div className="space-y-8 animate-in relative"><div className="border-b border-gray-200 pb-4"><h2 className="text-3xl font-bold text-gray-900">AI 뉴스</h2><p className="text-gray-500">전 세계의 혁신적인 AI 소식을 선별하여 전달합니다.</p></div>
+                <div className="space-y-8 animate-in relative"><div className="border-b border-gray-200 pb-4"><h2 className="text-3xl font-bold text-gray-900">스킬 트렌드</h2><p className="text-gray-500">전 세계의 혁신적인 AI 소식을 선별하여 전달합니다.</p></div>
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{newsItems.map((news, i) => (<div key={i} className="group cursor-pointer" onClick={() => setSelectedItem({ type: 'News', title: news.title, desc: news.content, author: `${news.date} • NEXON Skills Editors` })}><NewsThumbnail category={news.category} /><p className="text-xs text-gray-400 mb-2">{news.date}</p><h3 className="text-xl font-bold text-gray-900 leading-snug group-hover:text-blue-600 transition-colors">{news.title}</h3></div>))}</div>
                 </div>
             );
@@ -810,7 +810,7 @@
 
             const mainMenus = [
                 { name: '개발자 콘솔', icon: Activity, domain: 'console.skills.nexon.com', desc: '내 AI 스킬들의 현황을 한눈에', authRequired: true },
-                { name: 'AI 뉴스', icon: Globe, domain: 'news.skills.nexon.com', desc: '가장 빠른 AI 기술 트렌드' },
+                { name: '스킬 트렌드', icon: Globe, domain: 'news.skills.nexon.com', desc: '가장 빠른 AI 기술 트렌드' },
                 { name: 'AI 스튜디오', icon: Layout, domain: 'studio.skills.nexon.com', desc: '상상을 현실로 만드는 AI 실험실' },
                 { name: 'AI 워크플로우', icon: Zap, domain: 'workflows.skills.nexon.com', desc: '복잡한 업무를 자동으로 연결' },
                 { name: '통합 가이드', icon: BookOpen, domain: 'docs.skills.nexon.com', desc: '개발을 돕는 친절한 길잡이' },
@@ -822,7 +822,7 @@
             const renderContent = () => {
                 switch (currentTab) {
                     case '개발자 콘솔': return <DeveloperConsole setShowCreateModal={setShowCreateModal} setSelectedItem={setSelectedItem} />;
-                    case 'AI 뉴스': return <AINews setSelectedItem={setSelectedItem} />;
+                    case '스킬 트렌드': return <AINews setSelectedItem={setSelectedItem} />;
                     case 'AI 워크플로우': return <AIWorkflow />;
                     case 'AI 스튜디오': return <AIStudio />;
                     case '통합 가이드': return <IntegrationGuide />;
