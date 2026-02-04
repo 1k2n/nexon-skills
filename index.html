@@ -885,7 +885,7 @@
                 <div className="animate-in">
                     <div className="text-center space-y-8 py-16 px-4">
                         <h1 className="text-4xl md:text-6xl font-extrabold text-gray-900 tracking-tight leading-tight">흩어진 AI 도구, <br className="md:hidden" /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600">넥슨스킬로 연결하세요.</span></h1>
-                        <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-500 leading-relaxed">개발과 운영의 난이도를 낮춰줄 AI 스킬,<br className="hidden md:block"/> NEXON Skills에서 필요한 능력을 파밍하고 장착하세요.</p>
+                        <p className="max-w-2xl mx-auto text-lg md:text-xl text-gray-500 leading-relaxed">개발과 운영의 난이도를 낮춰줄 AI 도구,<br className="hidden md:block"/> NEXON Skills에서 필요한 능력을 파밍하고 장착하세요.</p>
                         <div className={`max-w-4xl mx-auto mt-10 relative z-10 transition-all duration-500 ease-in-out ${showStickySearch ? 'opacity-0 translate-y-[-20px] pointer-events-none' : 'opacity-100 translate-y-0'}`}>
                             <div className="flex flex-col md:flex-row items-stretch md:items-center bg-white border border-gray-200 rounded-2xl md:rounded-full shadow-lg p-2 focus-within:ring-2 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all hover:shadow-xl"><div className="relative px-2 md:pl-4 md:pr-2 border-b md:border-b-0 md:border-r border-gray-100 group flex items-center shrink-0 py-1 md:py-0"><Gamepad2 className="w-5 h-5 text-gray-400 group-hover:text-blue-500 transition-colors pointer-events-none ml-2 md:ml-0" /><select value={selectedGame} onChange={(e) => setSelectedGame(e.target.value)} className="w-full md:w-auto appearance-none bg-transparent font-bold text-gray-700 py-3 pl-3 pr-8 rounded-lg focus:outline-none cursor-pointer text-sm hover:text-blue-600 transition-colors"><option>전체 게임</option>{gameList.map(game => <option key={game} value={game}>{game}</option>)}</select><ChevronDown className="absolute right-4 md:right-2 w-3 h-3 text-gray-400 pointer-events-none" /></div><div className="flex-1 relative flex items-center"><div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none"><Search className="h-5 w-5 text-gray-400" /></div><input type="text" className="block w-full pl-12 pr-4 py-3 bg-transparent text-gray-900 placeholder-gray-400 focus:outline-none text-base" placeholder="소환하고 싶은 에이전트, 스킬, 아이템을 검색하세요..." /><button className="md:hidden absolute right-2 p-2 bg-gray-100 text-gray-600 rounded-full hover:bg-gray-200 transition-colors"><ArrowRight size={18} /></button></div><button className="hidden md:block px-8 py-3 bg-gray-900 text-white rounded-full font-bold hover:bg-gray-800 transition-colors shadow-md shrink-0 ml-2">검색</button></div>
                             <div className="mt-4 flex flex-wrap justify-center gap-2 text-sm text-gray-500"><span>인기 퀘스트:</span>{['노션 연동', '데이터 분석', '마케팅 자동화', '코드 리뷰'].map((tag) => (<button key={tag} className="hover:text-blue-600 hover:underline px-1">{tag}</button>))}</div>
@@ -1019,6 +1019,7 @@
     </script>
 </body>
 </html>
+
 
 
 
