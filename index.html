@@ -358,7 +358,7 @@
                                 {/* Logo Area */}
                                 <div className="flex items-center gap-3 shrink-0 cursor-pointer group relative" onClick={() => handleNavClick('홈')}>
                                     {!logoError ? (
-                                        <img src="nexon_skills.webp" alt="NEXON Skills" className="w-8 h-8 object-contain rounded-lg shadow-sm" onError={() => setLogoError(true)} />
+                                        <img src="nexon_skills.webp" alt="NEXON Skills" className="w-8 h-8 object-contain" onError={() => setLogoError(true)} />
                                     ) : (
                                        <svg width="48" height="48" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <defs>
@@ -1008,3 +1008,4 @@
     </script>
 </body>
 </html>
+
