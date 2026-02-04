@@ -361,11 +361,18 @@
                                         <img src="nexon_skills.webp" alt="NEXON Skills" className="w-8 h-8 object-contain rounded-lg shadow-sm" onError={() => setLogoError(true)} />
                                     ) : (
                                         <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                            <rect x="15" y="10" width="70" height="80" rx="6" fill="#2f54eb"></rect>
-                                            <rect x="25" y="10" width="60" height="80" rx="6" fill="#5d40f0"></rect>
-                                            <path d="M25 10H35V90H25C21.6863 90 19 87.3137 19 84V16C19 12.6863 21.6863 10 25 10Z" fill="white" fill-opacity="0.1"></path>
-                                            <rect x="42" y="35" width="26" height="26" rx="2" transform="rotate(45 55 48)" fill="white"></rect>
-                                            <rect x="48" y="41" width="14" height="14" rx="1" transform="rotate(45 55 48)" fill="#8b2cf5"></rect>
+                                            <defs>
+                                                <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
+                                                    <feDropShadow dx="0" dy="4" stdDeviation="3" flood-color="#000" flood-opacity="0.3"></feDropShadow>
+                                                </filter>
+                                                <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
+                                                    <feDropShadow dx="0" dy="2" stdDeviation="1.5" flood-color="#000" flood-opacity="0.2"></feDropShadow>
+                                                </filter>
+                                            </defs>
+                                            <rect x="10" y="10" width="80" height="80" rx="16" fill="#4338ca" filter="url(#softShadow)"></rect>
+                                            <rect x="26" y="26" width="48" height="48" rx="6" transform="rotate(45 50 50)" fill="#22d3ee" filter="url(#innerShadow)"></rect>
+                                            <rect x="38" y="38" width="24" height="24" rx="4" transform="rotate(45 50 50)" fill="white"></rect>
+                                            <circle cx="50" cy="50" r="5" fill="#4338ca"></circle>
                                         </svg>
                                     )}
                                     <span className="text-xl font-bold tracking-tight text-gray-900">NEXON Skills</span>
