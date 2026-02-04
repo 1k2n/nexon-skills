@@ -7,12 +7,22 @@
     
     <!-- Tailwind CSS: 스타일링을 위한 유틸리티 클래스 라이브러리 -->
     <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- 웹폰트 -->
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
     
     <!-- React & ReactDOM: UI 라이브러리 -->
     <script src="https://unpkg.com/@babel/standalone@7.24.5/babel.min.js"></script>
 
     <!-- Global Styles -->
+    
     <style>
+        @layer base {
+            /* 모든 요소가 설정한 Pretendard를 상속받도록 강제합니다. */
+            *, html, body {
+              font-family: 'Pretendard', sans-serif;
+            }
+        }
         /* 스크롤바 커스터마이징 */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #f1f1f1; }
@@ -48,11 +58,7 @@
             0% { transform: rotate(0deg); }
             100% { transform: rotate(360deg); }
         }
-        @layer base {
-            html {
-                font-family: inherit, sans-serif;
-            }
-        }
+        
     </style>
 </head>
 <body class="bg-gray-50 text-gray-900 antialiased">
@@ -1013,6 +1019,7 @@
     </script>
 </body>
 </html>
+
 
 
 
