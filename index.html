@@ -360,17 +360,17 @@
                                     {!logoError ? (
                                         <img src="nexon_skills.webp" alt="NEXON Skills" className="w-8 h-8 object-contain rounded-lg shadow-sm" onError={() => setLogoError(true)} />
                                     ) : (
-                                       <svg width="36" height="36" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                       <svg width="100" height="100" viewBox="0 0 100 100" fill="none" xmlns="http://www.w3.org/2000/svg">
                                             <defs>
                                                 <linearGradient id="skillGradient" x1="0%" y1="0%" x2="100%" y2="100%">
                                                     <stop offset="0%" style="stop-color:#3b82f6;stop-opacity:1" />
                                                     <stop offset="100%" style="stop-color:#8b5cf6;stop-opacity:1" />
                                                 </linearGradient>
                                                 <filter id="softShadow" x="-50%" y="-50%" width="200%" height="200%">
-                                                    <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#2e1065" flood-opacity="0.5"/>
+                                                    <feDropShadow dx="0" dy="4" stdDeviation="4" floodColor="#2e1065" floodOpacity="0.5"/>
                                                 </filter>
                                                 <filter id="innerShadow" x="-50%" y="-50%" width="200%" height="200%">
-                                                    <feDropShadow dx="0" dy="2" stdDeviation="2" flood-color="#000" flood-opacity="0.2"/>
+                                                    <feDropShadow dx="0" dy="2" stdDeviation="2" floodColor="#000" floodOpacity="0.2"/>
                                                 </filter>
                                             </defs>
                                             <rect x="10" y="10" width="80" height="80" rx="20" fill="#4c1d95" filter="url(#softShadow)"></rect>
@@ -1008,4 +1008,5 @@
     </script>
 </body>
 </html>
+
 
