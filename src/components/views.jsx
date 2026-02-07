@@ -1,0 +1,551 @@
+import React, { useState, useEffect, useCallback, useRef } from 'https://esm.sh/react@18.2.0?dev';
+import { FAVORITES_ITEMS, HOME_INITIAL_ITEMS, NEWS_FEED_URL } from '../data/constants.js';
+import {
+    Activity,
+    ArrowLeft,
+    ArrowRight,
+    Bell,
+    BookOpen,
+    Bot,
+    Box,
+    Check,
+    ChevronDown,
+    ChevronRight,
+    Clock,
+    Copy,
+    Cpu,
+    Database,
+    ExternalLink,
+    FileText,
+    Gamepad2,
+    GitBranch,
+    Globe,
+    Image,
+    Key,
+    Layers,
+    Library,
+    Mail,
+    Maximize2,
+    MessageSquare,
+    Mic,
+    MousePointer,
+    Play,
+    Plus,
+    RefreshCw,
+    Search,
+    Settings,
+    Share2,
+    ShieldCheck,
+    Split,
+    Star,
+    Terminal,
+    UploadCloud,
+    Video,
+    X,
+} from '../icons.js';
+import { NewsThumbnail } from './shared.jsx';
+
+const DashboardView = ({ setShowCreateModal }) => (
+<div className="space-y-8 animate-fade-in">
+    <div className="flex justify-between items-end bg-white p-6 rounded-[32px] border-2 border-slate-100 shadow-sm">
+        <div>
+            <div className="flex items-center gap-2 mb-1">
+                 <div className="w-2 h-2 rounded-full bg-green-500 animate-pulse"></div>
+                 <span className="text-xs font-bold text-slate-400 uppercase tracking-wide">Live Status</span>
+            </div>
+            <h2 className="text-3xl font-bold text-slate-900">대시보드</h2>
+            <p className="text-slate-500 font-medium mt-1">내 스킬들의 실시간 상태를 확인합니다.</p>
+        </div>
+        <button onClick={() => setShowCreateModal(true)} className="game-btn bg-blue-600 text-white px-6 py-3 rounded-2xl text-sm font-bold flex items-center gap-2 hover:bg-blue-700 transition-all shadow-[0px_4px_0px_#1e40af] active:shadow-none active:translate-y-[4px]"><Plus size={20} strokeWidth={3} /> 빠른 스킬 생성</button>
+    </div>
+    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[{ label: '활성 서비스', value: '18', trend: '+3', color: 'bg-blue-50 text-blue-600 border-blue-100' }, { label: '금일 API 호출', value: '142.5k', trend: '12%', color: 'bg-purple-50 text-purple-600 border-purple-100' }, { label: '평균 응답 시간', value: '420ms', trend: '-50ms', color: 'bg-green-50 text-green-600 border-green-100' }, { label: '예상 청구액', value: '₩125,000', trend: '₩12k', color: 'bg-orange-50 text-orange-600 border-orange-100' }].map((stat, i) => (
+            <div key={i} className={`p-6 rounded-3xl border-2 ${stat.color} game-shadow hover:scale-105 transition-transform bg-white`}>
+                <p className="text-xs text-slate-500 font-semibold uppercase tracking-wider mb-2">{stat.label}</p>
+                <p className="text-3xl font-bold text-slate-900">{stat.value}</p>
+                <div className="inline-flex items-center gap-1 mt-3 px-2 py-1 rounded-lg bg-white/50 border border-black/5">
+                    <span className="text-xs font-bold">▲ {stat.trend}</span>
+                </div>
+            </div>
+        ))}
+    </div>
+    <div className="bg-slate-900 rounded-3xl border-4 border-slate-900 shadow-xl overflow-hidden text-white">
+        <div className="px-6 py-4 border-b border-slate-700 font-bold text-sm flex items-center gap-2 bg-slate-800">
+            <Terminal size={16} className="text-blue-400"/> 실시간 시스템 로그
+        </div>
+        <div className="p-6 text-sm font-mono text-slate-300 space-y-3 bg-slate-900">
+            <div className="flex gap-4"><span className="text-slate-500 select-none">14:20:01</span> <span><span className="text-blue-400 font-bold">[INFO]</span> Agent "ReviewBot" deployed successfully.</span></div>
+            <div className="flex gap-4"><span className="text-slate-500 select-none">14:18:42</span> <span><span className="text-green-400 font-bold">[SUCCESS]</span> Workflow "Daily Sync" completed in 2.4s.</span></div>
+            <div className="flex gap-4"><span className="text-slate-500 select-none">14:15:10</span> <span><span className="text-yellow-400 font-bold">[WARN]</span> High latency detected in "Nexon OpenAPI".</span></div>
+             <div className="flex gap-4 animate-pulse"><span className="text-slate-500 select-none">...</span></div>
+        </div>
+    </div>
+</div>
+);
+
+const ConnectorsView = ({ setSelectedItem }) => {
+const [activeTab, setActiveTab] = useState('전체');
+const [searchQuery, setSearchQuery] = useState('');
+const tabs = ['전체', 'MCP', 'RAG', 'Public API', 'Private API', 'Admin API', 'Sandbox API', 'NXCommand'];
+const connectors = [
+    { name: 'Nexon User Info', type: 'Private API', status: 'Active', endpt: '/api/v1/user' },
+    { name: 'Maple Inventory', type: 'Sandbox API', status: 'Dev', endpt: '/sandbox/maple/inv' },
+    { name: 'Slack Notifier', type: 'MCP', status: 'Active', endpt: 'mcp://slack-bot' },
+    { name: 'Internal Wiki RAG', type: 'RAG', status: 'Indexing', endpt: 'vec://wiki-prod' },
+    { name: 'Global Weather', type: 'Public API', status: 'Active', endpt: 'api.weather.com' },
+    { name: 'Server Restart Cmd', type: 'NXCommand', status: 'Active', endpt: 'cmd://restart-server' },
+];
+const filtered = connectors.filter(c => (activeTab === '전체' || c.type === activeTab) && c.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+return (
+    <div className="space-y-6 animate-fade-in">
+        <div><h2 className="text-3xl font-bold text-slate-900">내 커넥터</h2><p className="text-slate-500 text-sm mt-2 font-medium leading-relaxed">MCP 및 RAG 기반의 차세대 연결 방식은 물론, 기존 API와 NXCommand 실행까지 지원합니다.<br className="hidden md:block"/> 파편화된 데이터 파이프라인을 단일 허브에서 통합 관리하세요.</p></div>
+        <div className="relative"><Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} /><input type="text" className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors" placeholder="커넥터 이름을 검색하세요..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+        <div className="flex gap-2 overflow-x-auto pb-4 border-b-2 border-slate-100 no-scrollbar">{tabs.map(tab => (<button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border-2 ${activeTab === tab ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}>{tab}</button>))}</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filtered.map((item, idx) => (
+                <div key={idx} onClick={() => setSelectedItem({ type: item.type, title: item.name, desc: `Endpoint: ${item.endpt}\nStatus: ${item.status}\n\n이 커넥터는 ${item.type} 타입으로, 안정적인 데이터 연결을 제공합니다.`, author: 'My Org', stars: 120 + idx })} className="bg-white p-6 rounded-3xl border-2 border-slate-100 game-shadow game-shadow-hover transition-all flex flex-col gap-4 cursor-pointer group">
+                    <div className="flex justify-between items-start"><span className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wide border ${item.type === 'MCP' ? 'bg-purple-100 text-purple-700 border-purple-200' : item.type === 'RAG' ? 'bg-orange-100 text-orange-700 border-orange-200' : item.type === 'NXCommand' ? 'bg-red-100 text-red-700 border-red-200' : 'bg-blue-100 text-blue-700 border-blue-200'}`}>{item.type}</span><div className={`w-3 h-3 rounded-full border-2 border-white shadow-sm ${item.status === 'Active' ? 'bg-green-500' : 'bg-yellow-400'}`}></div></div>
+                    <div><h3 className="font-bold text-lg text-slate-900 group-hover:text-blue-600 transition-colors">{item.name}</h3><p className="text-xs text-slate-400 font-mono mt-1 truncate bg-slate-50 p-1.5 rounded-lg border border-slate-100">{item.endpt}</p></div>
+                    <div className="mt-auto pt-4 border-t-2 border-slate-50 flex justify-end gap-2"><button className="px-3 py-1.5 rounded-lg bg-slate-50 text-xs font-bold text-slate-500 hover:bg-slate-100">Config</button><button className="px-3 py-1.5 rounded-lg bg-blue-50 text-xs font-bold text-blue-600 hover:bg-blue-100">Test</button></div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+};
+
+const AgentsView = ({ setSelectedItem }) => {
+const [activeTab, setActiveTab] = useState('전체');
+const [searchQuery, setSearchQuery] = useState('');
+const tabs = ['전체', 'Custom', 'AI Studio', 'Gemini', 'Snowflake', 'ChatGPT', 'Claude'];
+const agents = [
+    { name: 'CS Responder', vendor: 'Gemini', model: 'Gemini 3 Pro', status: 'Running' },
+    { name: 'Data Analyst', vendor: 'Snowflake', model: 'Cortex Llama', status: 'Paused' },
+    { name: 'Creative Writer', vendor: 'Claude', model: 'Claude 3.6 Opus', status: 'Running' },
+    { name: 'Legacy Bot', vendor: 'Custom', model: 'In-house BERT', status: 'Stopped' },
+];
+const filtered = agents.filter(a => (activeTab === '전체' || a.vendor === activeTab) && a.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+return (
+    <div className="space-y-6 animate-fade-in">
+        <div><h2 className="text-3xl font-bold text-slate-900">내 에이전트</h2><p className="text-slate-500 text-sm mt-2 font-medium leading-relaxed">직접 개발한 Custom 봇, AI 실험실의 창작물, 그리고 주요 벤더의 상용 에이전트까지.<br className="hidden md:block"/> 흩어져 있는 AI 도구를 한 곳에서 조회하고 제어할 수 있습니다.</p></div>
+        <div className="relative"><Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} /><input type="text" className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors" placeholder="에이전트 이름을 검색하세요..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+        <div className="flex gap-2 overflow-x-auto pb-4 border-b-2 border-slate-100 no-scrollbar">{tabs.map(tab => (<button key={tab} onClick={() => setActiveTab(tab)} className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all border-2 ${activeTab === tab ? 'bg-slate-900 text-white border-slate-900 shadow-md' : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-50 hover:border-slate-300'}`}>{tab}</button>))}</div>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {filtered.map((item, idx) => (
+                <div key={idx} onClick={() => setSelectedItem({ type: 'Agent', title: item.name, desc: `Model: ${item.model}\nVendor: ${item.vendor}\nStatus: ${item.status}\n\n이 에이전트는 ${item.vendor}의 ${item.model} 모델을 기반으로 동작합니다.`, author: item.vendor, stars: 500 + idx * 10 })} className="bg-white p-6 rounded-3xl border-2 border-slate-100 game-shadow game-shadow-hover transition-all group cursor-pointer">
+                    <div className="flex items-center gap-4 mb-4"><div className="w-12 h-12 bg-gradient-to-br from-slate-100 to-slate-50 border-2 border-slate-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm">{item.vendor === 'Gemini' ? '✨' : item.vendor === 'Claude' ? '🧠' : item.vendor === 'Snowflake' ? '❄️' : '🤖'}</div><div><h3 className="font-bold text-lg text-slate-900 group-hover:text-blue-600 transition-colors">{item.name}</h3><p className="text-xs font-bold text-slate-400 mt-1">{item.vendor} • {item.model}</p></div></div>
+                    <div className="flex justify-between items-center text-xs mt-2"><span className={`px-3 py-1 rounded-full font-bold border ${item.status === 'Running' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>{item.status}</span><button className="text-slate-300 hover:text-slate-600 transition-colors bg-slate-50 p-2 rounded-lg"><Settings size={16}/></button></div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+};
+
+const WorkflowsView = ({ setSelectedItem }) => {
+const [searchQuery, setSearchQuery] = useState('');
+const [activeFilter, setActiveFilter] = useState('전체');
+const workflows = [
+    { name: 'Email Summary to Slack', nodes: 5, runs: 120, status: 'Active' },
+    { name: 'Jira Issue Classifier', nodes: 12, runs: 450, status: 'Active' },
+    { name: 'Weekly Report Generator', nodes: 8, runs: 4, status: 'Draft' },
+];
+const filtered = workflows.filter(wf => (activeFilter === '전체' || wf.status === activeFilter) && wf.name.toLowerCase().includes(searchQuery.toLowerCase()));
+
+return (
+    <div className="space-y-6 animate-fade-in">
+        <div className="flex justify-between items-end"><div><h2 className="text-3xl font-bold text-slate-900">내 워크플로우</h2><p className="text-slate-500 text-sm mt-2 font-medium leading-relaxed">비주얼 빌더로 설계된 자동화 시나리오를 관리합니다. <br className="hidden md:block"/> 실시간 실행 테스트를 수행하고, 검증된 워크플로우를 조직 내 자산으로 배포하세요.</p></div><div className="flex gap-2 text-sm text-slate-500 bg-slate-100 p-1.5 rounded-xl shrink-0 border border-slate-200"><button onClick={() => setActiveFilter('전체')} className={`px-4 py-1.5 rounded-lg font-bold transition-all ${activeFilter === '전체' ? 'bg-white shadow-sm text-slate-900' : 'hover:text-slate-900'}`}>전체</button><button onClick={() => setActiveFilter('Active')} className={`px-4 py-1.5 rounded-lg font-bold transition-all ${activeFilter === 'Active' ? 'bg-white shadow-sm text-slate-900' : 'hover:text-slate-900'}`}>Active</button><button onClick={() => setActiveFilter('Draft')} className={`px-4 py-1.5 rounded-lg font-bold transition-all ${activeFilter === 'Draft' ? 'bg-white shadow-sm text-slate-900' : 'hover:text-slate-900'}`}>Draft</button></div></div>
+        <div className="relative"><Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-400" size={20} /><input type="text" className="w-full pl-12 pr-4 py-3 border-2 border-slate-200 rounded-2xl text-sm focus:outline-none focus:border-blue-500 font-medium transition-colors" placeholder="워크플로우 이름을 검색하세요..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} /></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {filtered.map((wf, idx) => (
+                <div key={idx} onClick={() => setSelectedItem({ type: 'Workflow', title: wf.name, desc: `Nodes: ${wf.nodes}\nRuns: ${wf.runs}\nStatus: ${wf.status}\n\n이 워크플로우는 ${wf.nodes}개의 노드로 구성되어 있으며, 총 ${wf.runs}회 실행되었습니다.`, author: 'Workflow Bot', stars: wf.runs })} className="bg-white border-2 border-slate-100 rounded-[2rem] p-0 overflow-hidden game-shadow game-shadow-hover transition-all cursor-pointer group">
+                    <div className="h-36 bg-slate-50 relative p-4 flex items-center justify-center overflow-hidden border-b-2 border-slate-100 group-hover:bg-blue-50/50 transition-colors"><div className="absolute inset-0 opacity-20" style={{backgroundImage: 'radial-gradient(#94a3b8 2px, transparent 2px)', backgroundSize: '16px 16px'}}></div><div className="flex items-center gap-3 relative z-10"><div className="w-10 h-10 bg-white rounded-xl shadow-sm border-2 border-slate-200 flex items-center justify-center text-[10px] font-bold">Trigger</div><div className="w-6 h-1 bg-slate-300 rounded-full"></div><div className="w-10 h-10 bg-blue-500 rounded-xl shadow-sm border-2 border-blue-600 flex items-center justify-center text-white text-[10px] font-bold">LLM</div><div className="w-6 h-1 bg-slate-300 rounded-full"></div><div className="w-10 h-10 bg-white rounded-xl shadow-sm border-2 border-slate-200 flex items-center justify-center text-[10px] font-bold">Act</div></div></div>
+                    <div className="p-5"><div className="flex justify-between items-start mb-3"><h3 className="font-bold text-slate-900 text-lg group-hover:text-blue-600 transition-colors">{wf.name}</h3><div className={`w-3 h-3 rounded-full mt-1.5 border-2 border-white shadow-sm ${wf.status === 'Active' ? 'bg-green-500' : 'bg-slate-300'}`}></div></div><div className="flex items-center gap-4 text-xs text-slate-500 font-bold"><span className="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded-md"><Layers size={14}/> {wf.nodes} Nodes</span><span className="flex items-center gap-1.5 bg-slate-100 px-2 py-1 rounded-md"><Play size={14}/> {wf.runs} Runs</span></div></div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
+};
+
+const CredentialsView = ({ setSelectedItem }) => (
+<div className="space-y-6 animate-fade-in">
+    <h2 className="text-3xl font-bold text-slate-900">내 크리덴셜</h2>
+    <div className="bg-white border-2 border-slate-200 rounded-[2rem] overflow-hidden shadow-sm">
+        <table className="w-full text-sm text-left"><thead className="bg-slate-50 text-slate-500 font-semibold border-b-2 border-slate-100 uppercase tracking-wider"><tr><th className="px-6 py-5">Name</th><th className="px-6 py-5">Key Prefix</th><th className="px-6 py-5">Created</th><th className="px-6 py-5">Last Used</th><th className="px-6 py-5 text-right">Action</th></tr></thead>
+            <tbody className="divide-y-2 divide-slate-50">
+                {[{ name: 'Prod API Key', prefix: 'nk_prod_...', created: '2025-01-10', used: 'Just now' }, { name: 'Dev Test Key', prefix: 'nk_dev_...', created: '2025-02-15', used: '2 days ago' }, { name: 'Legacy Key 2024', prefix: 'nk_old_...', created: '2024-11-20', used: 'Inactive' }].map((key, i) => (
+                    <tr key={i} onClick={() => setSelectedItem({ type: 'Credential', title: key.name, desc: `Prefix: ${key.prefix}\nCreated: ${key.created}\nLast Used: ${key.used}\n\n보안 키 정보입니다. 타인에게 노출되지 않도록 주의하세요.`, author: 'System', stars: 0 })} className="hover:bg-blue-50/50 cursor-pointer transition-colors">
+                        <td className="px-6 py-5 font-bold text-slate-900 flex items-center gap-3"><div className="p-2 bg-blue-100 text-blue-600 rounded-lg"><ShieldCheck size={18}/></div>{key.name}</td><td className="px-6 py-5 font-mono text-slate-500 font-medium bg-slate-50/50">{key.prefix}</td><td className="px-6 py-5 text-slate-500 font-medium">{key.created}</td><td className="px-6 py-5 text-slate-500 font-medium">{key.used}</td><td className="px-6 py-5 text-right"><button className="text-slate-400 hover:text-blue-600 transition-colors p-2 hover:bg-blue-100 rounded-lg"><Copy size={18}/></button></td>
+                    </tr>
+                ))}
+            </tbody>
+        </table>
+        <div className="p-6 border-t-2 border-slate-100 bg-slate-50 flex justify-end"><button className="game-btn bg-slate-900 text-white px-6 py-3 rounded-2xl text-sm font-bold hover:bg-slate-800 shadow-[0px_4px_0px_#000] active:shadow-none active:translate-y-[4px]">새 키 발급받기</button></div>
+    </div>
+</div>
+);
+
+// =================================================================================================
+// [SECTION 5] PAGE COMPONENTS (페이지 컴포넌트)
+// =================================================================================================
+
+export const DeveloperConsole = ({ setShowCreateModal, setSelectedItem }) => {
+const [activeMenu, setActiveMenu] = useState('대시보드');
+const menuItems = [
+    { id: '대시보드', icon: Activity, label: '대시보드' },
+    { id: '내 커넥터', icon: Database, label: '내 커넥터' },
+    { id: '내 에이전트', icon: Bot, label: '내 에이전트' },
+    { id: '내 워크플로우', icon: GitBranch, label: '내 워크플로우' },
+    { id: '내 크리덴셜', icon: Key, label: '내 크리덴셜' },
+];
+const renderSubContent = () => {
+    switch(activeMenu) {
+        case '내 커넥터': return <ConnectorsView setSelectedItem={setSelectedItem} />;
+        case '내 에이전트': return <AgentsView setSelectedItem={setSelectedItem} />;
+        case '내 워크플로우': return <WorkflowsView setSelectedItem={setSelectedItem} />;
+        case '내 크리덴셜': return <CredentialsView setSelectedItem={setSelectedItem} />;
+        default: return <DashboardView setShowCreateModal={setShowCreateModal} />;
+    }
+};
+return (
+    <div className="flex flex-col md:flex-row gap-8 animate-in min-h-[600px] mt-8">
+        <aside className="w-full md:w-72 shrink-0">
+            <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-4 shadow-sm sticky top-24">
+                <div className="text-xs font-bold text-slate-400 px-4 py-3 uppercase mb-2 tracking-widest">Menu</div>
+                <nav className="space-y-2">{menuItems.map((item) => (<button key={item.id} onClick={() => setActiveMenu(item.id)} className={`w-full flex items-center gap-3 px-4 py-3.5 rounded-2xl text-sm font-bold transition-all ${activeMenu === item.id ? 'bg-blue-600 text-white shadow-md transform scale-105' : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900'}`}><item.icon size={20} className={activeMenu === item.id ? 'text-white' : 'text-slate-400'} strokeWidth={2.5}/>{item.label}{activeMenu === item.id && <ChevronRight size={16} className="ml-auto text-blue-200" strokeWidth={3}/>}</button>))}</nav>
+                <div className="mt-6 pt-6 border-t-2 border-slate-100 px-3 pb-2"><div className="bg-slate-900 rounded-3xl p-5 text-white relative overflow-hidden group cursor-pointer"><div className="absolute top-0 right-0 w-16 h-16 bg-blue-500 rounded-full blur-2xl opacity-20 group-hover:opacity-40 transition-opacity"></div><div className="flex items-center gap-2 mb-2 relative z-10"><BookOpen size={18} className="text-blue-400"/><div className="font-bold text-sm">개발자 가이드</div></div><p className="text-xs text-slate-400 mb-4 leading-relaxed font-normal relative z-10">NEXON Skills의 모든 기능을<br/>완벽하게 활용해보세요.</p><button className="w-full bg-white/10 hover:bg-white/20 text-xs py-2.5 rounded-xl transition-colors border border-white/10 font-bold flex items-center justify-center gap-1 relative z-10">문서 보기 <ExternalLink size={12}/></button></div></div>
+            </div>
+        </aside>
+        <section className="flex-1 min-w-0">{renderSubContent()}</section>
+    </div>
+);
+};
+
+export const AINews = ({ setSelectedItem }) => {
+const [newsItems, setNewsItems] = useState([]);
+const [isLoading, setIsLoading] = useState(true);
+const [loadError, setLoadError] = useState(false);
+
+useEffect(() => {
+    let isMounted = true;
+    const fetchNews = async () => {
+        try {
+            setIsLoading(true);
+            setLoadError(false);
+            const response = await fetch(NEWS_FEED_URL);
+            if (!response.ok) throw new Error('Failed to load feed');
+            const xmlText = await response.text();
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(xmlText, 'text/xml');
+            const items = Array.from(xml.querySelectorAll('item')).slice(0, 6);
+            const mapped = items.map((item) => {
+                const rawTitle = item.querySelector('title')?.textContent?.trim() ?? '';
+                const [title, sourceFromTitle] = rawTitle.includes(' - ')
+                    ? [rawTitle.split(' - ').slice(0, -1).join(' - '), rawTitle.split(' - ').slice(-1)[0]]
+                    : [rawTitle, null];
+                const link = item.querySelector('link')?.textContent?.trim() ?? '';
+                const pubDate = item.querySelector('pubDate')?.textContent ?? '';
+                const date = pubDate ? new Date(pubDate).toLocaleDateString('ko-KR') : '업데이트';
+                const description = item.querySelector('description')?.textContent ?? '';
+                const cleanDescription = description.replace(/<[^>]*>/g, '').trim();
+                return {
+                    category: 'Live Feed',
+                    title,
+                    date,
+                    source: sourceFromTitle || 'AI 뉴스',
+                    url: link,
+                    content: cleanDescription || '해당 기사에서 AI 관련 핵심 내용을 확인하세요.',
+                };
+            });
+            if (isMounted) {
+                setNewsItems(mapped);
+            }
+        } catch (error) {
+            if (isMounted) {
+                setLoadError(true);
+                setNewsItems([]);
+            }
+        } finally {
+            if (isMounted) {
+                setIsLoading(false);
+            }
+        }
+    };
+
+    fetchNews();
+
+    return () => {
+        isMounted = false;
+    };
+}, []);
+
+return (
+    <div className="space-y-8 animate-in relative"><div className="border-b-2 border-slate-200 pb-6"><h2 className="text-4xl font-bold text-slate-900">스킬 트렌드</h2><p className="text-slate-500 font-medium mt-2 text-lg">전 세계의 혁신적인 AI 소식을 선별하여 전달합니다.</p></div>
+        {isLoading && (
+            <div className="rounded-3xl border-2 border-slate-100 bg-white p-8 text-center text-slate-500 font-medium">라이브 AI 뉴스 피드를 불러오는 중입니다.</div>
+        )}
+        {loadError && !isLoading && (
+            <div className="rounded-3xl border-2 border-rose-100 bg-rose-50 p-8 text-center text-rose-500 font-semibold">뉴스 피드를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>
+        )}
+        {!isLoading && !loadError && newsItems.length === 0 && (
+            <div className="rounded-3xl border-2 border-slate-100 bg-white p-8 text-center text-slate-500 font-medium">현재 표시할 뉴스가 없습니다.</div>
+        )}
+        {!isLoading && !loadError && newsItems.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{newsItems.map((news, i) => (<div key={i} className="group cursor-pointer relative hover:z-10" onClick={() => setSelectedItem({ type: 'News', title: news.title, desc: news.content, source: news.source, date: news.date, url: news.url })}><NewsThumbnail category={news.category} /><div className="px-2"><p className="text-xs font-bold text-slate-400 mb-2 flex items-center gap-2"><Clock size={12}/> {news.date}<span className="text-slate-300">•</span><span className="text-slate-500">{news.source}</span></p><h3 className="text-xl font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors">{news.title}</h3></div></div>))}</div>
+        )}
+    </div>
+);
+};
+
+export const AIWorkflow = () => {
+const [isEditorOpen, setIsEditorOpen] = useState(false);
+if (isEditorOpen) { return <WorkflowEditor onClose={() => setIsEditorOpen(false)} />; }
+return (
+    <div className="space-y-8 animate-in">
+        <div><h2 className="text-4xl font-bold text-slate-900">AI 워크플로우</h2><p className="text-slate-500 font-medium mt-2 text-lg">복잡한 업무 프로세스를 자동화 에이전트로 연결하세요.</p></div>
+        <div className="bg-slate-900 rounded-[3rem] p-12 text-white relative overflow-hidden shadow-2xl border-4 border-slate-900">
+            <div className="relative z-10 flex flex-col md:flex-row items-center gap-16"><div className="space-y-8 flex-1"><h3 className="text-4xl font-bold leading-tight">비주얼 빌더로 <br />쉽게 설계하세요.</h3><p className="text-slate-400 leading-relaxed font-normal text-lg">드래그 앤 드롭으로 트리거를 설정하고, LLM과 커스텀 툴을 연결하여 완벽한 자동화 시나리오를 구성할 수 있습니다.</p><button onClick={() => setIsEditorOpen(true)} className="game-btn bg-blue-500 hover:bg-blue-600 px-8 py-4 rounded-2xl font-bold text-lg transition-all shadow-[0px_6px_0px_#1e40af] active:shadow-none active:translate-y-[6px]">새 워크플로우 만들기</button></div><div className="flex-1 w-full bg-white/5 backdrop-blur-md rounded-3xl border-2 border-white/10 p-8 space-y-6 shadow-inner"><div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/10"><div className="p-3 bg-blue-500 rounded-xl shadow-lg"><MessageSquare size={20} fill="white"/></div><div className="text-base font-bold">고객 문의 접수</div></div><div className="flex justify-center"><ArrowRight size={24} className="rotate-90 text-white/30" strokeWidth={3}/></div><div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/10"><div className="p-3 bg-purple-500 rounded-xl shadow-lg"><Cpu size={20}/></div><div className="text-base font-bold">AI 분석 (LLM)</div></div><div className="flex justify-center"><ArrowRight size={24} className="rotate-90 text-white/30" strokeWidth={3}/></div><div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/10"><div className="p-3 bg-green-500 rounded-xl shadow-lg"><Bell size={20}/></div><div className="text-base font-bold">자동 알림 및 배정</div></div></div></div>
+            <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/30 blur-[150px] -z-0"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/20 blur-[100px] -z-0"></div>
+        </div>
+    </div>
+);
+};
+
+const WorkflowEditor = ({ onClose }) => {
+const [nodes, setNodes] = useState([ { id: 1, type: 'trigger', label: 'Webhook (Start)', x: 100, y: 150, iconName: 'Globe' }, { id: 2, type: 'action', label: 'Analyze Text (LLM)', x: 400, y: 150, iconName: 'Cpu' }, { id: 3, type: 'action', label: 'Send to Slack', x: 700, y: 150, iconName: 'MessageSquare' } ]);
+const [edges, setEdges] = useState([ { id: 'e1-2', source: 1, target: 2, label: '' }, { id: 'e2-3', source: 2, target: 3, label: 'JSON Data' } ]);
+const [draggingNodeId, setDraggingNodeId] = useState(null);
+const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+const [connectingSource, setConnectingSource] = useState(null); 
+const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+const [selectedNodeId, setSelectedNodeId] = useState(null); 
+const [selectedEdgeId, setSelectedEdgeId] = useState(null);
+const [panelPosition, setPanelPosition] = useState({ x: 300, y: 100 }); 
+const [isPanelDragging, setIsPanelDragging] = useState(false);
+const [panelDragOffset, setPanelDragOffset] = useState({ x: 0, y: 0 });
+const canvasRef = useRef(null);
+const [activeSidebarTab, setActiveSidebarTab] = useState('nodes');
+
+const IconMap = { Globe, Bell, Cpu, MessageSquare, Mail, Database, Clock, Split, Box, Bot, GitBranch };
+const toolCategories = { 'Trigger': [ { type: 'trigger', label: 'Webhook', iconName: 'Globe' }, { type: 'trigger', label: 'Schedule', iconName: 'Clock' } ], 'Action': [ { type: 'action', label: 'LLM Analysis', iconName: 'Cpu' }, { type: 'action', label: 'Slack Message', iconName: 'MessageSquare' }, { type: 'action', label: 'Send Email', iconName: 'Mail' }, { type: 'action', label: 'DB Insert', iconName: 'Database' } ], 'Logic': [ { type: 'logic', label: 'If/Else', iconName: 'Split' }, { type: 'helper', label: 'Formatter', iconName: 'Box' } ] };
+const libraryItems = { '내 커넥터': [ { id: 'c1', label: 'Nexon User API', type: 'connector', iconName: 'Database' }, { id: 'c2', label: 'Slack Notifier', type: 'connector', iconName: 'MessageSquare' } ], '내 에이전트': [ { id: 'a1', label: 'CS Responder', type: 'agent', iconName: 'Bot' }, { id: 'a2', label: 'Data Analyst', type: 'agent', iconName: 'Bot' } ], '내 워크플로우': [ { id: 'w1', label: 'Email Summary', type: 'workflow', iconName: 'GitBranch' } ] };
+
+const handleNodeLabelChange = (newLabel) => setNodes(nds => nds.map(n => n.id === selectedNodeId ? { ...n, label: newLabel } : n));
+const handleEdgeLabelChange = (newLabel) => setEdges(eds => eds.map(e => e.id === selectedEdgeId ? { ...e, label: newLabel } : e));
+const handleEdgeDelete = () => { setEdges(eds => eds.filter(e => e.id !== selectedEdgeId)); setSelectedEdgeId(null); };
+const handlePanelMouseDown = (e) => { e.stopPropagation(); setIsPanelDragging(true); setPanelDragOffset({ x: e.clientX - panelPosition.x, y: e.clientY - panelPosition.y }); };
+const handleNodeMouseDown = (e, nodeId) => { e.stopPropagation(); const node = nodes.find(n => n.id === nodeId); const rect = e.currentTarget.getBoundingClientRect(); setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top }); setDraggingNodeId(nodeId); };
+const handleNodeSettingsClick = (e, nodeId) => { e.stopPropagation(); setSelectedNodeId(nodeId); setSelectedEdgeId(null); };
+const handleEdgeClick = (e, edgeId) => { e.stopPropagation(); setSelectedEdgeId(edgeId); setSelectedNodeId(null); };
+const handleCanvasClick = () => { setSelectedNodeId(null); setSelectedEdgeId(null); };
+const handleNodeDelete = (e, nodeId) => { e.stopPropagation(); if (selectedNodeId === nodeId) setSelectedNodeId(null); setNodes(nds => nds.filter(n => n.id !== nodeId)); setEdges(eds => eds.filter(edge => edge.source !== nodeId && edge.target !== nodeId)); };
+const handlePortMouseDown = (e, nodeId, portType) => { e.stopPropagation(); e.preventDefault(); if (portType === 'source') { const rect = e.currentTarget.getBoundingClientRect(); const canvasRect = canvasRef.current.getBoundingClientRect(); setConnectingSource({ nodeId, x: rect.left + rect.width / 2 - canvasRect.left, y: rect.top + rect.height / 2 - canvasRect.top }); } };
+const handlePortMouseUp = (e, nodeId, portType) => { e.stopPropagation(); if (connectingSource && portType === 'target') { if (connectingSource.nodeId !== nodeId) { const newEdge = { id: `e${connectingSource.nodeId}-${nodeId}-${Date.now()}`, source: connectingSource.nodeId, target: nodeId, label: '' }; if (!edges.some(edge => edge.source === newEdge.source && edge.target === newEdge.target)) setEdges(eds => [...eds, newEdge]); } } setConnectingSource(null); };
+const handleMouseMove = (e) => { if (isPanelDragging) { setPanelPosition({ x: e.clientX - panelDragOffset.x, y: e.clientY - panelDragOffset.y }); return; } if (!canvasRef.current) return; const canvasRect = canvasRef.current.getBoundingClientRect(); const x = e.clientX - canvasRect.left; const y = e.clientY - canvasRect.top; setMousePos({ x, y }); if (draggingNodeId) { const nodeX = x - dragOffset.x; const nodeY = y - dragOffset.y; setNodes(nds => nds.map(n => n.id === draggingNodeId ? { ...n, x: nodeX, y: nodeY } : n)); } };
+const handleMouseUp = () => { setDraggingNodeId(null); setIsPanelDragging(false); setConnectingSource(null); };
+const handleSidebarDragStart = (e, type, label, iconName) => { e.dataTransfer.setData('application/reactflow', JSON.stringify({ type, label, iconName })); e.dataTransfer.effectAllowed = 'move'; };
+const handleDrop = (e) => { e.preventDefault(); const typeData = e.dataTransfer.getData('application/reactflow'); if (typeData && canvasRef.current) { const { type, label, iconName } = JSON.parse(typeData); const rect = canvasRef.current.getBoundingClientRect(); const x = e.clientX - rect.left - 88; const y = e.clientY - rect.top - 40; const newNode = { id: Date.now(), type, label, x, y, iconName }; setNodes(nds => [...nds, newNode]); setSelectedNodeId(newNode.id); setSelectedEdgeId(null); } };
+const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+const getPath = (sx, sy, tx, ty) => `M ${sx} ${sy} C ${sx + 50} ${sy}, ${tx - 50} ${ty}, ${tx} ${ty}`;
+const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
+const selectedEdge = selectedEdgeId ? edges.find(e => e.id === selectedEdgeId) : null;
+const isPropertyPanelVisible = selectedNode || selectedEdge;
+
+return (
+    <div className="flex flex-col h-auto lg:h-[calc(100vh-140px)] bg-white border-2 border-slate-200 rounded-[2rem] overflow-hidden animate-in shadow-xl" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onMouseMove={handleMouseMove}>
+        <div className="bg-white border-b-2 border-slate-200 p-4 flex flex-col sm:flex-row justify-between items-start sm:items-center z-20 gap-3">
+            <div className="flex items-center gap-4"><button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-xl text-slate-500 transition-colors"><ArrowLeft size={24} strokeWidth={3} /></button><div><h3 className="font-bold text-xl text-slate-900 flex items-center gap-2">새 워크플로우 1 <span className="text-xs font-bold text-slate-400 border-2 border-slate-200 px-2 py-0.5 rounded-lg bg-slate-50">Draft</span></h3></div></div>
+            <div className="flex gap-2 w-full sm:w-auto"><button className="game-btn flex-1 sm:flex-none justify-center px-6 py-2.5 bg-green-500 hover:bg-green-600 text-white rounded-xl font-bold text-sm flex items-center gap-2 shadow-[0px_3px_0px_#15803d] active:shadow-none active:translate-y-[3px]"><Play size={18} strokeWidth={3} /> 실행 테스트</button><button className="game-btn flex-1 sm:flex-none justify-center px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-[0px_3px_0px_#1d4ed8] active:shadow-none active:translate-y-[3px]">저장</button></div>
+        </div>
+        <div className="flex-1 flex flex-col md:flex-row relative overflow-hidden">
+            <div className="w-full md:w-64 bg-white border-b-2 md:border-b-0 md:border-r-2 border-slate-200 flex flex-col z-20 h-48 md:h-auto">
+                <div className="flex border-b-2 border-slate-100 p-1 bg-slate-50 gap-1"><button onClick={() => setActiveSidebarTab('nodes')} className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${activeSidebarTab === 'nodes' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>기본 노드</button><button onClick={() => setActiveSidebarTab('library')} className={`flex-1 py-2 text-xs font-bold uppercase tracking-wider rounded-lg transition-all ${activeSidebarTab === 'library' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>스킬 불러오기</button></div>
+                <div className="p-4 space-y-6 overflow-y-auto flex-1 bg-slate-50/50">
+                    {activeSidebarTab === 'nodes' ? Object.entries(toolCategories).map(([cat, tools]) => (<div key={cat}><div className="text-[10px] font-bold text-slate-400 mb-3 px-1 uppercase tracking-widest">{cat}</div><div className="space-y-2">{tools.map((tool, i) => { const ToolIcon = IconMap[tool.iconName] || Box; return (<div key={i} className="group px-4 py-3 bg-white hover:border-blue-300 shadow-sm hover:shadow-md border-2 border-slate-200 rounded-xl cursor-grab active:cursor-grabbing flex items-center gap-3 transition-all" draggable onDragStart={(e) => handleSidebarDragStart(e, tool.type, tool.label, tool.iconName)}><div className={`p-1.5 rounded-lg border-2 ${tool.type === 'trigger' ? 'bg-orange-50 text-orange-600 border-orange-100' : tool.type === 'action' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-slate-100 text-slate-600 border-slate-200'}`}><ToolIcon size={16} strokeWidth={2.5} /></div><span className="text-sm font-bold text-slate-700">{tool.label}</span><Plus size={16} className="ml-auto text-slate-300 opacity-0 group-hover:opacity-100" strokeWidth={3}/></div>) })}</div></div>)) : Object.entries(libraryItems).map(([category, items]) => (<div key={category}><div className="text-[10px] font-bold text-slate-400 mb-3 px-1 uppercase tracking-widest">{category}</div><div className="space-y-2">{items.map((item, i) => { const ToolIcon = IconMap[item.iconName] || Box; return (<div key={item.id} className="group px-4 py-3 bg-white border-2 border-slate-200 hover:border-indigo-400 hover:shadow-md rounded-xl cursor-grab active:cursor-grabbing flex items-center gap-3 transition-all" draggable onDragStart={(e) => handleSidebarDragStart(e, item.type, item.label, item.iconName)}><div className="p-1.5 rounded-lg bg-indigo-50 text-indigo-600 border-2 border-indigo-100"><ToolIcon size={16} strokeWidth={2.5} /></div><span className="text-sm font-bold text-slate-700 truncate">{item.label}</span><Plus size={16} className="ml-auto text-slate-300 opacity-0 group-hover:opacity-100" strokeWidth={3}/></div>) })}</div></div>))}
+                </div>
+            </div>
+            <div className="flex-1 bg-[#F1F5F9] relative overflow-hidden cursor-default min-h-[400px] bg-grid-pattern" ref={canvasRef} onDrop={handleDrop} onDragOver={handleDragOver} onClick={handleCanvasClick}>
+                <svg className="absolute inset-0 w-full h-full z-0 overflow-visible">
+                    {edges.map(edge => { const sourceNode = nodes.find(n => n.id === edge.source); const targetNode = nodes.find(n => n.id === edge.target); if (!sourceNode || !targetNode) return null; const sx = sourceNode.x + 176; const sy = sourceNode.y + 44; const tx = targetNode.x; const ty = targetNode.y + 44; const path = getPath(sx, sy, tx, ty); const isSelected = selectedEdgeId === edge.id; return (<g key={edge.id} onClick={(e) => handleEdgeClick(e, edge.id)} className="group cursor-pointer"><path d={path} stroke="transparent" strokeWidth="20" fill="none" /><path d={path} stroke={isSelected ? "#3b82f6" : "#cbd5e1"} strokeWidth={isSelected ? "6" : "4"} fill="none" className={`transition-colors drop-shadow-sm ${!isSelected && 'group-hover:stroke-blue-400'}`} strokeLinecap="round" />{edge.label && (<g transform={`translate(${(sx + tx) / 2}, ${(sy + ty) / 2})`}><rect x="-50" y="-14" width="100" height="28" rx="8" fill="white" stroke={isSelected ? "#3b82f6" : "#cbd5e1"} strokeWidth="2" className="shadow-sm"/><text x="0" y="5" textAnchor="middle" className={`text-[11px] font-bold ${isSelected ? 'fill-blue-600' : 'fill-slate-500'}`}>{edge.label}</text></g>)}</g>); })}
+                    {connectingSource && (<path d={getPath(connectingSource.x, connectingSource.y, mousePos.x, mousePos.y)} stroke="#3b82f6" strokeWidth="4" fill="none" strokeDasharray="8,8" className="drop-shadow-sm animate-pulse pointer-events-none" strokeLinecap="round" />)}
+                </svg>
+                {nodes.map(node => { const NodeIcon = IconMap[node.iconName] || Box; const isDragging = draggingNodeId === node.id; const isSelected = selectedNodeId === node.id; const isLibraryItem = ['connector', 'agent', 'workflow'].includes(node.type); return (<div key={node.id} onMouseDown={(e) => handleNodeMouseDown(e, node.id)} className={`absolute w-44 h-[88px] bg-white border-2 rounded-2xl shadow-sm p-0 flex flex-col group transition-all cursor-grab active:cursor-grabbing z-10 ${isDragging || isSelected ? 'shadow-xl border-blue-500 scale-105 z-50 ring-4 ring-blue-500/20' : 'border-slate-200 hover:border-blue-300'}`} style={{ left: node.x, top: node.y }}><div className={`p-3 flex items-center gap-3 border-b-2 border-slate-50 rounded-t-2xl select-none relative bg-white`}><div className={`w-9 h-9 rounded-xl flex items-center justify-center text-white shadow-[0px_2px_0px_rgba(0,0,0,0.1)] border-2 border-white/20 ${node.type === 'trigger' ? 'bg-orange-500' : isLibraryItem ? 'bg-indigo-600' : node.type === 'action' ? 'bg-blue-600' : 'bg-slate-500'}`}><NodeIcon size={18} strokeWidth={2.5} /></div><div className="text-xs font-bold text-slate-700 truncate flex-1">{node.label}</div><button onClick={(e) => handleNodeSettingsClick(e, node.id)} className="bg-slate-50 rounded-lg p-1.5 shadow-sm border border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200 transition-colors"><Settings size={14} /></button><button onClick={(e) => handleNodeDelete(e, node.id)} className="absolute -top-3 -right-3 bg-white rounded-full p-1.5 shadow-md border-2 border-slate-200 text-slate-400 hover:text-white hover:bg-red-500 hover:border-red-500 opacity-0 group-hover:opacity-100 transition-all z-20 scale-75 hover:scale-100"><X size={14} strokeWidth={3} /></button></div><div className="p-2 bg-slate-50 rounded-b-2xl select-none"><div className="text-[10px] text-slate-400 flex justify-between px-2 font-bold uppercase tracking-wide"><span>Input</span><span>Output</span></div></div><div onMouseUp={(e) => handlePortMouseUp(e, node.id, 'target')} className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-4 border-slate-300 rounded-full hover:border-blue-500 transition-transform hover:scale-125 cursor-crosshair z-20 shadow-sm" title="Input"></div><div onMouseDown={(e) => handlePortMouseDown(e, node.id, 'source')} className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-white border-4 border-slate-300 rounded-full hover:border-blue-500 transition-transform hover:scale-125 cursor-crosshair z-20 shadow-sm" title="Output"></div></div>); })}
+            </div>
+            {isPropertyPanelVisible && (
+                <div className="absolute w-72 bg-white rounded-3xl shadow-2xl border-4 border-slate-900 overflow-hidden z-50 flex flex-col animate-in" style={{ left: panelPosition.x, top: panelPosition.y, cursor: isPanelDragging ? 'grabbing' : 'default' }}>
+                    <div onMouseDown={handlePanelMouseDown} className="bg-slate-900 border-b-2 border-slate-800 p-4 flex items-center justify-between cursor-grab active:cursor-grabbing"><h4 className="font-bold text-white text-sm flex items-center gap-2"><Settings size={16}/> {selectedNode ? '노드 속성' : '연결선 속성'}</h4><div className="flex items-center gap-2"><Move size={16} className="text-slate-500"/><button onClick={() => { setSelectedNodeId(null); setSelectedEdgeId(null); }} className="text-slate-500 hover:text-red-400"><X size={18} strokeWidth={3}/></button></div></div>
+                    <div className="p-5 space-y-4 bg-white">{selectedNode ? (<><div className="space-y-1"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Node Name</label><input type="text" value={selectedNode.label} onChange={(e) => handleNodeLabelChange(e.target.value)} className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 transition-all font-bold"/></div><div className="space-y-1"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Type</label><div className="px-3 py-2 bg-slate-100 rounded-xl text-xs text-slate-600 border-2 border-slate-200 font-mono font-bold">{selectedNode.type}</div></div><div className="space-y-1"><div className="text-[11px] font-bold text-slate-400 uppercase tracking-wide mb-1">Configuration</div><div className="h-24 bg-slate-50 border-2 border-slate-200 rounded-xl p-3 text-xs text-slate-400 font-medium">{selectedNode.type === 'trigger' ? 'Webhook URL settings...' : selectedNode.type === 'action' ? 'API Endpoint configuration...' : 'Logic parameters...'}</div></div></>) : (<><div className="space-y-1"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Edge ID</label><div className="px-3 py-2 bg-slate-100 rounded-xl text-xs text-slate-400 border-2 border-slate-200 font-mono truncate font-bold">{selectedEdge.id}</div></div><div className="space-y-1"><label className="text-[11px] font-bold text-slate-400 uppercase tracking-wide">Label (Optional)</label><input type="text" value={selectedEdge.label || ''} onChange={(e) => handleEdgeLabelChange(e.target.value)} placeholder="연결선 이름 입력..." className="w-full bg-slate-50 border-2 border-slate-200 rounded-xl px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 transition-all font-bold"/></div><div className="pt-3 border-t-2 border-slate-100 mt-2"><button onClick={handleEdgeDelete} className="game-btn w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-xl text-xs font-bold transition-colors border-2 border-red-100 shadow-[0px_2px_0px_#fca5a5] active:shadow-none active:translate-y-[2px]"><X size={14} strokeWidth={3}/> 연결 삭제</button></div></>)}</div>
+                </div>
+            )}
+        </div>
+    </div>
+);
+};
+
+export const AIStudio = () => {
+const [activeMode, setActiveMode] = useState('text');
+const [connectedTools, setConnectedTools] = useState([]);
+const [input, setInput] = useState('');
+const [messages, setMessages] = useState([ { id: 1, role: 'user', type: 'text', content: '이 제품 디자인의 개선점을 분석하고, 더 모던한 스타일로 변형해줘.', hasImage: true }, { id: 2, role: 'ai', type: 'text', content: '업로드하신 디자인은 미니멀하지만, 색상 대비가 부족하여 시인성이 낮습니다. 다음과 같이 개선을 제안합니다:\n\n• 메인 액션 버튼에 강조색(Accent Color) 적용\n• 모서리 라운딩(Radius)을 24px로 증가\n• 그림자(Shadow) 심도를 낮춰 플랫한 느낌 강화\n\n제안 사항을 반영하여 생성한 시안입니다.', hasResultImage: true } ]);
+const [isTyping, setIsTyping] = useState(false);
+const chatEndRef = useRef(null);
+const availableConnectors = [ { id: 'c1', name: 'Nexon User API', type: 'Private API', icon: Database }, { id: 'c2', name: 'Maple Inventory', type: 'Sandbox API', icon: Box }, { id: 'c3', name: 'Slack Notifier', type: 'MCP', icon: MessageSquare } ];
+const toggleTool = (tool) => { if (connectedTools.some(t => t.id === tool.id)) { setConnectedTools(prev => prev.filter(t => t.id !== tool.id)); } else { setConnectedTools(prev => [...prev, tool]); } };
+useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
+const handleSend = () => { if (!input.trim()) return; const userMsg = { id: Date.now(), role: 'user', type: 'text', content: input }; setMessages(prev => [...prev, userMsg]); setInput(''); setIsTyping(true); setTimeout(() => { const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', content: `"${userMsg.content}"에 대한 요청을 처리했습니다.\n추가적인 수정 사항이 있으신가요?` }; setMessages(prev => [...prev, aiMsg]); setIsTyping(false); }, 1500); };
+const handleKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
+
+return (
+    <div className="space-y-6 animate-in h-auto lg:h-[calc(100vh-200px)] flex flex-col">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-sm gap-6">
+            <div className="flex items-center gap-4"><h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">AI 실험실 <span className="hidden sm:inline text-sm font-bold text-slate-400 px-3 border-l-2 border-slate-200 uppercase tracking-widest">Multimodal Sandbox</span></h2></div>
+            <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto"><div className="flex bg-slate-100 p-1.5 rounded-xl w-full sm:w-auto border border-slate-200">{['text', 'image', 'video'].map(m => (<button key={m} onClick={() => setActiveMode(m)} className={`flex-1 sm:flex-none px-5 py-2 rounded-lg text-sm font-bold capitalize transition-all ${activeMode === m ? 'bg-white text-blue-600 shadow-sm scale-105' : 'text-slate-400 hover:text-slate-600'}`}>{m}</button>))}</div><div className="hidden sm:block h-full w-[2px] bg-slate-100 mx-2"></div><select className="bg-slate-50 border-2 border-slate-200 rounded-xl px-5 py-2.5 text-sm font-bold focus:ring-0 focus:border-blue-500 outline-none w-full sm:w-auto text-slate-700 cursor-pointer hover:border-blue-300 transition-colors"><option>Gemini 3 Pro (Multimodal)</option><option>GPT-4o</option><option>Claude 3.6 Opus</option></select></div>
+        </div>
+        <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
+            <div className="w-full lg:w-1/3 flex flex-col gap-4">
+                <div className="bg-white rounded-[2rem] border-2 border-slate-200 flex-none lg:flex-1 flex flex-col shadow-sm overflow-hidden min-h-[200px]"><div className="p-5 border-b-2 border-slate-100 flex justify-between items-center bg-slate-50"><span className="text-xs font-bold uppercase text-slate-400 flex items-center gap-2 tracking-wide"><Settings size={14}/> 시스템 프롬프트</span></div><textarea className="flex-1 p-5 text-sm focus:outline-none resize-none leading-relaxed text-slate-600 h-32 lg:h-auto font-medium" placeholder="AI의 역할과 행동 지침을 정의하세요..." defaultValue="당신은 시각적 데이터를 분석하고 창의적인 솔루션을 제안하는 멀티모달 AI 전문가입니다."></textarea></div>
+                <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm flex-none lg:flex-1 flex flex-col overflow-hidden min-h-[200px]">
+                    <div className="text-xs font-bold uppercase text-slate-400 mb-4 flex items-center gap-2 flex-shrink-0 tracking-wide"><Database size={14}/> 스킬 불러오기 (내 커넥터)</div>
+                    <div className="flex-1 overflow-y-auto space-y-3 pr-1 h-32 lg:h-auto">{availableConnectors.map((tool, i) => { const isConnected = connectedTools.some(t => t.id === tool.id); const Icon = tool.icon; return (<div key={tool.id} onClick={() => toggleTool(tool)} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between group ${isConnected ? 'bg-blue-50 border-blue-500 shadow-md' : 'bg-white border-slate-100 hover:border-blue-300 hover:shadow-md'}`}><div className="flex items-center gap-3"><div className={`p-2.5 rounded-xl border-2 ${isConnected ? 'bg-blue-100 text-blue-600 border-blue-200' : 'bg-slate-50 text-slate-400 border-slate-100 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:border-blue-100'}`}><Icon size={18} strokeWidth={2.5} /></div><div><div className={`text-sm font-bold ${isConnected ? 'text-blue-900' : 'text-slate-700'}`}>{tool.name}</div><div className="text-[10px] text-slate-400 font-bold">{tool.type}</div></div></div><div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all border-2 ${isConnected ? 'bg-blue-500 text-white border-blue-600' : 'bg-slate-100 text-slate-300 border-slate-200 group-hover:border-blue-300 group-hover:text-blue-400'}`}>{isConnected ? <Check size={16} strokeWidth={4} /> : <Plus size={16} strokeWidth={4} />}</div></div>) })}</div>
+                    {connectedTools.length > 0 && (<div className="mt-4 pt-4 border-t-2 border-slate-100 flex-shrink-0"><div className="text-[10px] font-bold text-slate-300 mb-3 uppercase tracking-wide">연결됨</div><div className="flex flex-wrap gap-2">{connectedTools.map(t => (<span key={t.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-xl text-xs font-bold animate-in border border-blue-200">{t.name}<button onClick={(e) => { e.stopPropagation(); toggleTool(t); }} className="hover:bg-blue-200 rounded-full p-0.5"><X size={12} strokeWidth={3} /></button></span>))}</div></div>)}
+                </div>
+            </div>
+            <div className="w-full lg:flex-1 bg-slate-100 rounded-[2rem] border-2 border-slate-200 flex flex-col shadow-inner overflow-hidden relative min-h-[500px]">
+                 <div className="flex-1 p-6 space-y-8 overflow-y-auto no-scrollbar">
+                    {messages.map((msg, index) => (
+                        <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in`}>
+                            <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} gap-2 max-w-[85%]`}>
+                                {msg.role === 'ai' && (<div className="flex items-center gap-2 mb-1"><div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white shadow-sm">AI</div><span className="text-xs font-bold text-slate-500">Gemini</span></div>)}
+                                {msg.hasImage && (<div className="bg-white p-2 rounded-2xl border-2 border-slate-200 shadow-sm"><div className="w-48 h-32 bg-slate-100 rounded-xl flex items-center justify-center text-slate-300 mb-2 border-2 border-dashed border-slate-200"><Image size={32}/></div></div>)}
+                                <div className={`px-6 py-4 rounded-[20px] text-sm shadow-sm whitespace-pre-wrap font-medium leading-relaxed ${msg.role === 'user' ? 'bg-slate-900 text-white rounded-tr-none shadow-[0px_4px_0px_rgba(0,0,0,0.1)]' : 'bg-white border-2 border-slate-200 text-slate-700 rounded-tl-none shadow-[0px_4px_0px_#e2e8f0]'}`}>
+                                    {msg.role === 'ai' && connectedTools.length > 0 && index === 1 && (<p className="text-blue-600 font-bold mb-3 text-xs flex items-center gap-1 bg-blue-50 p-2 rounded-lg border border-blue-100"><Database size={12}/> Using: {connectedTools.map(t => t.name).join(', ')}</p>)}
+                                    {msg.content}
+                                </div>
+                                {msg.hasResultImage && (<div className="bg-white p-3 rounded-3xl border-2 border-slate-200 shadow-sm mt-2 group cursor-pointer relative overflow-hidden hover:scale-[1.02] transition-transform"><div className="w-72 h-48 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl flex items-center justify-center border-2 border-slate-100"><svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-50"><rect x="20" y="20" width="60" height="60" rx="16" fill="#4F46E5" opacity="0.2"/><circle cx="70" cy="30" r="5" fill="#4F46E5"/><rect x="30" y="40" width="40" height="6" rx="3" fill="#4F46E5" opacity="0.6"/><rect x="30" y="54" width="30" height="6" rx="3" fill="#4F46E5" opacity="0.4"/><rect x="30" y="70" width="20" height="8" rx="4" fill="#4F46E5"/></svg></div><div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"><div className="bg-white/90 p-3 rounded-full shadow-lg backdrop-blur-sm"><Maximize2 className="text-slate-900" size={24}/></div></div></div>)}
+                            </div>
+                        </div>
+                    ))}
+                    {isTyping && (<div className="flex justify-start animate-in fade-in"><div className="flex flex-col items-start gap-2"><div className="flex items-center gap-2 mb-1"><div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white shadow-sm">AI</div><span className="text-xs font-bold text-slate-500">Gemini</span></div><div className="bg-white border-2 border-slate-200 px-5 py-4 rounded-[20px] rounded-tl-none text-sm shadow-sm flex items-center gap-1.5"><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div></div></div></div>)}
+                    <div ref={chatEndRef} />
+                 </div>
+                 <div className="p-5 bg-white border-t-2 border-slate-200">
+                    <div className="relative"><textarea rows="1" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl pl-5 pr-14 py-4 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none font-medium transition-all shadow-inner" placeholder="메시지를 입력하거나 '/'를 눌러 명령어를 실행하세요..."></textarea><div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2"><button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"><Mic size={20}/></button><button onClick={handleSend} className="p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors shadow-md hover:scale-105 active:scale-95"><ArrowRight size={20} strokeWidth={3}/></button></div></div>
+                    <div className="flex items-center gap-4 mt-4 px-2"><button className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors"><Image size={14}/> 이미지 생성</button><button className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors"><Video size={14}/> 비디오 분석</button><div className="flex-1"></div><span className="text-[10px] text-slate-300 font-bold uppercase tracking-wide">Shift + Enter for new line</span></div>
+                 </div>
+            </div>
+        </div>
+    </div>
+);
+};
+
+export const IntegrationGuide = () => {
+const [activeDoc, setActiveDoc] = useState('intro');
+const docs = {
+    'intro': { title: '시작하기 (Getting Started)', content: (<div className="space-y-6"><p className="text-slate-600 leading-relaxed font-normal">NEXON Skills SDK를 사용하여 기존 서비스에 AI 기능을 손쉽게 통합하는 방법을 안내합니다. 단 몇 줄의 코드로 강력한 LLM 에이전트를 호출하고, 데이터 파이프라인을 연결할 수 있습니다.</p><div className="bg-blue-50 border-l-8 border-blue-500 p-6 rounded-r-2xl shadow-sm"><h4 className="font-bold text-blue-900 text-sm mb-3 flex items-center gap-2 uppercase tracking-wide"><Check size={18} strokeWidth={4}/> 사전 준비 사항</h4><ul className="list-disc pl-5 text-sm text-blue-800 space-y-2 font-bold"><li>NEXON Skills 계정 생성 및 로그인</li><li>개발자 콘솔에서 API Key 발급</li><li>Node.js v18 이상 환경</li></ul></div><div className="space-y-3"><h4 className="font-bold text-slate-900 text-sm uppercase tracking-wide">설치 (Installation)</h4><div className="bg-slate-900 rounded-2xl p-5 text-slate-300 font-mono text-sm flex justify-between items-center group shadow-lg border-4 border-slate-800"><code>npm install @nexon/skills-sdk</code><button className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-white"><Copy size={18}/></button></div></div></div>) },
+    'auth': { title: '인증 (Authentication)', content: (<div className="space-y-6"><p className="text-slate-600 font-normal">모든 API 요청은 `Authorization` 헤더에 Bearer Token을 포함해야 합니다. API Key는 개발자 콘솔 > 내 크리덴셜 메뉴에서 관리할 수 있습니다.</p><div className="bg-slate-900 rounded-2xl p-6 text-slate-300 font-mono text-sm overflow-x-auto shadow-lg border-4 border-slate-800"><div className="text-slate-500 mb-2 font-bold italic">// SDK 초기화 예제</div><div className="text-purple-400">import</div> <div className="text-white inline">NexonSkills</div> <div className="text-purple-400 inline">from</div> <div className="text-green-400 inline">'@nexon/skills-sdk'</div>;<br/><br/><div className="text-purple-400">const</div> <div className="text-blue-400 inline">client</div> = <div className="text-purple-400 inline">new</div> <div className="text-yellow-400 inline">NexonSkills</div>({'{'}<br/>&nbsp;&nbsp;apiKey: <div className="text-green-400 inline">'nk_prod_...'</div>,<br/>&nbsp;&nbsp;region: <div className="text-green-400 inline">'kr-1'</div><br/>{'}'});</div></div>) },
+    'agent': { title: '에이전트 실행 (Execute Agent)', content: (<div className="space-y-6"><p className="text-slate-600 font-normal">특정 에이전트에게 작업을 요청하고 결과를 받아옵니다. 스트리밍(Streaming)을 지원하여 긴 응답도 실시간으로 처리할 수 있습니다.</p><div className="bg-slate-900 rounded-2xl p-6 text-slate-300 font-mono text-sm overflow-x-auto shadow-lg border-4 border-slate-800"><div className="text-purple-400">const</div> <div className="text-blue-400 inline">response</div> = <div className="text-purple-400 inline">await</div> <div className="text-blue-400 inline">client.agents.run</div>({'{'}<br/>&nbsp;&nbsp;agentId: <div className="text-green-400 inline">'agent_abc123'</div>,<br/>&nbsp;&nbsp;inputs: {'{'}<br/>&nbsp;&nbsp;&nbsp;&nbsp;prompt: <div className="text-green-400 inline">'최근 서버 로그 분석해줘'</div>,<br/>&nbsp;&nbsp;&nbsp;&nbsp;files: [<div className="text-green-400 inline">'s3://logs/error.log'</div>]<br/>&nbsp;&nbsp;{'}'}<br/>{'}'});<br/><br/><div className="text-yellow-400">console</div>.log(<div className="text-blue-400 inline">response.output</div>);</div></div>) }
+};
+
+return (
+    <div className="flex flex-col md:flex-row gap-8 animate-in min-h-[600px] mt-8 items-start">
+        <div className="w-full md:w-72 bg-white border-2 border-slate-200 rounded-[2rem] p-5 sticky top-24 shrink-0 shadow-sm">
+            <h3 className="text-xs font-bold text-slate-400 uppercase mb-4 px-2 tracking-widest">Table of Contents</h3>
+            <nav className="space-y-2">
+                <button onClick={() => setActiveDoc('intro')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-3 ${activeDoc === 'intro' ? 'bg-blue-600 text-white shadow-md transform scale-105' : 'text-slate-600 hover:bg-slate-100'}`}><BookOpen size={18} strokeWidth={2.5}/> 시작하기</button>
+                <button onClick={() => setActiveDoc('auth')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-3 ${activeDoc === 'auth' ? 'bg-blue-600 text-white shadow-md transform scale-105' : 'text-slate-600 hover:bg-slate-100'}`}><ShieldCheck size={18} strokeWidth={2.5}/> 인증 (Authentication)</button>
+                <button onClick={() => setActiveDoc('agent')} className={`w-full text-left px-4 py-3 rounded-xl text-sm font-bold transition-all flex items-center gap-3 ${activeDoc === 'agent' ? 'bg-blue-600 text-white shadow-md transform scale-105' : 'text-slate-600 hover:bg-slate-100'}`}><Bot size={18} strokeWidth={2.5}/> 에이전트 연동</button>
+                <button className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold text-slate-300 cursor-not-allowed flex items-center gap-3"><Terminal size={18} strokeWidth={2.5}/> SDK 레퍼런스 (준비중)</button>
+            </nav>
+        </div>
+        <div className="flex-1 w-full bg-white border-2 border-slate-200 rounded-[2rem] p-10 min-h-[500px] shadow-sm"><h2 className="text-4xl font-bold text-slate-900 mb-8">{docs[activeDoc].title}</h2>{docs[activeDoc].content}</div>
+    </div>
+);
+};
+
+export const FavoritesView = ({ setSelectedItem }) => {
+const getTypeStyle = (type) => { switch (type) { case 'Agent': return 'bg-blue-100 text-blue-700 border-blue-200'; case 'Connector': return 'bg-purple-100 text-purple-700 border-purple-200'; case 'Workflow': return 'bg-orange-100 text-orange-700 border-orange-200'; default: return 'bg-slate-100 text-slate-700 border-slate-200'; } };
+return (
+    <div className="animate-in space-y-8">
+         <div className="border-b-2 border-slate-200 pb-6"><div className="flex items-center gap-4"><div className="p-4 bg-yellow-100 rounded-3xl text-yellow-600 border-2 border-yellow-200 shadow-sm"><Star size={32} className="fill-current" strokeWidth={2.5}/></div><div><h2 className="text-4xl font-bold text-slate-900">내 즐겨찾는 스킬 목록</h2><p className="text-slate-500 mt-2 font-medium">자주 사용하는 도구들을 한곳에서 모아보고 빠르게 실행하세요.</p></div></div></div>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {FAVORITES_ITEMS.map((item, idx) => (
+                <div key={idx} onClick={() => setSelectedItem(item)} className="group bg-white border-2 border-slate-100 rounded-[2rem] p-7 shadow-sm hover:shadow-[0px_8px_0px_rgba(0,0,0,0.1)] hover:-translate-y-2 transition-all duration-300 cursor-pointer animate-fade-in relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-5"><Star size={24} className="text-yellow-400 fill-yellow-400" /></div>
+                    <div className="flex justify-between items-start mb-5"><span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border ${getTypeStyle(item.type)}`}>{item.type}</span></div>
+                    <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors pr-6">{item.title}</h3><p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-2 h-10 font-normal">{item.desc}</p>
+                    <div className="flex items-center justify-between pt-5 border-t-2 border-slate-50"><div className="flex items-center gap-2"><div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-xs font-bold text-slate-600 border-2 border-white shadow-sm">{item.author[0]}</div><span className="text-xs text-slate-500 font-bold">{item.author}</span></div><div className="flex items-center gap-1 text-yellow-500 text-xs font-bold"><Star size={14} className="fill-current" /><span>{(item.stars / 1000).toFixed(1)}k</span></div></div>
+                </div>
+            ))}
+            <div className="border-4 border-dashed border-slate-200 rounded-[2rem] p-6 flex flex-col items-center justify-center text-center hover:border-blue-300 hover:bg-blue-50/50 transition-all cursor-pointer group min-h-[200px]">
+                <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-4 group-hover:bg-white group-hover:text-blue-500 shadow-sm transition-colors group-hover:scale-110 duration-300"><Plus size={32} strokeWidth={3} /></div><h3 className="font-bold text-slate-900 mb-1 text-lg">스킬 더 찾아보기</h3><p className="text-xs text-slate-400 font-medium">홈 화면에서 별표를 눌러<br/>이곳에 추가해보세요.</p>
+            </div>
+        </div>
+    </div>
+);
+};
+
+export const HomePage = ({ selectedGame, setSelectedGame, gameList, showStickySearch, setSelectedItem, isLoggedIn, setShowLoginScreen }) => {
+const [items, setItems] = useState(HOME_INITIAL_ITEMS);
+const [isLoading, setIsLoading] = useState(false);
+const loadingRef = useRef(isLoading);
+
+useEffect(() => { loadingRef.current = isLoading; }, [isLoading]);
+
+const generateRandomItems = (count) => { const types = ['Agent', 'Connector', 'Workflow']; const titles = ['Super AI', 'Auto Notion', 'Slack Bot', 'Data Miner', 'Email Wiz', 'Code Fixer', 'Image Gen', 'Text Sum', 'Game Ops', 'Server Mon']; const descs = [ '운영 효율을 극대화하는 패시브 스킬입니다.', '복잡한 데이터를 미니맵처럼 한눈에 파악하세요.', '반복 퀘스트를 자동화하여 개발 시간을 절약하세요.', '팀의 생산성 버프를 200% 향상시킵니다.', '강력한 AI 엔진을 장착했습니다.' ]; const authors = ['Nexon_Dev', 'AI_Lab', 'AutomateIt', 'DevTeam_A', 'SoloDev', 'CreativeMinds']; return Array.from({ length: count }).map((_, i) => ({ type: types[Math.floor(Math.random() * types.length)], title: `${titles[Math.floor(Math.random() * titles.length)]} v${Math.floor(Math.random() * 10)}.0`, desc: descs[Math.floor(Math.random() * descs.length)], author: authors[Math.floor(Math.random() * authors.length)], stars: Math.floor(Math.random() * 5000) + 100 })); };
+
+const loadMore = useCallback(() => { 
+    if (loadingRef.current) return; 
+    setIsLoading(true); 
+    setTimeout(() => { 
+        const newItems = generateRandomItems(6); 
+        setItems(prev => [...prev, ...newItems]); 
+        setIsLoading(false); 
+    }, 800); 
+}, []);
+
+useEffect(() => { 
+    const handleScroll = () => { 
+        const { scrollTop, clientHeight, scrollHeight } = document.documentElement; 
+        if (scrollTop + clientHeight >= scrollHeight - 200 && !loadingRef.current) { 
+            loadMore(); 
+        } 
+    }; 
+    window.addEventListener('scroll', handleScroll); 
+    return () => window.removeEventListener('scroll', handleScroll); 
+}, [loadMore]);
+
+const getTypeStyle = (type) => { switch (type) { case 'Agent': return 'bg-blue-100 text-blue-700 border-blue-200'; case 'Connector': return 'bg-purple-100 text-purple-700 border-purple-200'; case 'Workflow': return 'bg-orange-100 text-orange-700 border-orange-200'; default: return 'bg-slate-100 text-slate-700 border-slate-200'; } };
+
+return (
+    <div className="animate-in">
+        <div className="text-center space-y-8 py-20 px-4 relative">
+            <h1 className="text-5xl md:text-6xl font-bold text-slate-900 tracking-tight leading-tight drop-shadow-sm">흩어진 AI 도구, <br className="md:hidden" /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">넥슨스킬로 연결하세요.</span></h1>
+            <p className="max-w-2xl mx-auto text-xl text-slate-500 leading-relaxed font-normal">개발과 운영의 난이도를 낮춰줄 AI 도구,<br className="hidden md:block"/> NEXON Skills에서 필요한 능력을 <span className="text-blue-600 font-bold bg-blue-50 px-2 rounded-lg border border-blue-100">파밍</span>하고 <span className="text-purple-600 font-bold bg-purple-50 px-2 rounded-lg border border-purple-100">장착</span>하세요.</p>
+            <div className={`max-w-4xl mx-auto mt-12 relative z-10 transition-all duration-500 ease-in-out ${showStickySearch ? 'opacity-0 translate-y-[-20px] pointer-events-none' : 'opacity-100 translate-y-0'}`}>
+                <div className="flex flex-col md:flex-row items-stretch md:items-center bg-white border-2 border-slate-200 rounded-[2rem] shadow-xl p-2.5 focus-within:ring-4 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all hover:scale-[1.01] hover:shadow-2xl">
+                    <div className="relative px-2 md:pl-6 md:pr-2 border-b-2 md:border-b-0 md:border-r-2 border-slate-100 group flex items-center shrink-0 py-2 md:py-0"><Gamepad2 className="w-6 h-6 text-slate-400 group-hover:text-blue-500 transition-colors pointer-events-none ml-2 md:ml-0" /><select value={selectedGame} onChange={(e) => setSelectedGame(e.target.value)} className="w-full md:w-auto appearance-none bg-transparent font-bold text-slate-700 py-4 pl-3 pr-10 rounded-lg focus:outline-none cursor-pointer text-base hover:text-blue-600 transition-colors"><option>전체 게임</option>{gameList.map(game => <option key={game} value={game}>{game}</option>)}</select><ChevronDown className="absolute right-4 md:right-2 w-4 h-4 text-slate-400 pointer-events-none" strokeWidth={3} /></div>
+                    <div className="flex-1 relative flex items-center"><div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none"><Search className="h-6 w-6 text-slate-400" strokeWidth={3} /></div><input type="text" className="block w-full pl-16 pr-6 py-4 bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-lg font-medium" placeholder="소환하고 싶은 커넥터, 에이전트, 워크플로우를 검색하세요..." /><button className="md:hidden absolute right-2 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors"><ArrowRight size={20} /></button></div><button className="hidden md:block px-10 py-4 bg-slate-900 text-white rounded-[1.5rem] font-bold hover:bg-slate-800 transition-colors shadow-lg shrink-0 ml-2 text-lg active:scale-95">검색</button></div>
+                <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm text-slate-500 font-medium"><span>인기 스킬북:</span>{['노션 연동', '데이터 분석', '마케팅 자동화', '코드 리뷰'].map((tag) => (<button key={tag} className="hover:text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-full transition-colors border border-transparent hover:border-blue-100">{tag}</button>))}</div>
+            </div>
+        </div>
+        <div className="max-w-7xl mx-auto px-4 mt-12 pb-24">
+            <div className="flex justify-between items-center mb-8"><h2 className="text-3xl font-bold text-slate-900 flex items-center gap-2">🔥 지금 뜨는 인기 스킬</h2></div>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {items.map((item, idx) => (
+                    <div key={idx} onClick={() => setSelectedItem(item)} className="group bg-white border-2 border-slate-100 rounded-[2.5rem] p-7 shadow-sm hover:shadow-[0px_8px_0px_#cbd5e1] hover:-translate-y-2 transition-all duration-300 cursor-pointer animate-fade-in relative hover:z-10"><div className="flex justify-between items-start mb-5"><span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border ${getTypeStyle(item.type)}`}>{item.type}</span><div className="flex items-center gap-1.5 text-slate-400 text-sm font-bold bg-slate-50 px-3 py-1 rounded-full"><Star size={16} className="fill-slate-200 group-hover:fill-yellow-400 group-hover:text-yellow-400 transition-colors" strokeWidth={2.5} /><span>{(item.stars / 1000).toFixed(1)}k</span></div></div><h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">{item.title}</h3><p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-2 h-10 font-normal">{item.desc}</p><div className="flex items-center justify-between pt-5 border-t-2 border-slate-50"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600 border-2 border-white shadow-sm">{item.author[0]}</div><span className="text-xs text-slate-500 font-bold">{item.author}</span></div><button className="text-slate-300 hover:text-blue-600 transition-colors bg-slate-50 p-2 rounded-xl hover:bg-blue-50"><Share2 size={18} strokeWidth={2.5}/></button></div></div>
+                ))}
+            </div>
+            {isLoading && (<div className="flex justify-center items-center py-12"><div className="loader mr-4"></div><span className="text-slate-500 font-bold text-lg">더 많은 스킬을 소환하는 중...</span></div>)}
+        </div>
+    </div>
+);
+};
+
+// =================================================================================================
+// [SECTION 6] MAIN APP COMPONENT (메인 앱 컴포넌트)
+// =================================================================================================
+
