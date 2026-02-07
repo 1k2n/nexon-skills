@@ -5,6 +5,14 @@ const { NewsThumbnail } = window.AppComponents;
 const FEED_URL = 'https://feeds.feedburner.com/geeknews-feed';
 const FEED_PROXY = 'https://r.jina.ai/http://';
 
+const fetchFeedText = async (url, signal) => {
+    const response = await fetch(url, { signal });
+    if (!response.ok) {
+        throw new Error(`Feed fetch failed: ${response.status}`);
+    }
+    return response.text();
+};
+
 const formatDate = (dateString) => {
     const date = new Date(dateString);
     if (Number.isNaN(date.getTime())) {
@@ -45,15 +53,17 @@ const AINews = ({ setSelectedItem }) => {
 
         const fetchFeed = async () => {
             try {
-                const response = await fetch(`${FEED_PROXY}${FEED_URL}`, {
-                    signal: controller.signal,
-                });
-                if (!response.ok) {
-                    throw new Error(`Feed fetch failed: ${response.status}`);
+                let xmlText;
+                try {
+                    xmlText = await fetchFeedText(FEED_URL, controller.signal);
+                } catch (error) {
+                    xmlText = await fetchFeedText(`${FEED_PROXY}${FEED_URL}`, controller.signal);
                 }
-                const xmlText = await response.text();
                 const parser = new DOMParser();
                 const xml = parser.parseFromString(xmlText, 'text/xml');
+                if (xml.querySelector('parsererror')) {
+                    throw new Error('Invalid RSS XML');
+                }
                 const items = Array.from(xml.querySelectorAll('item')).slice(0, 9);
                 const mappedItems = mapFeedItems(items);
                 setNewsItems(mappedItems);
