@@ -151,8 +151,7 @@ const CredentialsView = ({ setSelectedItem }) => (
             </div>
         );
 
-        const DeveloperConsole = ({ setShowCreateModal, setSelectedItem }) => {
-            const [activeMenu, setActiveMenu] = useState('대시보드');
+        const DeveloperConsole = ({ setShowCreateModal, setSelectedItem, currentTab }) => {
             const menuItems = [
                 { id: '대시보드', icon: Activity, label: '대시보드' },
                 { id: '내 커넥터', icon: Database, label: '내 커넥터' },
@@ -160,6 +159,43 @@ const CredentialsView = ({ setSelectedItem }) => (
                 { id: '내 워크플로우', icon: GitBranch, label: '내 워크플로우' },
                 { id: '내 크리덴셜', icon: Key, label: '내 크리덴셜' },
             ];
+            const getMenuFromUrl = () => {
+                const params = new URLSearchParams(window.location.search);
+                const menuParam = params.get('sub');
+                if (!menuParam) { return menuItems[0]?.id ?? '대시보드'; }
+                const decodedMenu = decodeURIComponent(menuParam);
+                const isValidMenu = menuItems.some(item => item.id === decodedMenu);
+                return isValidMenu ? decodedMenu : (menuItems[0]?.id ?? '대시보드');
+            };
+            const [activeMenu, setActiveMenu] = useState(() => getMenuFromUrl());
+            const skipHistoryUpdate = useRef(false);
+
+            useEffect(() => {
+                const handlePopState = () => {
+                    const nextMenu = getMenuFromUrl();
+                    if (nextMenu === activeMenu) { return; }
+                    skipHistoryUpdate.current = true;
+                    setActiveMenu(nextMenu);
+                };
+                window.addEventListener('popstate', handlePopState);
+                return () => window.removeEventListener('popstate', handlePopState);
+            }, [activeMenu]);
+
+            useEffect(() => {
+                if (currentTab !== '개발자 콘솔') { return; }
+                if (skipHistoryUpdate.current) {
+                    skipHistoryUpdate.current = false;
+                    return;
+                }
+                const url = new URL(window.location.href);
+                url.searchParams.set('tab', '개발자 콘솔');
+                if (activeMenu === menuItems[0]?.id) {
+                    url.searchParams.delete('sub');
+                } else {
+                    url.searchParams.set('sub', activeMenu);
+                }
+                window.history.pushState({ tab: '개발자 콘솔', sub: activeMenu }, '', url);
+            }, [activeMenu, currentTab, menuItems]);
             const renderSubContent = () => {
                 switch(activeMenu) {
                     case '내 커넥터': return <ConnectorsView setSelectedItem={setSelectedItem} />;

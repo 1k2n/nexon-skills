@@ -1,4 +1,4 @@
-const { useState, useEffect } = window.React;
+const { useState, useEffect, useRef } = window.React;
 const { createRoot } = window.ReactDOMClient;
 const { Zap } = window.LucideReact;
 const { GAME_LIST, MAIN_MENUS } = window.AppData;
@@ -20,8 +20,17 @@ const {
         // =================================================================================================
 
 const App = () => {
+            const getTabFromUrl = () => {
+                const params = new URLSearchParams(window.location.search);
+                const tabParam = params.get('tab');
+                if (!tabParam) { return '홈'; }
+                const decodedTab = decodeURIComponent(tabParam);
+                const isValidTab = decodedTab === '홈' || MAIN_MENUS.some(menu => menu.name === decodedTab);
+                return isValidTab ? decodedTab : '홈';
+            };
+
             const [isMenuOpen, setIsMenuOpen] = useState(false);
-            const [currentTab, setCurrentTab] = useState('홈');
+            const [currentTab, setCurrentTab] = useState(() => getTabFromUrl());
             const [isLoggedIn, setIsLoggedIn] = useState(false);
             const [showLoginScreen, setShowLoginScreen] = useState(false);
             const [pendingTab, setPendingTab] = useState(null);
@@ -30,6 +39,7 @@ const App = () => {
             const [selectedGame, setSelectedGame] = useState('전체 게임');
             const [showStickySearch, setShowStickySearch] = useState(false);
             const [footerLogoError, setFooterLogoError] = useState(false);
+            const skipHistoryUpdate = useRef(false);
 
             useEffect(() => { 
                 const handleScroll = () => { 
@@ -39,6 +49,37 @@ const App = () => {
                 window.addEventListener('scroll', handleScroll); 
                 return () => window.removeEventListener('scroll', handleScroll); 
             }, []);
+
+            useEffect(() => {
+                const handlePopState = () => {
+                    const nextTab = getTabFromUrl();
+                    if (nextTab === currentTab) { return; }
+                    skipHistoryUpdate.current = true;
+                    const targetMenu = MAIN_MENUS.find(menu => menu.name === nextTab);
+                    if (targetMenu?.authRequired && !isLoggedIn) {
+                        setPendingTab(nextTab);
+                        setShowLoginScreen(true);
+                    } else {
+                        setCurrentTab(nextTab);
+                    }
+                };
+                window.addEventListener('popstate', handlePopState);
+                return () => window.removeEventListener('popstate', handlePopState);
+            }, [currentTab, isLoggedIn]);
+
+            useEffect(() => {
+                if (skipHistoryUpdate.current) {
+                    skipHistoryUpdate.current = false;
+                    return;
+                }
+                const url = new URL(window.location.href);
+                if (currentTab === '홈') {
+                    url.searchParams.delete('tab');
+                } else {
+                    url.searchParams.set('tab', currentTab);
+                }
+                window.history.pushState({ tab: currentTab }, '', url);
+            }, [currentTab]);
             
             const handleNavClick = (tabName) => { 
                 if (tabName === '홈') { setCurrentTab('홈'); setIsMenuOpen(false); return; } 
@@ -64,7 +105,7 @@ const App = () => {
             
             const renderContent = () => {
                 switch (currentTab) {
-                    case '개발자 콘솔': return <DeveloperConsole setShowCreateModal={setShowCreateModal} setSelectedItem={setSelectedItem} />;
+                    case '개발자 콘솔': return <DeveloperConsole setShowCreateModal={setShowCreateModal} setSelectedItem={setSelectedItem} currentTab={currentTab} />;
                     case '스킬 트렌드': return <AINews setSelectedItem={setSelectedItem} />;
                     case '스킬 가이드': return <IntegrationGuide />;
                     case 'AI 워크플로우': return <AIWorkflow />;
