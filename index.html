@@ -15,8 +15,11 @@
     <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
     <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
 
-    <!-- Lucide React Icons (UMD) -->
-    <script src="https://cdn.jsdelivr.net/npm/lucide-react@0.292.0/dist/umd/lucide-react.production.min.js"></script>
+    <!-- Lucide React Icons (ESM -> global) -->
+    <script type="module">
+        import * as lucideReact from 'https://esm.sh/lucide-react';
+        window.lucideReact = lucideReact;
+    </script>
 
     <!-- JSX 변환을 위한 Babel -->
     <script src="https://unpkg.com/@babel/standalone@7.24.5/babel.min.js" crossorigin></script>
