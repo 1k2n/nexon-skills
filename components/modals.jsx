@@ -1,5 +1,7 @@
+// Modal components: create selection + login.
 const { X, Database, Bot, GitBranch, ArrowRight, Lock } = window.LucideReact;
 
+// 새 스킬 타입을 선택하는 모달.
 window.AppComponents.CreateSelectionModal = ({ onClose }) => (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in" onClick={onClose}>
         <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-3xl overflow-hidden relative border-4 border-slate-900" onClick={e => e.stopPropagation()}>
@@ -37,6 +39,7 @@ window.AppComponents.CreateSelectionModal = ({ onClose }) => (
     </div>
 );
 
+// 간단한 로그인 플로우를 제공하는 모달.
 window.AppComponents.LoginScreen = ({ onClose, onLogin }) => (
     <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in fade-in duration-300">
         <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-md overflow-hidden relative border-4 border-slate-900">

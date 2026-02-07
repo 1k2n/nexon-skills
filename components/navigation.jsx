@@ -1,3 +1,4 @@
+// Global navigation bar (GNB).
 const { useState } = window.React;
 const { Menu, X, Star, User, ChevronRight, Lock, LogOut, LogIn, Gamepad2, Search, Zap } = window.LucideReact;
 const { DomainTooltip } = window.AppComponents;

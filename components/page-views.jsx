@@ -1,3 +1,4 @@
+// Page-level views: news, workflow, guide, favorites, home, and studio.
 const { useState, useEffect, useCallback, useRef } = window.React;
 const {
     Menu, X, Star, User, ChevronRight, Bell, Search,
@@ -9,6 +10,75 @@ const {
 } = window.LucideReact;
 const { FAVORITES_ITEMS, HOME_INITIAL_ITEMS, NEWS_ITEMS } = window.AppData;
 const { NewsThumbnail } = window.AppComponents;
+
+const FAVORITE_TYPE_STYLES = {
+    Agent: 'bg-blue-100 text-blue-700 border-blue-200',
+    Connector: 'bg-purple-100 text-purple-700 border-purple-200',
+    Workflow: 'bg-orange-100 text-orange-700 border-orange-200',
+    Default: 'bg-slate-100 text-slate-700 border-slate-200',
+};
+
+const GUIDE_DOCS = {
+    intro: {
+        title: '시작하기 (Getting Started)',
+        content: (
+            <div className="space-y-6">
+                <p className="text-slate-600 leading-relaxed font-normal">NEXON Skills SDK를 사용하여 기존 서비스에 AI 기능을 손쉽게 통합하는 방법을 안내합니다. 단 몇 줄의 코드로 강력한 LLM 에이전트를 호출하고, 데이터 파이프라인을 연결할 수 있습니다.</p>
+                <div className="bg-blue-50 border-l-8 border-blue-500 p-6 rounded-r-2xl shadow-sm">
+                    <h4 className="font-bold text-blue-900 text-sm mb-3 flex items-center gap-2 uppercase tracking-wide"><Check size={18} strokeWidth={4}/> 사전 준비 사항</h4>
+                    <ul className="list-disc pl-5 text-sm text-blue-800 space-y-2 font-bold">
+                        <li>NEXON Skills 계정 생성 및 로그인</li>
+                        <li>개발자 콘솔에서 API Key 발급</li>
+                        <li>Node.js v18 이상 환경</li>
+                    </ul>
+                </div>
+                <div className="space-y-3">
+                    <h4 className="font-bold text-slate-900 text-sm uppercase tracking-wide">설치 (Installation)</h4>
+                    <div className="bg-slate-900 rounded-2xl p-5 text-slate-300 font-mono text-sm flex justify-between items-center group shadow-lg border-4 border-slate-800">
+                        <code>npm install @nexon/skills-sdk</code>
+                        <button className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-white"><Copy size={18}/></button>
+                    </div>
+                </div>
+            </div>
+        ),
+    },
+    auth: {
+        title: '인증 (Authentication)',
+        content: (
+            <div className="space-y-6">
+                <p className="text-slate-600 font-normal">모든 API 요청은 `Authorization` 헤더에 Bearer Token을 포함해야 합니다. API Key는 개발자 콘솔 &gt; 내 크리덴셜 메뉴에서 관리할 수 있습니다.</p>
+                <div className="bg-slate-900 rounded-2xl p-6 text-slate-300 font-mono text-sm overflow-x-auto shadow-lg border-4 border-slate-800">
+                    <div className="text-slate-500 mb-2 font-bold italic">// SDK 초기화 예제</div>
+                    <div className="text-purple-400">import</div> <div className="text-white inline">NexonSkills</div> <div className="text-purple-400 inline">from</div> <div className="text-green-400 inline">'@nexon/skills-sdk'</div>;<br/><br/><div className="text-purple-400">const</div> <div className="text-blue-400 inline">client</div> = <div className="text-purple-400 inline">new</div> <div className="text-yellow-400 inline">NexonSkills</div>({'{'}<br/>&nbsp;&nbsp;apiKey: <div className="text-green-400 inline">'nk_prod_...'</div>,<br/>&nbsp;&nbsp;region: <div className="text-green-400 inline">'kr-1'</div><br/>{'}'});</div>
+                </div>
+            </div>
+        ),
+    },
+    agent: {
+        title: '에이전트 실행 (Execute Agent)',
+        content: (
+            <div className="space-y-6">
+                <p className="text-slate-600 font-normal">특정 에이전트에게 작업을 요청하고 결과를 받아옵니다. 스트리밍(Streaming)을 지원하여 긴 응답도 실시간으로 처리할 수 있습니다.</p>
+                <div className="bg-slate-900 rounded-2xl p-6 text-slate-300 font-mono text-sm overflow-x-auto shadow-lg border-4 border-slate-800">
+                    <div className="text-purple-400">const</div> <div className="text-blue-400 inline">response</div> = <div className="text-purple-400 inline">await</div> <div className="text-blue-400 inline">client.agents.run</div>({'{'}<br/>&nbsp;&nbsp;agentId: <div className="text-green-400 inline">'agent_abc123'</div>,<br/>&nbsp;&nbsp;inputs: {'{'}<br/>&nbsp;&nbsp;&nbsp;&nbsp;prompt: <div className="text-green-400 inline">'최근 서버 로그 분석해줘'</div>,<br/>&nbsp;&nbsp;&nbsp;&nbsp;files: [<div className="text-green-400 inline">'s3://logs/error.log'</div>]<br/>&nbsp;&nbsp;{'}'}<br/>{'}'});<br/><br/><div className="text-yellow-400">console</div>.log(<div className="text-blue-400 inline">response.output</div>);</div>
+                </div>
+            </div>
+        ),
+    },
+};
+
+const HOME_GENERATOR_DATA = {
+    types: ['Agent', 'Connector', 'Workflow'],
+    titles: ['Super AI', 'Auto Notion', 'Slack Bot', 'Data Miner', 'Email Wiz', 'Code Fixer', 'Image Gen', 'Text Sum', 'Game Ops', 'Server Mon'],
+    descs: [
+        '운영 효율을 극대화하는 패시브 스킬입니다.',
+        '복잡한 데이터를 미니맵처럼 한눈에 파악하세요.',
+        '반복 퀘스트를 자동화하여 개발 시간을 절약하세요.',
+        '팀의 생산성 버프를 200% 향상시킵니다.',
+        '강력한 AI 엔진을 장착했습니다.',
+    ],
+    authors: ['Nexon_Dev', 'AI_Lab', 'AutomateIt', 'DevTeam_A', 'SoloDev', 'CreativeMinds'],
+};
 
         // [SECTION 5] PAGE COMPONENTS (페이지 컴포넌트)
         // =================================================================================================
@@ -165,12 +235,6 @@ const AIStudio = () => {
 
 const IntegrationGuide = () => {
             const [activeDoc, setActiveDoc] = useState('intro');
-            const docs = {
-                'intro': { title: '시작하기 (Getting Started)', content: (<div className="space-y-6"><p className="text-slate-600 leading-relaxed font-normal">NEXON Skills SDK를 사용하여 기존 서비스에 AI 기능을 손쉽게 통합하는 방법을 안내합니다. 단 몇 줄의 코드로 강력한 LLM 에이전트를 호출하고, 데이터 파이프라인을 연결할 수 있습니다.</p><div className="bg-blue-50 border-l-8 border-blue-500 p-6 rounded-r-2xl shadow-sm"><h4 className="font-bold text-blue-900 text-sm mb-3 flex items-center gap-2 uppercase tracking-wide"><Check size={18} strokeWidth={4}/> 사전 준비 사항</h4><ul className="list-disc pl-5 text-sm text-blue-800 space-y-2 font-bold"><li>NEXON Skills 계정 생성 및 로그인</li><li>개발자 콘솔에서 API Key 발급</li><li>Node.js v18 이상 환경</li></ul></div><div className="space-y-3"><h4 className="font-bold text-slate-900 text-sm uppercase tracking-wide">설치 (Installation)</h4><div className="bg-slate-900 rounded-2xl p-5 text-slate-300 font-mono text-sm flex justify-between items-center group shadow-lg border-4 border-slate-800"><code>npm install @nexon/skills-sdk</code><button className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-white"><Copy size={18}/></button></div></div></div>) },
-                'auth': { title: '인증 (Authentication)', content: (<div className="space-y-6"><p className="text-slate-600 font-normal">모든 API 요청은 `Authorization` 헤더에 Bearer Token을 포함해야 합니다. API Key는 개발자 콘솔 > 내 크리덴셜 메뉴에서 관리할 수 있습니다.</p><div className="bg-slate-900 rounded-2xl p-6 text-slate-300 font-mono text-sm overflow-x-auto shadow-lg border-4 border-slate-800"><div className="text-slate-500 mb-2 font-bold italic">// SDK 초기화 예제</div><div className="text-purple-400">import</div> <div className="text-white inline">NexonSkills</div> <div className="text-purple-400 inline">from</div> <div className="text-green-400 inline">'@nexon/skills-sdk'</div>;<br/><br/><div className="text-purple-400">const</div> <div className="text-blue-400 inline">client</div> = <div className="text-purple-400 inline">new</div> <div className="text-yellow-400 inline">NexonSkills</div>({'{'}<br/>&nbsp;&nbsp;apiKey: <div className="text-green-400 inline">'nk_prod_...'</div>,<br/>&nbsp;&nbsp;region: <div className="text-green-400 inline">'kr-1'</div><br/>{'}'});</div></div>) },
-                'agent': { title: '에이전트 실행 (Execute Agent)', content: (<div className="space-y-6"><p className="text-slate-600 font-normal">특정 에이전트에게 작업을 요청하고 결과를 받아옵니다. 스트리밍(Streaming)을 지원하여 긴 응답도 실시간으로 처리할 수 있습니다.</p><div className="bg-slate-900 rounded-2xl p-6 text-slate-300 font-mono text-sm overflow-x-auto shadow-lg border-4 border-slate-800"><div className="text-purple-400">const</div> <div className="text-blue-400 inline">response</div> = <div className="text-purple-400 inline">await</div> <div className="text-blue-400 inline">client.agents.run</div>({'{'}<br/>&nbsp;&nbsp;agentId: <div className="text-green-400 inline">'agent_abc123'</div>,<br/>&nbsp;&nbsp;inputs: {'{'}<br/>&nbsp;&nbsp;&nbsp;&nbsp;prompt: <div className="text-green-400 inline">'최근 서버 로그 분석해줘'</div>,<br/>&nbsp;&nbsp;&nbsp;&nbsp;files: [<div className="text-green-400 inline">'s3://logs/error.log'</div>]<br/>&nbsp;&nbsp;{'}'}<br/>{'}'});<br/><br/><div className="text-yellow-400">console</div>.log(<div className="text-blue-400 inline">response.output</div>);</div></div>) }
-            };
-
             return (
                 <div className="flex flex-col md:flex-row gap-8 animate-in min-h-[600px] mt-8 items-start">
                     <div className="w-full md:w-72 bg-white border-2 border-slate-200 rounded-[2rem] p-5 sticky top-24 shrink-0 shadow-sm">
@@ -182,13 +246,13 @@ const IntegrationGuide = () => {
                             <button className="w-full text-left px-4 py-3 rounded-xl text-sm font-bold text-slate-300 cursor-not-allowed flex items-center gap-3"><Terminal size={18} strokeWidth={2.5}/> SDK 레퍼런스 (준비중)</button>
                         </nav>
                     </div>
-                    <div className="flex-1 w-full bg-white border-2 border-slate-200 rounded-[2rem] p-10 min-h-[500px] shadow-sm"><h2 className="text-4xl font-bold text-slate-900 mb-8">{docs[activeDoc].title}</h2>{docs[activeDoc].content}</div>
+                    <div className="flex-1 w-full bg-white border-2 border-slate-200 rounded-[2rem] p-10 min-h-[500px] shadow-sm"><h2 className="text-4xl font-bold text-slate-900 mb-8">{GUIDE_DOCS[activeDoc].title}</h2>{GUIDE_DOCS[activeDoc].content}</div>
                 </div>
             );
         };
 
 const FavoritesView = ({ setSelectedItem }) => {
-            const getTypeStyle = (type) => { switch (type) { case 'Agent': return 'bg-blue-100 text-blue-700 border-blue-200'; case 'Connector': return 'bg-purple-100 text-purple-700 border-purple-200'; case 'Workflow': return 'bg-orange-100 text-orange-700 border-orange-200'; default: return 'bg-slate-100 text-slate-700 border-slate-200'; } };
+            const getTypeStyle = (type) => FAVORITE_TYPE_STYLES[type] ?? FAVORITE_TYPE_STYLES.Default;
             return (
                 <div className="animate-in space-y-8">
                      <div className="border-b-2 border-slate-200 pb-6"><div className="flex items-center gap-4"><div className="p-4 bg-yellow-100 rounded-3xl text-yellow-600 border-2 border-yellow-200 shadow-sm"><Star size={32} className="fill-current" strokeWidth={2.5}/></div><div><h2 className="text-4xl font-bold text-slate-900">내 즐겨찾는 스킬 목록</h2><p className="text-slate-500 mt-2 font-medium">자주 사용하는 도구들을 한곳에서 모아보고 빠르게 실행하세요.</p></div></div></div>
@@ -216,7 +280,16 @@ const HomePage = ({ selectedGame, setSelectedGame, gameList, showStickySearch, s
             
             useEffect(() => { loadingRef.current = isLoading; }, [isLoading]);
             
-            const generateRandomItems = (count) => { const types = ['Agent', 'Connector', 'Workflow']; const titles = ['Super AI', 'Auto Notion', 'Slack Bot', 'Data Miner', 'Email Wiz', 'Code Fixer', 'Image Gen', 'Text Sum', 'Game Ops', 'Server Mon']; const descs = [ '운영 효율을 극대화하는 패시브 스킬입니다.', '복잡한 데이터를 미니맵처럼 한눈에 파악하세요.', '반복 퀘스트를 자동화하여 개발 시간을 절약하세요.', '팀의 생산성 버프를 200% 향상시킵니다.', '강력한 AI 엔진을 장착했습니다.' ]; const authors = ['Nexon_Dev', 'AI_Lab', 'AutomateIt', 'DevTeam_A', 'SoloDev', 'CreativeMinds']; return Array.from({ length: count }).map((_, i) => ({ type: types[Math.floor(Math.random() * types.length)], title: `${titles[Math.floor(Math.random() * titles.length)]} v${Math.floor(Math.random() * 10)}.0`, desc: descs[Math.floor(Math.random() * descs.length)], author: authors[Math.floor(Math.random() * authors.length)], stars: Math.floor(Math.random() * 5000) + 100 })); };
+            const generateRandomItems = (count) => {
+                const { types, titles, descs, authors } = HOME_GENERATOR_DATA;
+                return Array.from({ length: count }).map(() => ({
+                    type: types[Math.floor(Math.random() * types.length)],
+                    title: `${titles[Math.floor(Math.random() * titles.length)]} v${Math.floor(Math.random() * 10)}.0`,
+                    desc: descs[Math.floor(Math.random() * descs.length)],
+                    author: authors[Math.floor(Math.random() * authors.length)],
+                    stars: Math.floor(Math.random() * 5000) + 100,
+                }));
+            };
             
             const loadMore = useCallback(() => { 
                 if (loadingRef.current) return; 

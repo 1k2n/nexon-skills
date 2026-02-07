@@ -1,7 +1,10 @@
+// App data catalog: shared lists used across pages and components.
 const { FlaskConical, Zap } = window.LucideReact;
 
+// 게임 선택 드롭다운에서 사용되는 목록입니다.
 window.AppData.GAME_LIST = ['메이플스토리', '마비노기', '던전앤파이터', 'FC온라인', '바람의나라', '카트라이더: 드리프트'];
 
+// 메인 네비게이션 메뉴 구성입니다.
 window.AppData.MAIN_MENUS = [
     { name: '개발자 콘솔', icon: null, domain: 'skills.nexon.com/console', desc: '내 AI 스킬들의 현황을 한눈에', authRequired: true },
     { name: '스킬 트렌드', icon: null, domain: 'skills.nexon.com/news', desc: '가장 빠른 AI 기술 트렌드' },
@@ -10,6 +13,7 @@ window.AppData.MAIN_MENUS = [
     { name: 'AI 워크플로우', icon: Zap, domain: 'skills.nexon.com/workflows', desc: '복잡한 업무를 자동으로 연결' },
 ];
 
+// 트렌드/뉴스 카드에 사용하는 데이터입니다.
 window.AppData.NEWS_ITEMS = [
     { category: 'Model Update', title: 'OpenAI, 추론 능력이 비약적으로 상승한 신모델 출시', date: '1시간 전', content: `OpenAI가 새로운 AI 모델을 공개했습니다...` },
     { category: 'Industry', title: '엔비디아, 차세대 블랙웰 칩 생산량 확대 발표', date: '3시간 전', content: `엔비디아(Nvidia)가 차세대 AI 칩...` },
@@ -17,6 +21,7 @@ window.AppData.NEWS_ITEMS = [
     { category: 'Community', title: 'NEXON Skills 개발자 밋업: 서울 2026 참가 신청 안내', date: '2일 전', content: `국내 최대 AI 에이전트 개발자 커뮤니티...` },
 ];
 
+// 즐겨찾기 화면에 사용하는 고정 목록입니다.
 window.AppData.FAVORITES_ITEMS = [
     { type: 'Agent', title: 'Code Reviewer Pro', desc: 'GitHub PR을 분석하여 잠재적인 버그와 성능 이슈를 코멘트로 남깁니다.', author: 'DevTools', stars: 1800 },
     { type: 'Connector', title: 'Notion to Slack', desc: '노션 페이지 변경 사항을 슬랙 채널로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850 },
@@ -24,6 +29,7 @@ window.AppData.FAVORITES_ITEMS = [
     { type: 'Agent', title: 'SQL Query Assistant', desc: '자연어를 입력하면 최적화된 SQL 쿼리로 변환해주는 데이터 분석 보조 도구입니다.', author: 'DataTeam', stars: 2100 },
 ];
 
+// 홈 화면 초기 로드에 사용하는 스킬 리스트입니다.
 window.AppData.HOME_INITIAL_ITEMS = [
     { type: 'Agent', title: 'Data Wizard Bot', desc: '복잡한 로그 데이터를 미니맵처럼 한눈에 파악하고 시각화합니다.', author: 'DataGuild', stars: 1240 },
     { type: 'Connector', title: 'Notion Guild Messenger', desc: '노션 페이지 변경 사항을 길드 채널(슬랙)로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850 },

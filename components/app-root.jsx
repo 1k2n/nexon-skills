@@ -1,3 +1,4 @@
+// App entry point: top-level state + routing between tabs.
 const { useState, useEffect } = window.React;
 const { createRoot } = window.ReactDOMClient;
 const { Zap } = window.LucideReact;

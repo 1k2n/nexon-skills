@@ -1,5 +1,7 @@
+// Shared UI components used across multiple pages.
 const { X, Star, Share2, Play, Download } = window.LucideReact;
 
+// 호버 시 도메인 정보를 보여주는 툴팁.
 window.AppComponents.DomainTooltip = ({ title, domain }) => (
     <div className="absolute opacity-0 group-hover:opacity-100 transition-all duration-200 top-full mt-3 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-slate-900 text-white rounded-xl shadow-xl z-50 pointer-events-none min-w-[max-content] text-center border-2 border-white">
         <div className="text-sm font-bold mb-0.5 text-yellow-300">{title}</div>
@@ -7,16 +9,15 @@ window.AppComponents.DomainTooltip = ({ title, domain }) => (
     </div>
 );
 
+// 카테고리별 썸네일 그래픽을 렌더링하는 카드 섹션.
 window.AppComponents.NewsThumbnail = ({ category }) => {
-    const getColors = () => {
-        switch (category) {
-            case 'Model Update': return { bg: 'bg-indigo-100', text: 'text-indigo-600', fill: '#4F46E5', border: 'border-indigo-200' };
-            case 'Industry': return { bg: 'bg-emerald-100', text: 'text-emerald-600', fill: '#059669', border: 'border-emerald-200' };
-            case 'Tutorial': return { bg: 'bg-amber-100', text: 'text-amber-600', fill: '#D97706', border: 'border-amber-200' };
-            default: return { bg: 'bg-rose-100', text: 'text-rose-600', fill: '#E11D48', border: 'border-rose-200' };
-        }
+    const categoryColors = {
+        'Model Update': { bg: 'bg-indigo-100', text: 'text-indigo-600', fill: '#4F46E5', border: 'border-indigo-200' },
+        'Industry': { bg: 'bg-emerald-100', text: 'text-emerald-600', fill: '#059669', border: 'border-emerald-200' },
+        'Tutorial': { bg: 'bg-amber-100', text: 'text-amber-600', fill: '#D97706', border: 'border-amber-200' },
+        'Community': { bg: 'bg-rose-100', text: 'text-rose-600', fill: '#E11D48', border: 'border-rose-200' },
     };
-    const colors = getColors();
+    const colors = categoryColors[category] ?? categoryColors.Community;
     const renderGraphic = () => {
         if (category === 'Model Update') return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><circle cx="50" cy="50" r="30" fill={colors.fill} opacity="0.2"/><path d="M50 20 L80 50 L50 80 L20 50 Z" fill="none" stroke={colors.fill} strokeWidth="6" strokeLinejoin="round"/><circle cx="50" cy="50" r="10" fill={colors.fill}/><circle cx="50" cy="20" r="4" fill={colors.fill}/><circle cx="80" cy="50" r="4" fill={colors.fill}/><circle cx="50" cy="80" r="4" fill={colors.fill}/><circle cx="20" cy="50" r="4" fill={colors.fill}/></svg>;
         if (category === 'Industry') return <svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-90"><rect x="20" y="40" width="20" height="40" rx="4" fill={colors.fill} opacity="0.6"/><rect x="45" y="25" width="20" height="55" rx="4" fill={colors.fill} opacity="0.8"/><rect x="70" y="35" width="20" height="45" rx="4" fill={colors.fill} opacity="0.4"/><line x1="10" y1="90" x2="90" y2="90" stroke={colors.fill} strokeWidth="6" strokeLinecap="round"/></svg>;
@@ -31,6 +32,7 @@ window.AppComponents.NewsThumbnail = ({ category }) => {
     );
 };
 
+// 선택한 스킬/뉴스의 상세 정보를 보여주는 모달.
 window.AppComponents.ItemDetailModal = ({ item, onClose, isLoggedIn, setShowLoginScreen }) => {
     if (!item) return null;
 
