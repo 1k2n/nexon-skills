@@ -17,14 +17,14 @@ window.AppComponents.GNB = ({
                         <div className="flex items-center gap-3 shrink-0 cursor-pointer group relative" onClick={() => handleNavClick('홈')}>
                             <div className="relative">
                                 {!logoError ? (
-                                    <img src="nexon-skills.webp" alt="NEXON Skills" className="w-10 h-10 object-contain drop-shadow-sm hover:scale-110 transition-transform]" onError={() => setLogoError(true)} />
+                                    <img src="nexon-skills.webp" alt="NEXON Skills" className="w-10 h-10 object-contain drop-shadow-sm transition-transform]" onError={() => setLogoError(true)} />
                                 ) : (
                                 <div className="w-10 h-10 bg-white rounded-xl shadow-md border-2 border-slate-200 flex items-center justify-center text-blue-600 group-hover:border-blue-300 transition-colors">
                                     <Zap size={20} fill="currentColor" strokeWidth={0} />
                                 </div>
                                 )}
                             </div>
-                            <span className="text-xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-700 transition-all">NEXON Skills</span>
+                            <span className="text-2xl font-bold tracking-tight text-transparent bg-clip-text bg-gradient-to-r from-slate-900 to-slate-700 transition-all">NEXON Skills</span>
                             <DomainTooltip title="AI 스킬 통합 플랫폼" domain="skills.nexon.com" />
                         </div>
 
