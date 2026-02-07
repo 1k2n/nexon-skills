@@ -1,4 +1,4 @@
-const NexonSkills = window.NexonSkills || (window.NexonSkills = {});
+var NexonSkills = window.NexonSkills || (window.NexonSkills = {});
 const { useState, useEffect, useCallback, useRef } = React;
 const { FAVORITES_ITEMS, HOME_INITIAL_ITEMS, NEWS_FEED_URL } = NexonSkills.data;
 const {
@@ -45,48 +45,6 @@ const {
     X,
 } = NexonSkills.icons;
 const { NewsThumbnail } = NexonSkills.components;
-
-    Activity,
-    ArrowLeft,
-    ArrowRight,
-    Bell,
-    BookOpen,
-    Bot,
-    Box,
-    Check,
-    ChevronDown,
-    ChevronRight,
-    Clock,
-    Copy,
-    Cpu,
-    Database,
-    ExternalLink,
-    FileText,
-    Gamepad2,
-    GitBranch,
-    Globe,
-    Image,
-    Key,
-    Layers,
-    Library,
-    Mail,
-    Maximize2,
-    MessageSquare,
-    Mic,
-    MousePointer,
-    Play,
-    Plus,
-    RefreshCw,
-    Search,
-    Settings,
-    Share2,
-    ShieldCheck,
-    Split,
-    Star,
-    Terminal,
-    UploadCloud,
-    Video,
-    X,
 
 const DashboardView = ({ setShowCreateModal }) => (
 <div className="space-y-8 animate-fade-in">

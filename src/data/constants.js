@@ -1,4 +1,4 @@
-const NexonSkills = window.NexonSkills || (window.NexonSkills = {});
+var NexonSkills = window.NexonSkills || (window.NexonSkills = {});
 const { FlaskConical, Zap } = NexonSkills.icons;
 
 NexonSkills.data.GAME_LIST = ['메이플스토리', '마비노기', '던전앤파이터', 'FC온라인', '바람의나라', '카트라이더: 드리프트'];

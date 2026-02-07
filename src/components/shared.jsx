@@ -1,4 +1,4 @@
-const NexonSkills = window.NexonSkills || (window.NexonSkills = {});
+var NexonSkills = window.NexonSkills || (window.NexonSkills = {});
 
 NexonSkills.components.DomainTooltip = ({ title, domain }) => (
     <div className="absolute opacity-0 group-hover:opacity-100 transition-all duration-200 top-full mt-3 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-slate-900 text-white rounded-xl shadow-xl z-50 pointer-events-none min-w-[max-content] text-center border-2 border-white">
