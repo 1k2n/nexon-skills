@@ -1,0 +1,62 @@
+const { useState, useEffect, useCallback, useRef } = window.React;
+const { Gamepad2, ChevronDown, Search, ArrowRight, Star, Share2 } = window.LucideReact;
+const { HOME_INITIAL_ITEMS } = window.AppData;
+
+const HomePage = ({ selectedGame, setSelectedGame, gameList, showStickySearch, setSelectedItem, isLoggedIn, setShowLoginScreen }) => {
+            const [items, setItems] = useState(HOME_INITIAL_ITEMS);
+            const [isLoading, setIsLoading] = useState(false);
+            const loadingRef = useRef(isLoading);
+            
+            useEffect(() => { loadingRef.current = isLoading; }, [isLoading]);
+            
+            const generateRandomItems = (count) => { const types = ['Agent', 'Connector', 'Workflow']; const titles = ['Super AI', 'Auto Notion', 'Slack Bot', 'Data Miner', 'Email Wiz', 'Code Fixer', 'Image Gen', 'Text Sum', 'Game Ops', 'Server Mon']; const descs = [ '운영 효율을 극대화하는 패시브 스킬입니다.', '복잡한 데이터를 미니맵처럼 한눈에 파악하세요.', '반복 퀘스트를 자동화하여 개발 시간을 절약하세요.', '팀의 생산성 버프를 200% 향상시킵니다.', '강력한 AI 엔진을 장착했습니다.' ]; const authors = ['Nexon_Dev', 'AI_Lab', 'AutomateIt', 'DevTeam_A', 'SoloDev', 'CreativeMinds']; return Array.from({ length: count }).map((_, i) => ({ type: types[Math.floor(Math.random() * types.length)], title: `${titles[Math.floor(Math.random() * titles.length)]} v${Math.floor(Math.random() * 10)}.0`, desc: descs[Math.floor(Math.random() * descs.length)], author: authors[Math.floor(Math.random() * authors.length)], stars: Math.floor(Math.random() * 5000) + 100 })); };
+            
+            const loadMore = useCallback(() => { 
+                if (loadingRef.current) return; 
+                setIsLoading(true); 
+                setTimeout(() => { 
+                    const newItems = generateRandomItems(6); 
+                    setItems(prev => [...prev, ...newItems]); 
+                    setIsLoading(false); 
+                }, 800); 
+            }, []);
+            
+            useEffect(() => { 
+                const handleScroll = () => { 
+                    const { scrollTop, clientHeight, scrollHeight } = document.documentElement; 
+                    if (scrollTop + clientHeight >= scrollHeight - 200 && !loadingRef.current) { 
+                        loadMore(); 
+                    } 
+                }; 
+                window.addEventListener('scroll', handleScroll); 
+                return () => window.removeEventListener('scroll', handleScroll); 
+            }, [loadMore]);
+            
+            const getTypeStyle = (type) => { switch (type) { case 'Agent': return 'bg-blue-100 text-blue-700 border-blue-200'; case 'Connector': return 'bg-purple-100 text-purple-700 border-purple-200'; case 'Workflow': return 'bg-orange-100 text-orange-700 border-orange-200'; default: return 'bg-slate-100 text-slate-700 border-slate-200'; } };
+
+            return (
+                <div className="animate-in">
+                    <div className="text-center space-y-8 py-20 px-4 relative">
+                        <h1 className="text-5xl md:text-6xl font-bold text-slate-900 tracking-tight leading-tight drop-shadow-sm">흩어진 AI 도구, <br className="md:hidden" /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">넥슨스킬로 연결하세요.</span></h1>
+                        <p className="max-w-2xl mx-auto text-xl text-slate-500 leading-relaxed font-normal">개발과 운영의 난이도를 낮춰줄 AI 도구,<br className="hidden md:block"/> NEXON Skills에서 필요한 능력을 <span className="text-blue-600 font-bold bg-blue-50 px-2 rounded-lg border border-blue-100">파밍</span>하고 <span className="text-purple-600 font-bold bg-purple-50 px-2 rounded-lg border border-purple-100">장착</span>하세요.</p>
+                        <div className={`max-w-4xl mx-auto mt-12 relative z-10 transition-all duration-500 ease-in-out ${showStickySearch ? 'opacity-0 translate-y-[-20px] pointer-events-none' : 'opacity-100 translate-y-0'}`}>
+                            <div className="flex flex-col md:flex-row items-stretch md:items-center bg-white border-2 border-slate-200 rounded-[2rem] shadow-xl p-2.5 focus-within:ring-4 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all hover:scale-[1.01] hover:shadow-2xl">
+                                <div className="relative px-2 md:pl-6 md:pr-2 border-b-2 md:border-b-0 md:border-r-2 border-slate-100 group flex items-center shrink-0 py-2 md:py-0"><Gamepad2 className="w-6 h-6 text-slate-400 group-hover:text-blue-500 transition-colors pointer-events-none ml-2 md:ml-0" /><select value={selectedGame} onChange={(e) => setSelectedGame(e.target.value)} className="w-full md:w-auto appearance-none bg-transparent font-bold text-slate-700 py-4 pl-3 pr-10 rounded-lg focus:outline-none cursor-pointer text-base hover:text-blue-600 transition-colors"><option>전체 게임</option>{gameList.map(game => <option key={game} value={game}>{game}</option>)}</select><ChevronDown className="absolute right-4 md:right-2 w-4 h-4 text-slate-400 pointer-events-none" strokeWidth={3} /></div>
+                                <div className="flex-1 relative flex items-center"><div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none"><Search className="h-6 w-6 text-slate-400" strokeWidth={3} /></div><input type="text" className="block w-full pl-16 pr-6 py-4 bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-lg font-medium" placeholder="소환하고 싶은 커넥터, 에이전트, 워크플로우를 검색하세요..." /><button className="md:hidden absolute right-2 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors"><ArrowRight size={20} /></button></div><button className="hidden md:block px-10 py-4 bg-slate-900 text-white rounded-[1.5rem] font-bold hover:bg-slate-800 transition-colors shadow-lg shrink-0 ml-2 text-lg active:scale-95">검색</button></div>
+                            <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm text-slate-500 font-medium"><span>인기 스킬북:</span>{['노션 연동', '데이터 분석', '마케팅 자동화', '코드 리뷰'].map((tag) => (<button key={tag} className="hover:text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-full transition-colors border border-transparent hover:border-blue-100">{tag}</button>))}</div>
+                        </div>
+                    </div>
+                    <div className="max-w-7xl mx-auto px-4 mt-12 pb-24">
+                        <div className="flex justify-between items-center mb-8"><h2 className="text-3xl font-bold text-slate-900 flex items-center gap-2">🔥 지금 뜨는 인기 스킬</h2></div>
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                            {items.map((item, idx) => (
+                                <div key={idx} onClick={() => setSelectedItem(item)} className="group bg-white border-2 border-slate-100 rounded-[2.5rem] p-7 shadow-sm hover:shadow-[0px_8px_0px_#cbd5e1] hover:-translate-y-2 transition-all duration-300 cursor-pointer animate-fade-in relative hover:z-10"><div className="flex justify-between items-start mb-5"><span className={`px-4 py-1.5 rounded-full text-xs font-bold uppercase tracking-wide border ${getTypeStyle(item.type)}`}>{item.type}</span><div className="flex items-center gap-1.5 text-slate-400 text-sm font-bold bg-slate-50 px-3 py-1 rounded-full"><Star size={16} className="fill-slate-200 group-hover:fill-yellow-400 group-hover:text-yellow-400 transition-colors" strokeWidth={2.5} /><span>{(item.stars / 1000).toFixed(1)}k</span></div></div><h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors">{item.title}</h3><p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-2 h-10 font-normal">{item.desc}</p><div className="flex items-center justify-between pt-5 border-t-2 border-slate-50"><div className="flex items-center gap-3"><div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600 border-2 border-white shadow-sm">{item.author[0]}</div><span className="text-xs text-slate-500 font-bold">{item.author}</span></div><button className="text-slate-300 hover:text-blue-600 transition-colors bg-slate-50 p-2 rounded-xl hover:bg-blue-50"><Share2 size={18} strokeWidth={2.5}/></button></div></div>
+                            ))}
+                        </div>
+                        {isLoading && (<div className="flex justify-center items-center py-12"><div className="loader mr-4"></div><span className="text-slate-500 font-bold text-lg">더 많은 스킬을 소환하는 중...</span></div>)}
+                    </div>
+                </div>
+            );
+        };
+
+window.AppComponents.HomePage = HomePage;
