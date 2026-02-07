@@ -105,7 +105,7 @@ const App = () => {
             
             const renderContent = () => {
                 switch (currentTab) {
-                    case '개발자 콘솔': return <DeveloperConsole setShowCreateModal={setShowCreateModal} setSelectedItem={setSelectedItem} />;
+                    case '개발자 콘솔': return <DeveloperConsole setShowCreateModal={setShowCreateModal} setSelectedItem={setSelectedItem} currentTab={currentTab} />;
                     case '스킬 트렌드': return <AINews setSelectedItem={setSelectedItem} />;
                     case '스킬 가이드': return <IntegrationGuide />;
                     case 'AI 워크플로우': return <AIWorkflow />;
