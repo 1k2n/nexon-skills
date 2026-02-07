@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GeekNews Feed</title>
+  <style>
+    :root {
+      color-scheme: light;
+      font-family: "Pretendard", "Apple SD Gothic Neo", "Noto Sans KR", Arial, sans-serif;
+      background-color: #f8fafc;
+      color: #0f172a;
+    }
+    body {
+      margin: 0;
+      padding: 24px;
+    }
+    .feed-container {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    .feed-item {
+      background: #ffffff;
+      border: 1px solid #e2e8f0;
+      border-radius: 16px;
+      padding: 20px;
+      box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06);
+      transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .feed-item:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 16px rgba(15, 23, 42, 0.12);
+    }
+    .feed-item h3 {
+      margin: 0 0 8px;
+      font-size: 20px;
+      line-height: 1.4;
+    }
+    .feed-item a {
+      color: #1d4ed8;
+      text-decoration: none;
+    }
+    .feed-item a:hover {
+      text-decoration: underline;
+    }
+    .meta {
+      font-size: 12px;
+      color: #64748b;
+      margin-bottom: 12px;
+    }
+    .description {
+      font-size: 14px;
+      color: #334155;
+      line-height: 1.6;
+    }
+    .status {
+      border: 1px dashed #cbd5f5;
+      border-radius: 12px;
+      padding: 16px;
+      background: #f1f5f9;
+      color: #475569;
+      font-size: 14px;
+    }
+  </style>
+</head>
+<body>
+  <div id="feed" class="feed-container">
+    <div class="status">GeekNews 피드를 불러오는 중입니다...</div>
+  </div>
+  <script>
+    (function () {
+      const RSS_URL = "https://feeds.feedburner.com/geeknews-feed";
+      const feedElement = document.getElementById("feed");
+
+      const setStatus = (message) => {
+        feedElement.innerHTML = "";
+        const status = document.createElement("div");
+        status.className = "status";
+        status.textContent = message;
+        feedElement.appendChild(status);
+      };
+
+      try {
+        const request = new XMLHttpRequest();
+        request.open("GET", RSS_URL, false);
+        request.send(null);
+
+        if (request.status !== 200) {
+          setStatus(`피드를 불러오지 못했습니다. (HTTP ${request.status})`);
+          return;
+        }
+
+        const parser = new DOMParser();
+        const xml = parser.parseFromString(request.responseText, "text/xml");
+        const items = Array.from(xml.querySelectorAll("item")).slice(0, 12);
+
+        if (items.length === 0) {
+          setStatus("피드에 표시할 뉴스가 없습니다.");
+          return;
+        }
+
+        feedElement.innerHTML = "";
+        items.forEach((item) => {
+          const title = item.querySelector("title")?.textContent?.trim() || "제목 없음";
+          const link = item.querySelector("link")?.textContent?.trim() || "#";
+          const pubDate = item.querySelector("pubDate")?.textContent?.trim();
+          const descriptionRaw = item.querySelector("description")?.textContent || "";
+          const description = descriptionRaw.replace(/<[^>]*>/g, "").trim();
+
+          const card = document.createElement("article");
+          card.className = "feed-item";
+
+          const heading = document.createElement("h3");
+          const anchor = document.createElement("a");
+          anchor.href = link;
+          anchor.target = "_blank";
+          anchor.rel = "noopener noreferrer";
+          anchor.textContent = title;
+          heading.appendChild(anchor);
+
+          const meta = document.createElement("div");
+          meta.className = "meta";
+          meta.textContent = pubDate ? `업데이트: ${pubDate}` : "";
+
+          const desc = document.createElement("p");
+          desc.className = "description";
+          desc.textContent = description || "요약 정보가 제공되지 않습니다.";
+
+          card.appendChild(heading);
+          if (meta.textContent) {
+            card.appendChild(meta);
+          }
+          card.appendChild(desc);
+
+          feedElement.appendChild(card);
+        });
+      } catch (error) {
+        setStatus("피드를 불러오는 중 오류가 발생했습니다.");
+      }
+    })();
+  </script>
+</body>
+</html>
