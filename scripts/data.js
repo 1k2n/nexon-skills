@@ -1,0 +1,40 @@
+const GAME_LIST = ['메이플스토리', '마비노기', '던전앤파이터', 'FC온라인', '바람의나라', '카트라이더: 드리프트'];
+
+const MAIN_MENUS = [
+    { name: '개발자 콘솔', icon: null, domain: 'skills.nexon.com/console', desc: '내 AI 스킬들의 현황을 한눈에', authRequired: true },
+    { name: '스킬 트렌드', icon: null, domain: 'skills.nexon.com/news', desc: '가장 빠른 AI 기술 트렌드' },
+    { name: '스킬 가이드', icon: null, domain: 'skills.nexon.com/docs', desc: '개발을 돕는 친절한 길잡이' },
+    { name: 'AI 실험실', icon: 'FlaskConical', domain: 'skills.nexon.com/labs', desc: '상상을 현실로 만드는 AI 실험실' },
+    { name: 'AI 워크플로우', icon: 'Zap', domain: 'skills.nexon.com/workflows', desc: '복잡한 업무를 자동으로 연결' },
+];
+
+const NEWS_ITEMS = [
+    { category: 'Model Update', title: 'OpenAI, 추론 능력이 비약적으로 상승한 신모델 출시', date: '1시간 전', content: `OpenAI가 새로운 AI 모델을 공개했습니다...` },
+    { category: 'Industry', title: '엔비디아, 차세대 블랙웰 칩 생산량 확대 발표', date: '3시간 전', content: `엔비디아(Nvidia)가 차세대 AI 칩...` },
+    { category: 'Tutorial', title: 'RAG 아키텍처를 최적화하는 5가지 핵심 기법', date: '어제', content: `검색 증강 생성(RAG) 시스템의...` },
+    { category: 'Community', title: 'NEXON Skills 개발자 밋업: 서울 2026 참가 신청 안내', date: '2일 전', content: `국내 최대 AI 에이전트 개발자 커뮤니티...` },
+];
+
+const FAVORITES_ITEMS = [ 
+    { type: 'Agent', title: 'Code Reviewer Pro', desc: 'GitHub PR을 분석하여 잠재적인 버그와 성능 이슈를 코멘트로 남깁니다.', author: 'DevTools', stars: 1800 }, 
+    { type: 'Connector', title: 'Notion to Slack', desc: '노션 페이지 변경 사항을 슬랙 채널로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850 }, 
+    { type: 'Workflow', title: 'Daily News Summary', desc: '매일 아침 30분, 주요 뉴스 사이트를 크롤링하여 요약 리포트를 메일로 발송합니다.', author: 'NEXON Skills Official', stars: 3200 }, 
+    { type: 'Agent', title: 'SQL Query Assistant', desc: '자연어를 입력하면 최적화된 SQL 쿼리로 변환해주는 데이터 분석 보조 도구입니다.', author: 'DataTeam', stars: 2100 } 
+];
+
+const HOME_INITIAL_ITEMS = [ 
+    { type: 'Agent', title: 'Data Wizard Bot', desc: '복잡한 로그 데이터를 미니맵처럼 한눈에 파악하고 시각화합니다.', author: 'DataGuild', stars: 1240 }, 
+    { type: 'Connector', title: 'Notion Guild Messenger', desc: '노션 페이지 변경 사항을 길드 채널(슬랙)로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850 }, 
+    { type: 'Workflow', title: 'Daily Quest Summary', desc: '매일 아침 30분, 주요 뉴스 퀘스트를 클리어하고 요약 리포트를 전송합니다.', author: 'NEXON Skills Official', stars: 3200 }, 
+    { type: 'Agent', title: 'Code Reviewer Pro', desc: 'GitHub PR을 분석하여 잠재적인 버그와 성능 이슈를 코멘트로 남깁니다.', author: 'DevTools', stars: 1800 }, 
+    { type: 'Connector', title: 'Gmail <-> Trello', desc: '중요 메일을 자동으로 트렐로 카드로 변환하여 할 일 목록에 추가합니다.', author: 'ProductivityKing', stars: 620 }, 
+    { type: 'Workflow', title: 'Insta Marketing Auto', desc: '트렌드 키워드를 분석하여 인스타그램 포스팅 문구와 이미지를 생성하고 업로드합니다.', author: 'MarketingAI', stars: 940 } 
+];
+
+window.APP_DATA = {
+    GAME_LIST,
+    MAIN_MENUS,
+    NEWS_ITEMS,
+    FAVORITES_ITEMS,
+    HOME_INITIAL_ITEMS
+};
