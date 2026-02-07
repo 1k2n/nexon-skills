@@ -1,4 +1,4 @@
-var NexonSkills = window.NexonSkills || (window.NexonSkills = {});
+const NexonSkills = window.NexonSkills;
 const { DomainTooltip } = NexonSkills.components;
 const { useState } = React;
 const {
