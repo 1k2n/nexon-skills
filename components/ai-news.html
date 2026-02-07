@@ -73,6 +73,7 @@ const AINews = ({ setSelectedItem }) => {
                         const response = await fetch(feedUrl, {
                             headers: {
                                 Authorization: 'Bearer jina_408ffca8136b47b58bbf2f3a929f4186iY4v7q9RxyAiXWXry1yP0oEPXwaS',
+                                'X-Engine': 'browser',
                             },
                         });
                         if (!response.ok) {
