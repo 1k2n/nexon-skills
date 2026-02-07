@@ -42,8 +42,8 @@ const AINews = ({ setSelectedItem }) => {
             const extractHtmlText = (value) =>
                 new DOMParser().parseFromString(value || '', 'text/html').body.textContent?.trim() || '';
 
-            const parseRssItems = (items) =>
-                items
+            const parseRssItems = (items) => {
+                const normalizedItems = items
                     .map((item) => {
                         const titleText = stripCdata(item.querySelector('title')?.textContent || '');
                         const descriptionHtml = stripCdata(item.querySelector('description')?.textContent || '');
@@ -56,7 +56,7 @@ const AINews = ({ setSelectedItem }) => {
                         );
                         const descriptionText = extractHtmlText(descriptionHtml);
                         return {
-                            title: titleText,
+                            title: titleText || descriptionText.slice(0, 40),
                             source,
                             description: descriptionText,
                             date: formatRelativeTime(pubDate),
@@ -64,12 +64,16 @@ const AINews = ({ setSelectedItem }) => {
                             link,
                         };
                     })
-                    .filter((news) => hasHangul(news.title) || hasHangul(news.description))
-                    .slice(0, 9);
+                    .filter((news) => news.title || news.description);
+                const hangulItems = normalizedItems.filter(
+                    (news) => hasHangul(news.title) || hasHangul(news.description)
+                );
+                return (hangulItems.length ? hangulItems : normalizedItems).slice(0, 9);
+            };
 
             const parseFeedWithRegex = (xmlText) => {
                 const itemBlocks = xmlText.match(/<item>[\s\S]*?<\/item>/g) || [];
-                return itemBlocks
+                const normalizedItems = itemBlocks
                     .map((block) => {
                         const getTag = (tag) => {
                             const match = block.match(new RegExp(`<${tag}[^>]*>([\\\\s\\\\S]*?)<\\\\/${tag}>`, 'i'));
@@ -82,7 +86,7 @@ const AINews = ({ setSelectedItem }) => {
                         const source = getTag('source') || getTag('dc:creator') || 'AI Times';
                         const descriptionText = extractHtmlText(descriptionHtml);
                         return {
-                            title: titleText,
+                            title: titleText || descriptionText.slice(0, 40),
                             source,
                             description: descriptionText,
                             date: formatRelativeTime(pubDate),
@@ -90,8 +94,11 @@ const AINews = ({ setSelectedItem }) => {
                             link,
                         };
                     })
-                    .filter((news) => hasHangul(news.title) || hasHangul(news.description))
-                    .slice(0, 9);
+                    .filter((news) => news.title || news.description);
+                const hangulItems = normalizedItems.filter(
+                    (news) => hasHangul(news.title) || hasHangul(news.description)
+                );
+                return (hangulItems.length ? hangulItems : normalizedItems).slice(0, 9);
             };
 
             const parseFeed = (xmlText) => {
