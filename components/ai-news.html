@@ -1,11 +1,113 @@
 const { Clock } = window.LucideReact;
 const { NEWS_ITEMS } = window.AppData;
 const { NewsThumbnail } = window.AppComponents;
+const { useEffect, useState } = window.React;
+
+const FEED_URL = 'https://feeds.feedburner.com/geeknews-feed';
+
+const getFeedText = (item, selector) => {
+    const element = item.querySelector(selector);
+    return element ? element.textContent.trim() : '';
+};
+
+const stripHtml = (html) => {
+    if (!html) return '';
+    const temp = document.createElement('div');
+    temp.innerHTML = html;
+    return (temp.textContent || '').trim();
+};
+
+const formatDate = (dateString) => {
+    const parsed = new Date(dateString);
+    if (Number.isNaN(parsed.getTime())) return dateString || '방금 전';
+    return new Intl.DateTimeFormat('ko-KR', { dateStyle: 'medium', timeStyle: 'short' }).format(parsed);
+};
+
+const parseFeedItems = (xmlText) => {
+    const doc = new DOMParser().parseFromString(xmlText, 'text/xml');
+    const items = Array.from(doc.querySelectorAll('item'));
+    return items.map((item) => {
+        const title = getFeedText(item, 'title') || '제목 없음';
+        const link = getFeedText(item, 'link');
+        const category = getFeedText(item, 'category') || 'GeekNews';
+        const description = stripHtml(getFeedText(item, 'description'));
+        const content = stripHtml(getFeedText(item, 'content\\:encoded')) || description;
+        const pubDate = getFeedText(item, 'pubDate');
+        const contentText = [content, link ? `원문: ${link}` : null].filter(Boolean).join('\n\n');
+
+        return {
+            category,
+            title,
+            date: formatDate(pubDate),
+            content: contentText || '새로운 소식을 확인하세요.',
+            link,
+        };
+    }).filter((item) => item.title);
+};
 
 const AINews = ({ setSelectedItem }) => {
+            const [newsItems, setNewsItems] = useState(NEWS_ITEMS);
+            const [feedStatus, setFeedStatus] = useState('loading');
+
+            useEffect(() => {
+                let isActive = true;
+                const fetchFeed = async () => {
+                    const response = await fetch(FEED_URL);
+                    const xmlText = await response.text();
+                    const items = parseFeedItems(xmlText);
+                    if (isActive && items.length > 0) {
+                        setNewsItems(items);
+                        setFeedStatus('loaded');
+                    } else if (isActive) {
+                        setFeedStatus('empty');
+                    }
+                };
+
+                fetchFeed().catch((error) => {
+                    console.warn('GeekNews feed fetch failed:', error);
+                    if (isActive) setFeedStatus('error');
+                });
+
+                return () => {
+                    isActive = false;
+                };
+            }, []);
+
             return (
-                <div className="space-y-8 animate-in relative"><div className="border-b-2 border-slate-200 pb-6"><h2 className="text-4xl font-bold text-slate-900">스킬 트렌드</h2><p className="text-slate-500 font-medium mt-2 text-lg">전 세계의 혁신적인 AI 소식을 선별하여 전달합니다.</p></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{NEWS_ITEMS.map((news, i) => (<div key={i} className="group cursor-pointer relative hover:z-10" onClick={() => setSelectedItem({ type: 'News', title: news.title, desc: news.content, author: `${news.date} • NEXON Skills Editors` })}><NewsThumbnail category={news.category} /><div className="px-2"><p className="text-xs font-bold text-slate-400 mb-2 flex items-center gap-1"><Clock size={12}/> {news.date}</p><h3 className="text-xl font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors">{news.title}</h3></div></div>))}</div>
+                <div className="space-y-8 animate-in relative">
+                    <div className="border-b-2 border-slate-200 pb-6">
+                        <h2 className="text-4xl font-bold text-slate-900">스킬 트렌드</h2>
+                        <p className="text-slate-500 font-medium mt-2 text-lg">전 세계의 혁신적인 AI 소식을 선별하여 전달합니다.</p>
+                        {feedStatus !== 'loaded' && (
+                            <p className="text-sm text-slate-400 mt-2">
+                                {feedStatus === 'loading' && 'GeekNews 피드를 불러오는 중입니다.'}
+                                {feedStatus === 'empty' && '피드에 새로운 소식이 없습니다. 기본 기사로 표시합니다.'}
+                                {feedStatus === 'error' && '피드를 불러오지 못해 기본 기사로 표시합니다.'}
+                            </p>
+                        )}
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                        {newsItems.map((news, i) => (
+                            <div
+                                key={`${news.title}-${i}`}
+                                className="group cursor-pointer relative hover:z-10"
+                                onClick={() => setSelectedItem({
+                                    type: 'News',
+                                    title: news.title,
+                                    desc: news.content,
+                                    author: `${news.date} • NEXON Skills Editors`,
+                                })}
+                            >
+                                <NewsThumbnail category={news.category} />
+                                <div className="px-2">
+                                    <p className="text-xs font-bold text-slate-400 mb-2 flex items-center gap-1">
+                                        <Clock size={12}/> {news.date}
+                                    </p>
+                                    <h3 className="text-xl font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors">{news.title}</h3>
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             );
         };
