@@ -1,5 +1,5 @@
 (() => {
-var NexonSkills = window.NexonSkills || (window.NexonSkills = {});
+const NexonSkills = window.NexonSkills || (window.NexonSkills = {});
 const { useEffect, useRef, useState } = React;
 const { GAME_LIST, MAIN_MENUS } = NexonSkills.data;
 const { CreateSelectionModal, ItemDetailModal, LoginScreen, GNB, AINews, AIStudio, AIWorkflow, DeveloperConsole, FavoritesView, HomePage, IntegrationGuide } = NexonSkills.components;

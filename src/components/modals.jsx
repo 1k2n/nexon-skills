@@ -1,5 +1,5 @@
 (() => {
-var NexonSkills = window.NexonSkills || (window.NexonSkills = {});
+const NexonSkills = window.NexonSkills || (window.NexonSkills = {});
 const {
     ArrowRight,
     Bot,

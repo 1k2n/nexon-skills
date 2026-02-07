@@ -1,5 +1,5 @@
 (() => {
-var NexonSkills = window.NexonSkills || (window.NexonSkills = {});
+const NexonSkills = window.NexonSkills || (window.NexonSkills = {});
 const { useState, useEffect, useCallback, useRef } = React;
 const { FAVORITES_ITEMS, HOME_INITIAL_ITEMS, NEWS_FEED_URL } = NexonSkills.data;
 const {
