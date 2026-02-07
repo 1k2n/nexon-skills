@@ -1,4 +1,5 @@
-const NexonSkills = window.NexonSkills;
+(() => {
+const NexonSkills = window.NexonSkills || (window.NexonSkills = {});
 const {
     ArrowRight,
     Bot,
@@ -236,3 +237,4 @@ NexonSkills.components.LoginScreen = ({ onClose, onLogin }) => (
         </div>
     </div>
 );
+})();
