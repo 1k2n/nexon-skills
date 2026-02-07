@@ -21,8 +21,8 @@ const {
 
 const App = () => {
             const getTabFromUrl = () => {
-                const params = new URLSearchParams(window.location.search);
-                const tabParam = params.get('tab');
+                const pathParts = window.location.pathname.split('/').filter(Boolean);
+                const tabParam = pathParts[0];
                 if (!tabParam) { return '홈'; }
                 const decodedTab = decodeURIComponent(tabParam);
                 const isValidTab = decodedTab === '홈' || MAIN_MENUS.some(menu => menu.name === decodedTab);
@@ -74,10 +74,11 @@ const App = () => {
                 }
                 const url = new URL(window.location.href);
                 if (currentTab === '홈') {
-                    url.searchParams.delete('tab');
+                    url.pathname = '/';
                 } else {
-                    url.searchParams.set('tab', currentTab);
+                    url.pathname = `/${encodeURIComponent(currentTab)}`;
                 }
+                url.search = '';
                 window.history.pushState({ tab: currentTab }, '', url);
             }, [currentTab]);
             

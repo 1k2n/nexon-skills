@@ -160,8 +160,8 @@ const CredentialsView = ({ setSelectedItem }) => (
                 { id: '내 크리덴셜', icon: Key, label: '내 크리덴셜' },
             ];
             const getMenuFromUrl = () => {
-                const params = new URLSearchParams(window.location.search);
-                const menuParam = params.get('sub');
+                const pathParts = window.location.pathname.split('/').filter(Boolean);
+                const menuParam = pathParts[1];
                 if (!menuParam) { return menuItems[0]?.id ?? '대시보드'; }
                 const decodedMenu = decodeURIComponent(menuParam);
                 const isValidMenu = menuItems.some(item => item.id === decodedMenu);
@@ -188,12 +188,13 @@ const CredentialsView = ({ setSelectedItem }) => (
                     return;
                 }
                 const url = new URL(window.location.href);
-                url.searchParams.set('tab', '개발자 콘솔');
+                const encodedTab = encodeURIComponent('개발자 콘솔');
                 if (activeMenu === menuItems[0]?.id) {
-                    url.searchParams.delete('sub');
+                    url.pathname = `/${encodedTab}`;
                 } else {
-                    url.searchParams.set('sub', activeMenu);
+                    url.pathname = `/${encodedTab}/${encodeURIComponent(activeMenu)}`;
                 }
+                url.search = '';
                 window.history.pushState({ tab: '개발자 콘솔', sub: activeMenu }, '', url);
             }, [activeMenu, currentTab, menuItems]);
             const renderSubContent = () => {
