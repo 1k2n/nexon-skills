@@ -175,6 +175,30 @@
             return items;
         };
 
+        const parseProxyMarkdownContent = (text) => {
+            const normalizedText = normalizeProxyText(text);
+            const markdownMatch = normalizedText.split(/Markdown Content:\s*/i);
+            if (markdownMatch.length < 2) {
+                return [];
+            }
+            const content = markdownMatch[1].trim();
+            const sections = content.split(/\n=+\n/).map((section) => section.trim()).filter(Boolean);
+            if (sections.length < 2) {
+                return [];
+            }
+            return sections.slice(1).map((section) => {
+                const linkMatch = section.match(/https?:\/\/\S+/);
+                const dateMatch = section.match(/\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}[+-]\d{2}:\d{2}/);
+                const titleMatch = section.match(/<!\[CDATA\[(.*?)]]>/) || section.match(/^\s*([^\n]+)$/m);
+                return {
+                    title: titleMatch ? titleMatch[1].trim() : "",
+                    link: linkMatch ? linkMatch[0] : "",
+                    pubDate: dateMatch ? dateMatch[0] : "",
+                    description: "",
+                };
+            });
+        };
+
         const parseFeed = (xmlText) => {
             const parser = new DOMParser();
             const cleanedXml = extractXml(xmlText);
@@ -188,6 +212,11 @@
                     pubDate: item.querySelector("pubDate")?.textContent ?? "",
                     description: item.querySelector("description")?.textContent ?? "",
                 }));
+            }
+
+            const markdownItems = parseProxyMarkdownContent(xmlText);
+            if (markdownItems.length) {
+                return markdownItems.slice(0, 9);
             }
 
             const plainTextItems = parsePlainTextItems(xmlText);
