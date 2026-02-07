@@ -17,7 +17,7 @@ window.AppComponents.GNB = ({
                         <div className="flex items-center gap-3 shrink-0 cursor-pointer group relative" onClick={() => handleNavClick('홈')}>
                             <div className="relative">
                                 {!logoError ? (
-                                    <img src="nexon-skills.webp" alt="NEXON Skills" className="w-10 h-10 object-contain drop-shadow-sm hover:scale-110 transition-transform]" onError={() => setLogoError(true)} />
+                                    <img src="nexon-skills.webp" alt="NEXON Skills" className="w-10 h-10 object-contain drop-shadow-sm transition-transform]" onError={() => setLogoError(true)} />
                                 ) : (
                                 <div className="w-10 h-10 bg-white rounded-xl shadow-md border-2 border-slate-200 flex items-center justify-center text-blue-600 group-hover:border-blue-300 transition-colors">
                                     <Zap size={20} fill="currentColor" strokeWidth={0} />
