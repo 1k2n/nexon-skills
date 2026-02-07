@@ -36,24 +36,27 @@ const AINews = ({ setSelectedItem }) => {
                 return 'Community';
             };
 
-            const parseFeed = (xmlText) => {
-                const parser = new DOMParser();
-                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
-                if (xmlDoc.querySelector('parsererror')) {
-                    throw new Error('피드 파싱 오류');
-                }
-                return Array.from(xmlDoc.querySelectorAll('item'))
+            const stripCdata = (value) =>
+                (value || '').replace(/<!\[CDATA\[([\s\S]*?)\]\]>/g, '$1').trim();
+
+            const extractHtmlText = (value) =>
+                new DOMParser().parseFromString(value || '', 'text/html').body.textContent?.trim() || '';
+
+            const parseRssItems = (items) =>
+                items
                     .map((item) => {
-                        const titleText = item.querySelector('title')?.textContent?.trim() || '';
-                        const [title, source = 'AI News'] = titleText.split(' - ');
-                        const descriptionHtml = item.querySelector('description')?.textContent || '';
-                        const descriptionText = new DOMParser()
-                            .parseFromString(descriptionHtml, 'text/html')
-                            .body.textContent?.trim() || '';
-                        const pubDate = item.querySelector('pubDate')?.textContent || '';
-                        const link = item.querySelector('link')?.textContent || '';
+                        const titleText = stripCdata(item.querySelector('title')?.textContent || '');
+                        const descriptionHtml = stripCdata(item.querySelector('description')?.textContent || '');
+                        const pubDate = stripCdata(item.querySelector('pubDate')?.textContent || '');
+                        const link = stripCdata(item.querySelector('link')?.textContent || '');
+                        const source = stripCdata(
+                            item.querySelector('source')?.textContent ||
+                                item.querySelector('dc\\:creator')?.textContent ||
+                                'AI Times'
+                        );
+                        const descriptionText = extractHtmlText(descriptionHtml);
                         return {
-                            title: title || titleText,
+                            title: titleText,
                             source,
                             description: descriptionText,
                             date: formatRelativeTime(pubDate),
@@ -63,6 +66,47 @@ const AINews = ({ setSelectedItem }) => {
                     })
                     .filter((news) => hasHangul(news.title) || hasHangul(news.description))
                     .slice(0, 9);
+
+            const parseFeedWithRegex = (xmlText) => {
+                const itemBlocks = xmlText.match(/<item>[\s\S]*?<\/item>/g) || [];
+                return itemBlocks
+                    .map((block) => {
+                        const getTag = (tag) => {
+                            const match = block.match(new RegExp(`<${tag}[^>]*>([\\\\s\\\\S]*?)<\\\\/${tag}>`, 'i'));
+                            return stripCdata(match?.[1] || '');
+                        };
+                        const titleText = getTag('title');
+                        const descriptionHtml = getTag('description');
+                        const pubDate = getTag('pubDate');
+                        const link = getTag('link');
+                        const source = getTag('source') || getTag('dc:creator') || 'AI Times';
+                        const descriptionText = extractHtmlText(descriptionHtml);
+                        return {
+                            title: titleText,
+                            source,
+                            description: descriptionText,
+                            date: formatRelativeTime(pubDate),
+                            category: getCategory(titleText, descriptionText),
+                            link,
+                        };
+                    })
+                    .filter((news) => hasHangul(news.title) || hasHangul(news.description))
+                    .slice(0, 9);
+            };
+
+            const parseFeed = (xmlText) => {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                if (!xmlDoc.querySelector('parsererror')) {
+                    const items = Array.from(xmlDoc.querySelectorAll('item'));
+                    if (items.length) {
+                        return parseRssItems(items);
+                    }
+                }
+                if (/<item>[\s\S]*?<\/item>/.test(xmlText)) {
+                    return parseFeedWithRegex(xmlText);
+                }
+                throw new Error('피드 파싱 오류');
             };
 
             useEffect(() => {
