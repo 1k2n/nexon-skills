@@ -10,12 +10,8 @@ export const MAIN_MENUS = [
     { name: 'AI 워크플로우', icon: Zap, domain: 'skills.nexon.com/workflows', desc: '복잡한 업무를 자동으로 연결' },
 ];
 
-export const NEWS_ITEMS = [
-    { category: 'Model Update', title: 'OpenAI, 추론 능력이 비약적으로 상승한 신모델 출시', date: '1시간 전', content: 'OpenAI가 새로운 AI 모델을 공개했습니다...' },
-    { category: 'Industry', title: '엔비디아, 차세대 블랙웰 칩 생산량 확대 발표', date: '3시간 전', content: '엔비디아(Nvidia)가 차세대 AI 칩...' },
-    { category: 'Tutorial', title: 'RAG 아키텍처를 최적화하는 5가지 핵심 기법', date: '어제', content: '검색 증강 생성(RAG) 시스템의...' },
-    { category: 'Community', title: 'NEXON Skills 개발자 밋업: 서울 2026 참가 신청 안내', date: '2일 전', content: '국내 최대 AI 에이전트 개발자 커뮤니티...' },
-];
+export const NEWS_FEED_URL =
+    'https://r.jina.ai/http://news.google.com/rss/search?q=AI%20%EC%9D%B8%EA%B3%B5%EC%A7%80%EB%8A%A5&hl=ko&gl=KR&ceid=KR:ko';
 
 export const FAVORITES_ITEMS = [
     { type: 'Agent', title: 'Code Reviewer Pro', desc: 'GitHub PR을 분석하여 잠재적인 버그와 성능 이슈를 코멘트로 남깁니다.', author: 'DevTools', stars: 1800 },
