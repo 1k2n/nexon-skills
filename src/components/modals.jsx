@@ -1,3 +1,4 @@
+(() => {
 var NexonSkills = window.NexonSkills || (window.NexonSkills = {});
 const {
     ArrowRight,
@@ -236,3 +237,4 @@ NexonSkills.components.LoginScreen = ({ onClose, onLogin }) => (
         </div>
     </div>
 );
+})();

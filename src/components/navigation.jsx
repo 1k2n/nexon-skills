@@ -1,21 +1,22 @@
-var NexonSkills = window.NexonSkills || (window.NexonSkills = {});
-const { DomainTooltip } = NexonSkills.components;
-const { useState } = React;
-const {
-    ChevronRight,
-    Gamepad2,
-    Lock,
-    LogIn,
-    LogOut,
-    Menu,
-    Search,
-    Star,
-    User,
-    X,
-    Zap,
-} = NexonSkills.icons;
+(() => {
+    var NexonSkills = window.NexonSkills || (window.NexonSkills = {});
+    const { DomainTooltip } = NexonSkills.components;
+    const { useState } = React;
+    const {
+        ChevronRight,
+        Gamepad2,
+        Lock,
+        LogIn,
+        LogOut,
+        Menu,
+        Search,
+        Star,
+        User,
+        X,
+        Zap,
+    } = NexonSkills.icons;
 
-NexonSkills.components.GNB = ({
+    NexonSkills.components.GNB = ({
     currentTab,
     isLoggedIn,
     isMenuOpen,
@@ -163,4 +164,5 @@ NexonSkills.components.GNB = ({
             )}
         </nav>
     );
-};
+    };
+})();

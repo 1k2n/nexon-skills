@@ -1,3 +1,4 @@
+(() => {
 var NexonSkills = window.NexonSkills || (window.NexonSkills = {});
 const { useEffect, useRef, useState } = React;
 const { GAME_LIST, MAIN_MENUS } = NexonSkills.data;
@@ -194,3 +195,4 @@ const App = () => {
 };
 
 NexonSkills.App = App;
+})();
