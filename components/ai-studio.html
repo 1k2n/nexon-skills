@@ -7,10 +7,13 @@ const AIStudio = () => {
             const [input, setInput] = useState('');
             const [messages, setMessages] = useState([ { id: 1, role: 'user', type: 'text', content: '이 제품 디자인의 개선점을 분석하고, 더 모던한 스타일로 변형해줘.', hasImage: true }, { id: 2, role: 'ai', type: 'text', content: '업로드하신 디자인은 미니멀하지만, 색상 대비가 부족하여 시인성이 낮습니다. 다음과 같이 개선을 제안합니다:\n\n• 메인 액션 버튼에 강조색(Accent Color) 적용\n• 모서리 라운딩(Radius)을 24px로 증가\n• 그림자(Shadow) 심도를 낮춰 플랫한 느낌 강화\n\n제안 사항을 반영하여 생성한 시안입니다.', hasResultImage: true } ]);
             const [isTyping, setIsTyping] = useState(false);
-            const chatEndRef = useRef(null);
+            const chatScrollRef = useRef(null);
             const availableConnectors = [ { id: 'c1', name: 'Nexon User API', type: 'Private API', icon: Database }, { id: 'c2', name: 'Maple Inventory', type: 'Sandbox API', icon: Box }, { id: 'c3', name: 'Slack Notifier', type: 'MCP', icon: MessageSquare } ];
             const toggleTool = (tool) => { if (connectedTools.some(t => t.id === tool.id)) { setConnectedTools(prev => prev.filter(t => t.id !== tool.id)); } else { setConnectedTools(prev => [...prev, tool]); } };
-            useEffect(() => { chatEndRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages, isTyping]);
+            useEffect(() => {
+                if (!chatScrollRef.current) return;
+                chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
+            }, [messages, isTyping]);
             const handleSend = () => { if (!input.trim()) return; const userMsg = { id: Date.now(), role: 'user', type: 'text', content: input }; setMessages(prev => [...prev, userMsg]); setInput(''); setIsTyping(true); setTimeout(() => { const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', content: `"${userMsg.content}"에 대한 요청을 처리했습니다.\n추가적인 수정 사항이 있으신가요?` }; setMessages(prev => [...prev, aiMsg]); setIsTyping(false); }, 1500); };
             const handleKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
 
@@ -30,14 +33,25 @@ const AIStudio = () => {
                             </div>
                         </div>
                         <div className="w-full lg:flex-1 bg-slate-100 rounded-[2rem] border-2 border-slate-200 flex flex-col shadow-inner overflow-hidden relative min-h-[500px]">
-                             <div className="flex-1 p-6 space-y-8 overflow-y-auto no-scrollbar">
+                             {connectedTools.length > 0 && (
+                                 <div className="absolute top-4 right-4 z-10 bg-white/95 backdrop-blur-sm border border-blue-100 rounded-2xl px-4 py-3 shadow-lg flex flex-col gap-2">
+                                     <div className="text-[10px] font-bold uppercase text-blue-500 tracking-wide flex items-center gap-1.5"><Database size={12}/> 스킬 불러오기 (내 커넥터)</div>
+                                     <div className="flex flex-wrap gap-2 max-w-[240px]">
+                                         {connectedTools.map(t => (
+                                             <span key={t.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-xl text-[11px] font-bold border border-blue-100">
+                                                 {t.name}
+                                             </span>
+                                         ))}
+                                     </div>
+                                 </div>
+                             )}
+                             <div ref={chatScrollRef} className="flex-1 p-6 space-y-8 overflow-y-auto no-scrollbar">
                                 {messages.map((msg, index) => (
                                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in`}>
                                         <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} gap-2 max-w-[85%]`}>
                                             {msg.role === 'ai' && (<div className="flex items-center gap-2 mb-1"><div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white shadow-sm">AI</div><span className="text-xs font-bold text-slate-500">Gemini</span></div>)}
                                             {msg.hasImage && (<div className="bg-white p-2 rounded-2xl border-2 border-slate-200 shadow-sm"><div className="w-48 h-32 bg-slate-100 rounded-xl flex items-center justify-center text-slate-300 mb-2 border-2 border-dashed border-slate-200"><Image size={32}/></div></div>)}
                                             <div className={`px-6 py-4 rounded-[20px] text-sm shadow-sm whitespace-pre-wrap font-medium leading-relaxed ${msg.role === 'user' ? 'bg-slate-900 text-white rounded-tr-none shadow-[0px_4px_0px_rgba(0,0,0,0.1)]' : 'bg-white border-2 border-slate-200 text-slate-700 rounded-tl-none shadow-[0px_4px_0px_#e2e8f0]'}`}>
-                                                {msg.role === 'ai' && connectedTools.length > 0 && index === 1 && (<p className="text-blue-600 font-bold mb-3 text-xs flex items-center gap-1 bg-blue-50 p-2 rounded-lg border border-blue-100"><Database size={12}/> Using: {connectedTools.map(t => t.name).join(', ')}</p>)}
                                                 {msg.content}
                                             </div>
                                             {msg.hasResultImage && (<div className="bg-white p-3 rounded-3xl border-2 border-slate-200 shadow-sm mt-2 group cursor-pointer relative overflow-hidden hover:scale-[1.02] transition-transform"><div className="w-72 h-48 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl flex items-center justify-center border-2 border-slate-100"><svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-50"><rect x="20" y="20" width="60" height="60" rx="16" fill="#4F46E5" opacity="0.2"/><circle cx="70" cy="30" r="5" fill="#4F46E5"/><rect x="30" y="40" width="40" height="6" rx="3" fill="#4F46E5" opacity="0.6"/><rect x="30" y="54" width="30" height="6" rx="3" fill="#4F46E5" opacity="0.4"/><rect x="30" y="70" width="20" height="8" rx="4" fill="#4F46E5"/></svg></div><div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"><div className="bg-white/90 p-3 rounded-full shadow-lg backdrop-blur-sm"><Maximize2 className="text-slate-900" size={24}/></div></div></div>)}
@@ -45,7 +59,6 @@ const AIStudio = () => {
                                     </div>
                                 ))}
                                 {isTyping && (<div className="flex justify-start animate-in fade-in"><div className="flex flex-col items-start gap-2"><div className="flex items-center gap-2 mb-1"><div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white shadow-sm">AI</div><span className="text-xs font-bold text-slate-500">Gemini</span></div><div className="bg-white border-2 border-slate-200 px-5 py-4 rounded-[20px] rounded-tl-none text-sm shadow-sm flex items-center gap-1.5"><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div></div></div></div>)}
-                                <div ref={chatEndRef} />
                              </div>
                              <div className="p-5 bg-white border-t-2 border-slate-200">
                                 <div className="relative"><textarea rows="1" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl pl-5 pr-14 py-4 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none font-medium transition-all shadow-inner" placeholder="메시지를 입력하거나 '/'를 눌러 명령어를 실행하세요..."></textarea><div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2"><button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"><Mic size={20}/></button><button onClick={handleSend} className="p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors shadow-md hover:scale-105 active:scale-95"><ArrowRight size={20} strokeWidth={3}/></button></div></div>
