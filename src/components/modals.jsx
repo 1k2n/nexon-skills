@@ -1,4 +1,4 @@
-const NexonSkills = window.NexonSkills || (window.NexonSkills = {});
+var NexonSkills = window.NexonSkills || (window.NexonSkills = {});
 const {
     ArrowRight,
     Bot,
