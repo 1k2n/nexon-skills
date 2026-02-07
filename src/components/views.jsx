@@ -1,6 +1,7 @@
-import React, { useState, useEffect, useCallback, useRef } from 'https://esm.sh/react@18.2.0?dev';
-import { FAVORITES_ITEMS, HOME_INITIAL_ITEMS, NEWS_FEED_URL } from '../data/constants.js';
-import {
+const NexonSkills = window.NexonSkills || (window.NexonSkills = {});
+const { useState, useEffect, useCallback, useRef } = React;
+const { FAVORITES_ITEMS, HOME_INITIAL_ITEMS, NEWS_FEED_URL } = NexonSkills.data;
+const {
     Activity,
     ArrowLeft,
     ArrowRight,
@@ -42,8 +43,50 @@ import {
     UploadCloud,
     Video,
     X,
-} from '../icons.js';
-import { NewsThumbnail } from './shared.jsx';
+} = NexonSkills.icons;
+const { NewsThumbnail } = NexonSkills.components;
+
+    Activity,
+    ArrowLeft,
+    ArrowRight,
+    Bell,
+    BookOpen,
+    Bot,
+    Box,
+    Check,
+    ChevronDown,
+    ChevronRight,
+    Clock,
+    Copy,
+    Cpu,
+    Database,
+    ExternalLink,
+    FileText,
+    Gamepad2,
+    GitBranch,
+    Globe,
+    Image,
+    Key,
+    Layers,
+    Library,
+    Mail,
+    Maximize2,
+    MessageSquare,
+    Mic,
+    MousePointer,
+    Play,
+    Plus,
+    RefreshCw,
+    Search,
+    Settings,
+    Share2,
+    ShieldCheck,
+    Split,
+    Star,
+    Terminal,
+    UploadCloud,
+    Video,
+    X,
 
 const DashboardView = ({ setShowCreateModal }) => (
 <div className="space-y-8 animate-fade-in">
@@ -192,7 +235,7 @@ const CredentialsView = ({ setSelectedItem }) => (
 // [SECTION 5] PAGE COMPONENTS (페이지 컴포넌트)
 // =================================================================================================
 
-export const DeveloperConsole = ({ setShowCreateModal, setSelectedItem }) => {
+const DeveloperConsole = ({ setShowCreateModal, setSelectedItem }) => {
 const [activeMenu, setActiveMenu] = useState('대시보드');
 const menuItems = [
     { id: '대시보드', icon: Activity, label: '대시보드' },
@@ -224,7 +267,7 @@ return (
 );
 };
 
-export const AINews = ({ setSelectedItem }) => {
+const AINews = ({ setSelectedItem }) => {
 const [newsItems, setNewsItems] = useState([]);
 const [isLoading, setIsLoading] = useState(true);
 const [loadError, setLoadError] = useState(false);
@@ -300,7 +343,7 @@ return (
 );
 };
 
-export const AIWorkflow = () => {
+const AIWorkflow = () => {
 const [isEditorOpen, setIsEditorOpen] = useState(false);
 if (isEditorOpen) { return <WorkflowEditor onClose={() => setIsEditorOpen(false)} />; }
 return (
@@ -386,7 +429,7 @@ return (
 );
 };
 
-export const AIStudio = () => {
+const AIStudio = () => {
 const [activeMode, setActiveMode] = useState('text');
 const [connectedTools, setConnectedTools] = useState([]);
 const [input, setInput] = useState('');
@@ -442,7 +485,7 @@ return (
 );
 };
 
-export const IntegrationGuide = () => {
+const IntegrationGuide = () => {
 const [activeDoc, setActiveDoc] = useState('intro');
 const docs = {
     'intro': { title: '시작하기 (Getting Started)', content: (<div className="space-y-6"><p className="text-slate-600 leading-relaxed font-normal">NEXON Skills SDK를 사용하여 기존 서비스에 AI 기능을 손쉽게 통합하는 방법을 안내합니다. 단 몇 줄의 코드로 강력한 LLM 에이전트를 호출하고, 데이터 파이프라인을 연결할 수 있습니다.</p><div className="bg-blue-50 border-l-8 border-blue-500 p-6 rounded-r-2xl shadow-sm"><h4 className="font-bold text-blue-900 text-sm mb-3 flex items-center gap-2 uppercase tracking-wide"><Check size={18} strokeWidth={4}/> 사전 준비 사항</h4><ul className="list-disc pl-5 text-sm text-blue-800 space-y-2 font-bold"><li>NEXON Skills 계정 생성 및 로그인</li><li>개발자 콘솔에서 API Key 발급</li><li>Node.js v18 이상 환경</li></ul></div><div className="space-y-3"><h4 className="font-bold text-slate-900 text-sm uppercase tracking-wide">설치 (Installation)</h4><div className="bg-slate-900 rounded-2xl p-5 text-slate-300 font-mono text-sm flex justify-between items-center group shadow-lg border-4 border-slate-800"><code>npm install @nexon/skills-sdk</code><button className="opacity-0 group-hover:opacity-100 transition-opacity text-slate-500 hover:text-white"><Copy size={18}/></button></div></div></div>) },
@@ -466,7 +509,7 @@ return (
 );
 };
 
-export const FavoritesView = ({ setSelectedItem }) => {
+const FavoritesView = ({ setSelectedItem }) => {
 const getTypeStyle = (type) => { switch (type) { case 'Agent': return 'bg-blue-100 text-blue-700 border-blue-200'; case 'Connector': return 'bg-purple-100 text-purple-700 border-purple-200'; case 'Workflow': return 'bg-orange-100 text-orange-700 border-orange-200'; default: return 'bg-slate-100 text-slate-700 border-slate-200'; } };
 return (
     <div className="animate-in space-y-8">
@@ -488,7 +531,7 @@ return (
 );
 };
 
-export const HomePage = ({ selectedGame, setSelectedGame, gameList, showStickySearch, setSelectedItem, isLoggedIn, setShowLoginScreen }) => {
+const HomePage = ({ selectedGame, setSelectedGame, gameList, showStickySearch, setSelectedItem, isLoggedIn, setShowLoginScreen }) => {
 const [items, setItems] = useState(HOME_INITIAL_ITEMS);
 const [isLoading, setIsLoading] = useState(false);
 const loadingRef = useRef(isLoading);
@@ -549,3 +592,10 @@ return (
 // [SECTION 6] MAIN APP COMPONENT (메인 앱 컴포넌트)
 // =================================================================================================
 
+NexonSkills.components.DeveloperConsole = DeveloperConsole;
+NexonSkills.components.AINews = AINews;
+NexonSkills.components.IntegrationGuide = IntegrationGuide;
+NexonSkills.components.AIWorkflow = AIWorkflow;
+NexonSkills.components.AIStudio = AIStudio;
+NexonSkills.components.FavoritesView = FavoritesView;
+NexonSkills.components.HomePage = HomePage;
