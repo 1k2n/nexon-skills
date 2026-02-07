@@ -887,7 +887,7 @@
                             <div className="flex flex-col md:flex-row items-stretch md:items-center bg-white border-2 border-slate-200 rounded-[2rem] shadow-xl p-2.5 focus-within:ring-4 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all hover:scale-[1.01] hover:shadow-2xl">
                                 <div className="relative px-2 md:pl-6 md:pr-2 border-b-2 md:border-b-0 md:border-r-2 border-slate-100 group flex items-center shrink-0 py-2 md:py-0"><Gamepad2 className="w-6 h-6 text-slate-400 group-hover:text-blue-500 transition-colors pointer-events-none ml-2 md:ml-0" /><select value={selectedGame} onChange={(e) => setSelectedGame(e.target.value)} className="w-full md:w-auto appearance-none bg-transparent font-bold text-slate-700 py-4 pl-3 pr-10 rounded-lg focus:outline-none cursor-pointer text-base hover:text-blue-600 transition-colors"><option>전체 게임</option>{gameList.map(game => <option key={game} value={game}>{game}</option>)}</select><ChevronDown className="absolute right-4 md:right-2 w-4 h-4 text-slate-400 pointer-events-none" strokeWidth={3} /></div>
                                 <div className="flex-1 relative flex items-center"><div className="absolute inset-y-0 left-0 pl-6 flex items-center pointer-events-none"><Search className="h-6 w-6 text-slate-400" strokeWidth={3} /></div><input type="text" className="block w-full pl-16 pr-6 py-4 bg-transparent text-slate-900 placeholder-slate-400 focus:outline-none text-lg font-medium" placeholder="소환하고 싶은 에이전트, 스킬, 아이템을 검색하세요..." /><button className="md:hidden absolute right-2 p-2 bg-slate-100 text-slate-600 rounded-full hover:bg-slate-200 transition-colors"><ArrowRight size={20} /></button></div><button className="hidden md:block px-10 py-4 bg-slate-900 text-white rounded-[1.5rem] font-bold hover:bg-slate-800 transition-colors shadow-lg shrink-0 ml-2 text-lg active:scale-95">검색</button></div>
-                            <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm text-slate-500 font-medium"><span>인기 퀘스트:</span>{['노션 연동', '데이터 분석', '마케팅 자동화', '코드 리뷰'].map((tag) => (<button key={tag} className="hover:text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-full transition-colors border border-transparent hover:border-blue-100">{tag}</button>))}</div>
+                            <div className="mt-6 flex flex-wrap justify-center gap-3 text-sm text-slate-500 font-medium"><span>인기 스킬북:</span>{['노션 연동', '데이터 분석', '마케팅 자동화', '코드 리뷰'].map((tag) => (<button key={tag} className="hover:text-blue-600 hover:bg-blue-50 px-3 py-1 rounded-full transition-colors border border-transparent hover:border-blue-100">{tag}</button>))}</div>
                         </div>
                     </div>
                     <div className="max-w-7xl mx-auto px-4 mt-12 pb-24">
@@ -1015,4 +1015,5 @@
     </script>
 </body>
 </html>
+
 
