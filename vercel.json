@@ -3,6 +3,14 @@
     {
       "src": "index.html",
       "use": "@vercel/static"
+    },
+    {
+      "src": "src/**",
+      "use": "@vercel/static"
+    },
+    {
+      "src": "nexon-skills.webp",
+      "use": "@vercel/static"
     }
   ],
   "routes": [
