@@ -109,9 +109,32 @@
             return clean.length > limit ? `${clean.slice(0, limit)}…` : clean;
         };
 
+        const extractXml = (text) => {
+            if (!text) {
+                return "";
+            }
+            const fencedMatch = text.match(/```(?:xml)?\n([\s\S]*?)```/);
+            if (fencedMatch) {
+                return fencedMatch[1].trim();
+            }
+            const startIndex = text.search(/<rss|<feed/);
+            if (startIndex === -1) {
+                return text.trim();
+            }
+            const rssEnd = text.lastIndexOf("</rss>");
+            const feedEnd = text.lastIndexOf("</feed>");
+            const endIndex = Math.max(rssEnd, feedEnd);
+            if (endIndex === -1) {
+                return text.slice(startIndex).trim();
+            }
+            const endOffset = endIndex === rssEnd ? "</rss>".length : "</feed>".length;
+            return text.slice(startIndex, endIndex + endOffset).trim();
+        };
+
         const parseFeed = (xmlText) => {
             const parser = new DOMParser();
-            const doc = parser.parseFromString(xmlText, "text/xml");
+            const cleanedXml = extractXml(xmlText);
+            const doc = parser.parseFromString(cleanedXml, "text/xml");
             const items = Array.from(doc.querySelectorAll("item"));
 
             return items.slice(0, 9).map((item) => ({
