@@ -1,11 +1,139 @@
+const { useEffect, useMemo, useState } = window.React;
 const { Clock } = window.LucideReact;
-const { NEWS_ITEMS } = window.AppData;
 const { NewsThumbnail } = window.AppComponents;
 
 const AINews = ({ setSelectedItem }) => {
+            const [newsItems, setNewsItems] = useState([]);
+            const [isLoading, setIsLoading] = useState(true);
+            const [errorMessage, setErrorMessage] = useState('');
+
+            const feedUrl = useMemo(
+                () => 'https://r.jina.ai/http://news.google.com/rss/search?q=%EC%9D%B8%EA%B3%B5%EC%A7%80%EB%8A%A5%20AI&hl=ko&gl=KR&ceid=KR:ko',
+                []
+            );
+
+            const hasHangul = (value) => /[가-힣]/.test(value || '');
+
+            const formatRelativeTime = (dateString) => {
+                const date = new Date(dateString);
+                if (Number.isNaN(date.getTime())) return '방금 전';
+                const diffMs = Date.now() - date.getTime();
+                const minutes = Math.floor(diffMs / 60000);
+                if (minutes < 1) return '방금 전';
+                if (minutes < 60) return `${minutes}분 전`;
+                const hours = Math.floor(minutes / 60);
+                if (hours < 24) return `${hours}시간 전`;
+                const days = Math.floor(hours / 24);
+                if (days < 7) return `${days}일 전`;
+                return `${date.getFullYear()}.${String(date.getMonth() + 1).padStart(2, '0')}.${String(date.getDate()).padStart(2, '0')}`;
+            };
+
+            const getCategory = (title, description) => {
+                const text = `${title} ${description}`;
+                if (/(모델|출시|업데이트|버전|리리즈)/.test(text)) return 'Model Update';
+                if (/(가이드|튜토리얼|방법|팁|강좌)/.test(text)) return 'Tutorial';
+                if (/(투자|기업|시장|산업|실적|파트너십|인수|합병)/.test(text)) return 'Industry';
+                return 'Community';
+            };
+
+            const parseFeed = (xmlText) => {
+                const parser = new DOMParser();
+                const xmlDoc = parser.parseFromString(xmlText, 'text/xml');
+                if (xmlDoc.querySelector('parsererror')) {
+                    throw new Error('피드 파싱 오류');
+                }
+                return Array.from(xmlDoc.querySelectorAll('item'))
+                    .map((item) => {
+                        const titleText = item.querySelector('title')?.textContent?.trim() || '';
+                        const [title, source = 'AI News'] = titleText.split(' - ');
+                        const descriptionHtml = item.querySelector('description')?.textContent || '';
+                        const descriptionText = new DOMParser()
+                            .parseFromString(descriptionHtml, 'text/html')
+                            .body.textContent?.trim() || '';
+                        const pubDate = item.querySelector('pubDate')?.textContent || '';
+                        const link = item.querySelector('link')?.textContent || '';
+                        return {
+                            title: title || titleText,
+                            source,
+                            description: descriptionText,
+                            date: formatRelativeTime(pubDate),
+                            category: getCategory(titleText, descriptionText),
+                            link,
+                        };
+                    })
+                    .filter((news) => hasHangul(news.title) || hasHangul(news.description))
+                    .slice(0, 9);
+            };
+
+            useEffect(() => {
+                let isMounted = true;
+                const loadNews = async () => {
+                    try {
+                        setIsLoading(true);
+                        const response = await fetch(feedUrl);
+                        if (!response.ok) {
+                            throw new Error('뉴스 피드를 불러오지 못했습니다.');
+                        }
+                        const xmlText = await response.text();
+                        const items = parseFeed(xmlText);
+                        if (isMounted) {
+                            setNewsItems(items);
+                            setErrorMessage(items.length ? '' : '현재 표시할 한국어 AI 뉴스가 없습니다.');
+                        }
+                    } catch (error) {
+                        if (isMounted) {
+                            setErrorMessage('실시간 뉴스 피드를 불러오는 중 문제가 발생했습니다.');
+                        }
+                    } finally {
+                        if (isMounted) {
+                            setIsLoading(false);
+                        }
+                    }
+                };
+                loadNews();
+                return () => {
+                    isMounted = false;
+                };
+            }, [feedUrl]);
+
             return (
                 <div className="space-y-8 animate-in relative"><div className="border-b-2 border-slate-200 pb-6"><h2 className="text-4xl font-bold text-slate-900">스킬 트렌드</h2><p className="text-slate-500 font-medium mt-2 text-lg">전 세계의 혁신적인 AI 소식을 선별하여 전달합니다.</p></div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{NEWS_ITEMS.map((news, i) => (<div key={i} className="group cursor-pointer relative hover:z-10" onClick={() => setSelectedItem({ type: 'News', title: news.title, desc: news.content, author: `${news.date} • NEXON Skills Editors` })}><NewsThumbnail category={news.category} /><div className="px-2"><p className="text-xs font-bold text-slate-400 mb-2 flex items-center gap-1"><Clock size={12}/> {news.date}</p><h3 className="text-xl font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors">{news.title}</h3></div></div>))}</div>
+                    {isLoading ? (
+                        <div className="flex items-center justify-center py-16 text-slate-500 font-semibold text-lg">
+                            실시간 AI 뉴스를 불러오는 중...
+                        </div>
+                    ) : errorMessage ? (
+                        <div className="flex items-center justify-center py-16 text-slate-500 font-semibold text-lg">
+                            {errorMessage}
+                        </div>
+                    ) : (
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+                            {newsItems.map((news, i) => (
+                                <div
+                                    key={i}
+                                    className="group cursor-pointer relative hover:z-10"
+                                    onClick={() =>
+                                        setSelectedItem({
+                                            type: 'News',
+                                            title: news.title,
+                                            desc: `${news.description}\n\n🔗 원문: ${news.link}`,
+                                            author: `${news.date} • ${news.source}`,
+                                        })
+                                    }
+                                >
+                                    <NewsThumbnail category={news.category} />
+                                    <div className="px-2">
+                                        <p className="text-xs font-bold text-slate-400 mb-2 flex items-center gap-1">
+                                            <Clock size={12} /> {news.date}
+                                        </p>
+                                        <h3 className="text-xl font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors">
+                                            {news.title}
+                                        </h3>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
                 </div>
             );
         };
