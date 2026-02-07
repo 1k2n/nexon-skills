@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Geek News Feed</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
+    <style>
+        :root {
+            color-scheme: light;
+        }
+        body {
+            margin: 0;
+            font-family: "Pretendard", system-ui, -apple-system, sans-serif;
+            background: #ffffff;
+            color: #0f172a;
+        }
+        .wrapper {
+            padding: 24px 28px 32px;
+        }
+        .header {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 18px;
+        }
+        .header h3 {
+            margin: 0;
+            font-size: 20px;
+            font-weight: 700;
+        }
+        .header span {
+            font-size: 12px;
+            color: #64748b;
+        }
+        .news-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+        .news-card {
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            padding: 16px;
+            background: #f8fafc;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+            min-height: 160px;
+        }
+        .news-card a {
+            color: #0f172a;
+            text-decoration: none;
+            font-weight: 600;
+            line-height: 1.4;
+        }
+        .news-card a:hover {
+            color: #2563eb;
+        }
+        .meta {
+            font-size: 12px;
+            color: #64748b;
+        }
+        .desc {
+            font-size: 13px;
+            color: #475569;
+            line-height: 1.5;
+        }
+        .empty {
+            padding: 24px;
+            border-radius: 12px;
+            background: #f1f5f9;
+            color: #475569;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <div class="wrapper">
+        <div class="header">
+            <h3>Geek News Feed</h3>
+            <span id="updated-at"></span>
+        </div>
+        <div id="news" class="news-list"></div>
+    </div>
+
+    <script>
+        const feedUrl = "https://feeds.feedburner.com/geeknews-feed";
+        const proxyUrl = `https://r.jina.ai/http://${feedUrl.replace("https://", "")}`;
+        const newsContainer = document.getElementById("news");
+        const updatedAt = document.getElementById("updated-at");
+
+        const formatDate = (value) => {
+            if (!value) {
+                return "";
+            }
+            const date = new Date(value);
+            if (Number.isNaN(date.getTime())) {
+                return value;
+            }
+            return date.toLocaleString("ko-KR", { dateStyle: "medium", timeStyle: "short" });
+        };
+
+        const truncate = (text, limit = 120) => {
+            if (!text) {
+                return "";
+            }
+            const clean = text.replace(/\s+/g, " ").trim();
+            return clean.length > limit ? `${clean.slice(0, limit)}…` : clean;
+        };
+
+        const parseFeed = (xmlText) => {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(xmlText, "text/xml");
+            const items = Array.from(doc.querySelectorAll("item"));
+
+            return items.slice(0, 9).map((item) => ({
+                title: item.querySelector("title")?.textContent ?? "",
+                link: item.querySelector("link")?.textContent ?? "",
+                pubDate: item.querySelector("pubDate")?.textContent ?? "",
+                description: item.querySelector("description")?.textContent ?? "",
+            }));
+        };
+
+        const renderItems = (items) => {
+            if (!items.length) {
+                newsContainer.innerHTML = '<div class="empty">뉴스를 불러오지 못했습니다. 잠시 후 다시 시도해주세요.</div>';
+                return;
+            }
+
+            newsContainer.innerHTML = items
+                .map(
+                    (item) => `
+                    <article class="news-card">
+                        <a href="${item.link}" target="_blank" rel="noopener noreferrer">${item.title}</a>
+                        <div class="meta">${formatDate(item.pubDate)}</div>
+                        <div class="desc">${truncate(item.description)}</div>
+                    </article>
+                `
+                )
+                .join("");
+        };
+
+        const fetchSync = (url) => {
+            const request = new XMLHttpRequest();
+            request.open("GET", url, false);
+            request.send(null);
+            if (request.status >= 200 && request.status < 300) {
+                return request.responseText;
+            }
+            return null;
+        };
+
+        let responseText = null;
+
+        try {
+            responseText = fetchSync(feedUrl);
+        } catch (error) {
+            responseText = null;
+        }
+
+        if (!responseText) {
+            try {
+                responseText = fetchSync(proxyUrl);
+            } catch (error) {
+                responseText = null;
+            }
+        }
+
+        if (responseText) {
+            const items = parseFeed(responseText);
+            renderItems(items);
+            updatedAt.textContent = items[0]?.pubDate ? `업데이트: ${formatDate(items[0].pubDate)}` : "";
+        } else {
+            renderItems([]);
+        }
+    </script>
+</body>
+</html>
