@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback, useRef } from 'https://esm.sh/react@18.2.0?dev';
-import { FAVORITES_ITEMS, HOME_INITIAL_ITEMS, NEWS_ITEMS } from '../data/constants.js';
+import { FAVORITES_ITEMS, HOME_INITIAL_ITEMS, NEWS_FEED_URL } from '../data/constants.js';
 import {
     Activity,
     ArrowLeft,
@@ -225,9 +225,77 @@ return (
 };
 
 export const AINews = ({ setSelectedItem }) => {
+const [newsItems, setNewsItems] = useState([]);
+const [isLoading, setIsLoading] = useState(true);
+const [loadError, setLoadError] = useState(false);
+
+useEffect(() => {
+    let isMounted = true;
+    const fetchNews = async () => {
+        try {
+            setIsLoading(true);
+            setLoadError(false);
+            const response = await fetch(NEWS_FEED_URL);
+            if (!response.ok) throw new Error('Failed to load feed');
+            const xmlText = await response.text();
+            const parser = new DOMParser();
+            const xml = parser.parseFromString(xmlText, 'text/xml');
+            const items = Array.from(xml.querySelectorAll('item')).slice(0, 6);
+            const mapped = items.map((item) => {
+                const rawTitle = item.querySelector('title')?.textContent?.trim() ?? '';
+                const [title, sourceFromTitle] = rawTitle.includes(' - ')
+                    ? [rawTitle.split(' - ').slice(0, -1).join(' - '), rawTitle.split(' - ').slice(-1)[0]]
+                    : [rawTitle, null];
+                const link = item.querySelector('link')?.textContent?.trim() ?? '';
+                const pubDate = item.querySelector('pubDate')?.textContent ?? '';
+                const date = pubDate ? new Date(pubDate).toLocaleDateString('ko-KR') : '업데이트';
+                const description = item.querySelector('description')?.textContent ?? '';
+                const cleanDescription = description.replace(/<[^>]*>/g, '').trim();
+                return {
+                    category: 'Live Feed',
+                    title,
+                    date,
+                    source: sourceFromTitle || 'AI 뉴스',
+                    url: link,
+                    content: cleanDescription || '해당 기사에서 AI 관련 핵심 내용을 확인하세요.',
+                };
+            });
+            if (isMounted) {
+                setNewsItems(mapped);
+            }
+        } catch (error) {
+            if (isMounted) {
+                setLoadError(true);
+                setNewsItems([]);
+            }
+        } finally {
+            if (isMounted) {
+                setIsLoading(false);
+            }
+        }
+    };
+
+    fetchNews();
+
+    return () => {
+        isMounted = false;
+    };
+}, []);
+
 return (
     <div className="space-y-8 animate-in relative"><div className="border-b-2 border-slate-200 pb-6"><h2 className="text-4xl font-bold text-slate-900">스킬 트렌드</h2><p className="text-slate-500 font-medium mt-2 text-lg">전 세계의 혁신적인 AI 소식을 선별하여 전달합니다.</p></div>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{NEWS_ITEMS.map((news, i) => (<div key={i} className="group cursor-pointer relative hover:z-10" onClick={() => setSelectedItem({ type: 'News', title: news.title, desc: news.content, author: `${news.date} • NEXON Skills Editors` })}><NewsThumbnail category={news.category} /><div className="px-2"><p className="text-xs font-bold text-slate-400 mb-2 flex items-center gap-1"><Clock size={12}/> {news.date}</p><h3 className="text-xl font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors">{news.title}</h3></div></div>))}</div>
+        {isLoading && (
+            <div className="rounded-3xl border-2 border-slate-100 bg-white p-8 text-center text-slate-500 font-medium">라이브 AI 뉴스 피드를 불러오는 중입니다.</div>
+        )}
+        {loadError && !isLoading && (
+            <div className="rounded-3xl border-2 border-rose-100 bg-rose-50 p-8 text-center text-rose-500 font-semibold">뉴스 피드를 가져오지 못했습니다. 잠시 후 다시 시도해 주세요.</div>
+        )}
+        {!isLoading && !loadError && newsItems.length === 0 && (
+            <div className="rounded-3xl border-2 border-slate-100 bg-white p-8 text-center text-slate-500 font-medium">현재 표시할 뉴스가 없습니다.</div>
+        )}
+        {!isLoading && !loadError && newsItems.length > 0 && (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">{newsItems.map((news, i) => (<div key={i} className="group cursor-pointer relative hover:z-10" onClick={() => setSelectedItem({ type: 'News', title: news.title, desc: news.content, source: news.source, date: news.date, url: news.url })}><NewsThumbnail category={news.category} /><div className="px-2"><p className="text-xs font-bold text-slate-400 mb-2 flex items-center gap-2"><Clock size={12}/> {news.date}<span className="text-slate-300">•</span><span className="text-slate-500">{news.source}</span></p><h3 className="text-xl font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors">{news.title}</h3></div></div>))}</div>
+        )}
     </div>
 );
 };

@@ -70,14 +70,28 @@ return (
                         </div>
                         <h2 className="text-3xl font-bold text-slate-900 leading-tight mb-2">{item.title}</h2>
                         <div className="flex items-center gap-2 text-sm text-slate-500">
-                            <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">@{item.author}</span>
-                            {item.stars !== undefined && (
+                            {item.type === 'News' ? (
                                 <>
-                                    <span>•</span>
-                                    <div className="flex items-center gap-1 text-yellow-500 font-semibold">
-                                        <Star size={16} fill="currentColor" strokeWidth={3} />
-                                        <span className="text-slate-600">{(item.stars / 1000).toFixed(1)}k Users</span>
-                                    </div>
+                                    <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">{item.source}</span>
+                                    {item.date && (
+                                        <>
+                                            <span>•</span>
+                                            <span className="font-medium text-slate-500">{item.date}</span>
+                                        </>
+                                    )}
+                                </>
+                            ) : (
+                                <>
+                                    <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">@{item.author}</span>
+                                    {item.stars !== undefined && (
+                                        <>
+                                            <span>•</span>
+                                            <div className="flex items-center gap-1 text-yellow-500 font-semibold">
+                                                <Star size={16} fill="currentColor" strokeWidth={3} />
+                                                <span className="text-slate-600">{(item.stars / 1000).toFixed(1)}k Users</span>
+                                            </div>
+                                        </>
+                                    )}
                                 </>
                             )}
                         </div>
@@ -91,6 +105,18 @@ return (
                     <p className="text-slate-600 text-lg leading-relaxed whitespace-pre-line font-normal">
                         {item.desc}
                     </p>
+                    {item.type === 'News' && item.url && (
+                        <div className="mt-4 pt-4 border-t-2 border-dashed border-slate-200">
+                            <a
+                                href={item.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="text-sm font-semibold text-blue-600 hover:text-blue-700 underline underline-offset-4"
+                            >
+                                원문 링크 바로가기
+                            </a>
+                        </div>
+                    )}
                     {item.type !== 'News' && (
                         <div className="mt-4 pt-4 border-t-2 border-dashed border-slate-200">
                             <span className="text-sm text-slate-400 font-normal">
@@ -108,9 +134,20 @@ return (
                         {item.type === 'Workflow' ? <Play size={20} fill="currentColor" strokeWidth={3}/> : item.type === 'News' ? <Share2 size={20} strokeWidth={3}/> : <Download size={20} strokeWidth={3}/>}
                         {item.type === 'News' ? '공유하기' : '스킬 장착하기'}
                     </button>
-                    <button className="game-btn px-8 py-4 border-2 border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 shadow-[0px_4px_0px_#e2e8f0] active:shadow-none active:translate-y-[4px] transition-all">
-                        {item.type === 'News' ? '원문 보기' : '매뉴얼 보기'}
-                    </button>
+                    {item.type === 'News' ? (
+                        <a
+                            href={item.url}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="game-btn px-8 py-4 border-2 border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 shadow-[0px_4px_0px_#e2e8f0] active:shadow-none active:translate-y-[4px] transition-all text-center"
+                        >
+                            원문 보기
+                        </a>
+                    ) : (
+                        <button className="game-btn px-8 py-4 border-2 border-slate-200 text-slate-700 rounded-2xl font-bold hover:bg-slate-50 shadow-[0px_4px_0px_#e2e8f0] active:shadow-none active:translate-y-[4px] transition-all">
+                            매뉴얼 보기
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
