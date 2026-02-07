@@ -367,7 +367,7 @@
                                 <div className="flex items-center gap-3 shrink-0 cursor-pointer group relative" onClick={() => handleNavClick('홈')}>
                                     <div className="relative">
                                         {!logoError ? (
-                                            <img src="nexon_skills.webp" alt="NEXON Skills" className="w-10 h-10 object-contain drop-shadow-sm hover:scale-110 transition-transform animate-logo-glow" onError={() => setLogoError(true)} />
+                                            <img src="nexon-skills.webp" alt="NEXON Skills" className="w-10 h-10 object-contain drop-shadow-sm hover:scale-110 transition-transform animate-logo-glow" onError={() => setLogoError(true)} />
                                         ) : (
                                         <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl shadow-[2px_2px_0px_rgba(0,0,0,0.1)] flex items-center justify-center text-white border-2 border-white/20 animate-logo-glow">
                                             <Zap size={20} fill="currentColor" strokeWidth={0} />
@@ -881,7 +881,7 @@
             return (
                 <div className="animate-in">
                     <div className="text-center space-y-8 py-20 px-4 relative">
-                        <h1 className="text-5xl md:text-7xl font-bold text-slate-900 tracking-tight leading-tight drop-shadow-sm">흩어진 AI 도구, <br className="md:hidden" /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">넥슨스킬로 연결하세요.</span></h1>
+                        <h1 className="text-5xl md:text-6xl font-bold text-slate-900 tracking-tight leading-tight drop-shadow-sm">흩어진 AI 도구, <br className="md:hidden" /> <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-600 to-pink-600">넥슨스킬로 연결하세요.</span></h1>
                         <p className="max-w-2xl mx-auto text-xl text-slate-500 leading-relaxed font-normal">개발과 운영의 난이도를 낮춰줄 AI 도구,<br className="hidden md:block"/> NEXON Skills에서 필요한 능력을 <span className="text-blue-600 font-bold bg-blue-50 px-2 rounded-lg border border-blue-100">파밍</span>하고 <span className="text-purple-600 font-bold bg-purple-50 px-2 rounded-lg border border-purple-100">장착</span>하세요.</p>
                         <div className={`max-w-4xl mx-auto mt-12 relative z-10 transition-all duration-500 ease-in-out ${showStickySearch ? 'opacity-0 translate-y-[-20px] pointer-events-none' : 'opacity-100 translate-y-0'}`}>
                             <div className="flex flex-col md:flex-row items-stretch md:items-center bg-white border-2 border-slate-200 rounded-[2rem] shadow-xl p-2.5 focus-within:ring-4 focus-within:ring-blue-500/20 focus-within:border-blue-500 transition-all hover:scale-[1.01] hover:shadow-2xl">
@@ -1015,3 +1015,4 @@
     </script>
 </body>
 </html>
+
