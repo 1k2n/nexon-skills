@@ -4,15 +4,22 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>NEXON Skills</title>
-    
+
     <!-- Tailwind CSS: 스타일링을 위한 유틸리티 클래스 라이브러리 -->
     <script src="https://cdn.tailwindcss.com"></script>
 
     <!-- 웹폰트 -->
     <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.css" />
-    
-    <!-- React & ReactDOM: UI 라이브러리 -->
-    <script src="https://unpkg.com/@babel/standalone@7.24.5/babel.min.js"></script>
+
+    <!-- React & ReactDOM: UI 라이브러리 (UMD) -->
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+
+    <!-- Lucide React Icons (UMD) -->
+    <script src="https://unpkg.com/lucide-react@0.292.0/dist/umd/lucide-react.development.js" crossorigin></script>
+
+    <!-- JSX 변환을 위한 Babel -->
+    <script src="https://unpkg.com/@babel/standalone@7.24.5/babel.min.js" crossorigin></script>
 
     <!-- Global Styles -->
     <link rel="stylesheet" href="./src/styles.css" />
@@ -20,9 +27,15 @@
 <body class="bg-[#F8FAFC] text-slate-800 antialiased bg-grid-pattern">
     <div id="root"></div>
 
-    <!-- React Application Logic -->
-    <script type="text/babel" data-type="module" data-presets="react" src="./src/main.jsx"></script>
+    <!-- Application Scripts (no build required) -->
+    <script type="text/babel" data-presets="react" src="./src/bootstrap.js"></script>
+    <script type="text/babel" data-presets="react" src="./src/icons.js"></script>
+    <script type="text/babel" data-presets="react" src="./src/data/constants.js"></script>
+    <script type="text/babel" data-presets="react" src="./src/components/shared.jsx"></script>
+    <script type="text/babel" data-presets="react" src="./src/components/navigation.jsx"></script>
+    <script type="text/babel" data-presets="react" src="./src/components/modals.jsx"></script>
+    <script type="text/babel" data-presets="react" src="./src/components/views.jsx"></script>
+    <script type="text/babel" data-presets="react" src="./src/app.jsx"></script>
+    <script type="text/babel" data-presets="react" src="./src/main.jsx"></script>
 </body>
 </html>
-
-

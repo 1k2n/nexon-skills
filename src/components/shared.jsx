@@ -1,13 +1,13 @@
-import React from 'https://esm.sh/react@18.2.0?dev';
+const NexonSkills = window.NexonSkills || (window.NexonSkills = {});
 
-export const DomainTooltip = ({ title, domain }) => (
+NexonSkills.components.DomainTooltip = ({ title, domain }) => (
     <div className="absolute opacity-0 group-hover:opacity-100 transition-all duration-200 top-full mt-3 left-1/2 transform -translate-x-1/2 px-4 py-2 bg-slate-900 text-white rounded-xl shadow-xl z-50 pointer-events-none min-w-[max-content] text-center border-2 border-white">
         <div className="text-sm font-bold mb-0.5 text-yellow-300">{title}</div>
         <div className="text-[11px] text-slate-300 font-mono">{domain}</div>
     </div>
 );
 
-export const NewsThumbnail = ({ category }) => {
+NexonSkills.components.NewsThumbnail = ({ category }) => {
     const getColors = () => {
         switch (category) {
             case 'Model Update':

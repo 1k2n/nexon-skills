@@ -1,6 +1,4 @@
-import React from 'https://esm.sh/react@18.2.0?dev';
-import { createRoot } from 'https://esm.sh/react-dom@18.2.0/client?dev';
-import { App } from './app.jsx';
+const { App } = window.NexonSkills || {};
 
-const root = createRoot(document.getElementById('root'));
+const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(<App />);
