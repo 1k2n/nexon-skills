@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'https://esm.sh/react@18.2.0?dev';
+import React, { useEffect, useRef, useState } from 'https://esm.sh/react@18.2.0?dev';
 import { GAME_LIST, MAIN_MENUS } from './data/constants.js';
 import { CreateSelectionModal, ItemDetailModal, LoginScreen } from './components/modals.jsx';
 import { GNB } from './components/navigation.jsx';
@@ -13,6 +13,34 @@ import {
 } from './components/views.jsx';
 import { Zap } from './icons.js';
 
+const TAB_PATHS = {
+    홈: '/',
+    '개발자 콘솔': '/console',
+    '스킬 트렌드': '/news',
+    '스킬 가이드': '/guide',
+    'AI 실험실': '/labs',
+    'AI 워크플로우': '/workflows',
+    즐겨찾기: '/favorites',
+};
+
+const PATH_TABS = Object.entries(TAB_PATHS).reduce((acc, [tab, path]) => {
+    acc[path] = tab;
+    return acc;
+}, {});
+
+const normalizePathname = (pathname) => {
+    if (!pathname) return '/';
+    const trimmed = pathname.replace(/\/+$/, '');
+    return trimmed === '' ? '/' : trimmed;
+};
+
+const resolveTabFromPath = (pathname) => {
+    const normalized = normalizePathname(pathname);
+    return PATH_TABS[normalized] ?? '홈';
+};
+
+const getPathForTab = (tabName) => TAB_PATHS[tabName] ?? '/';
+
 export const App = () => {
 const [isMenuOpen, setIsMenuOpen] = useState(false);
 const [currentTab, setCurrentTab] = useState('홈');
@@ -24,6 +52,7 @@ const [showCreateModal, setShowCreateModal] = useState(false);
 const [selectedGame, setSelectedGame] = useState('전체 게임');
 const [showStickySearch, setShowStickySearch] = useState(false);
 const [footerLogoError, setFooterLogoError] = useState(false);
+const isFirstPathSync = useRef(true);
 
 useEffect(() => { 
     const handleScroll = () => { 
@@ -33,6 +62,44 @@ useEffect(() => {
     window.addEventListener('scroll', handleScroll); 
     return () => window.removeEventListener('scroll', handleScroll); 
 }, []);
+
+useEffect(() => {
+    const applyRoute = (tabName, { fromPopState = false } = {}) => {
+        const targetMenu = MAIN_MENUS.find(m => m.name === tabName);
+        if (targetMenu?.authRequired && !isLoggedIn) {
+            setPendingTab(tabName);
+            setShowLoginScreen(true);
+            if (!fromPopState) {
+                setCurrentTab('홈');
+            }
+            return;
+        }
+        setCurrentTab(tabName);
+    };
+
+    applyRoute(resolveTabFromPath(window.location.pathname));
+
+    const handlePopState = () => {
+        applyRoute(resolveTabFromPath(window.location.pathname), { fromPopState: true });
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+}, [isLoggedIn]);
+
+useEffect(() => {
+    const path = getPathForTab(currentTab);
+    const pathname = normalizePathname(window.location.pathname);
+    const shouldReplace = isFirstPathSync.current;
+    isFirstPathSync.current = false;
+    if (!isLoggedIn && pendingTab && getPathForTab(pendingTab) === pathname) {
+        return;
+    }
+    if (pathname !== path) {
+        const method = shouldReplace ? 'replaceState' : 'pushState';
+        window.history[method]({ tab: currentTab }, '', path);
+    }
+}, [currentTab]);
 
 const handleNavClick = (tabName) => { 
     if (tabName === '홈') { setCurrentTab('홈'); setIsMenuOpen(false); return; } 

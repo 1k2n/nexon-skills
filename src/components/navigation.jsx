@@ -115,7 +115,7 @@ return (
                         </button>
                     ))}
                     <div className="grid grid-cols-2 gap-3 mt-6 pt-6 border-t-2 border-slate-100">
-                        <button className="flex items-center justify-center gap-2 py-4 bg-yellow-50 text-yellow-600 rounded-2xl font-bold border-2 border-yellow-100"><Star size={20} className="fill-yellow-500 text-yellow-500" /> 즐겨찾기</button>
+                        <button onClick={() => handleNavClick('즐겨찾기')} className="flex items-center justify-center gap-2 py-4 bg-yellow-50 text-yellow-600 rounded-2xl font-bold border-2 border-yellow-100"><Star size={20} className="fill-yellow-500 text-yellow-500" /> 즐겨찾기</button>
                         {isLoggedIn ? (
                             <button onClick={handleLogout} className="flex items-center justify-center gap-2 py-4 bg-red-50 text-red-600 rounded-2xl font-bold border-2 border-red-100"><LogOut size={20} strokeWidth={2.5} /> 로그아웃</button>
                         ) : (
