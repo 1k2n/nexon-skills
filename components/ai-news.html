@@ -3,7 +3,6 @@ const { useEffect, useState } = window.React;
 const { NewsThumbnail } = window.AppComponents;
 
 const FEED_URL = 'https://feeds.feedburner.com/geeknews-feed';
-const FEED_PROXY = 'https://api.allorigins.win/raw?url=';
 
 const formatDate = (dateString) => {
     const date = new Date(dateString);
@@ -45,7 +44,7 @@ const AINews = ({ setSelectedItem }) => {
 
         const fetchFeed = async () => {
             try {
-                const response = await fetch(`${FEED_PROXY}${encodeURIComponent(FEED_URL)}`, {
+                const response = await fetch(FEED_URL, {
                     signal: controller.signal,
                 });
                 if (!response.ok) {
