@@ -29,7 +29,7 @@ window.AppComponents.GNB = ({
                         </div>
 
                         {/* Desktop Navigation */}
-                        <div className="hidden md:flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
+                        <div className="hidden lg:flex items-center space-x-2 bg-slate-100 p-1.5 rounded-2xl border border-slate-200">
                             {mainMenus.map((menu) => (
                                 <div key={menu.name} className="relative group">
                                     <button
@@ -48,7 +48,7 @@ window.AppComponents.GNB = ({
                         </div>
 
                         {/* Right Actions */}
-                        <div className="hidden md:flex items-center space-x-4">
+                        <div className="hidden lg:flex items-center space-x-4">
                             <button onClick={() => handleNavClick('즐겨찾기')} className={`transition-all p-2.5 rounded-xl border-2 ${currentTab === '즐겨찾기' ? 'bg-yellow-50 border-yellow-200 text-yellow-500' : 'bg-white border-slate-100 text-slate-400 hover:border-yellow-200 hover:text-yellow-500'}`} title="내 즐겨찾기">
                                 <Star size={20} className={currentTab === '즐겨찾기' ? 'fill-yellow-500' : ''} strokeWidth={2.5} />
                             </button>
@@ -68,7 +68,7 @@ window.AppComponents.GNB = ({
                         </div>
 
                         {/* Mobile Menu Trigger */}
-                        <div className="md:hidden flex items-center">
+                        <div className="lg:hidden flex items-center">
                             <button onClick={() => setIsMenuOpen(!isMenuOpen)} className="text-slate-600 p-2 hover:bg-slate-100 rounded-xl border-2 border-transparent hover:border-slate-200 transition-all">
                                 {isMenuOpen ? <X size={28} strokeWidth={2.5} /> : <Menu size={28} strokeWidth={2.5} />}
                             </button>
@@ -94,7 +94,7 @@ window.AppComponents.GNB = ({
 
             {/* Mobile Menu */}
             {isMenuOpen && (
-                <div className="md:hidden absolute top-20 left-0 w-full bg-white border-b-2 border-slate-200 shadow-2xl z-40 rounded-b-3xl overflow-hidden">
+                <div className="lg:hidden absolute top-20 left-0 w-full bg-white border-b-2 border-slate-200 shadow-2xl z-40 rounded-b-3xl overflow-hidden">
                     <div className="px-4 py-6 space-y-2">
                         {mainMenus.map((menu) => (
                             <button key={menu.name} onClick={() => handleNavClick(menu.name)} className={`w-full flex justify-between items-center px-5 py-4 text-base font-bold rounded-2xl border-2 ${currentTab === menu.name ? 'bg-blue-50 text-blue-600 border-blue-200' : 'text-slate-700 border-transparent hover:bg-slate-50'}`}>
