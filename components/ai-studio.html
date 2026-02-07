@@ -1,5 +1,5 @@
 const { useState, useEffect, useRef } = window.React;
-const { Database, Box, MessageSquare, Check, Plus, Settings, Mic, ArrowRight, Image, Video, Maximize2, X } = window.LucideReact;
+const { Database, Box, MessageSquare, Check, Plus, Settings, Mic, ArrowRight, Image, Video, Maximize2, X, Sparkles } = window.LucideReact;
 
 const AIStudio = () => {
             const [activeMode, setActiveMode] = useState('text');
@@ -14,7 +14,28 @@ const AIStudio = () => {
                 if (!chatScrollRef.current) return;
                 chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
             }, [messages, isTyping]);
-            const handleSend = () => { if (!input.trim()) return; const userMsg = { id: Date.now(), role: 'user', type: 'text', content: input }; setMessages(prev => [...prev, userMsg]); setInput(''); setIsTyping(true); setTimeout(() => { const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'text', content: `"${userMsg.content}"에 대한 요청을 처리했습니다.\n추가적인 수정 사항이 있으신가요?` }; setMessages(prev => [...prev, aiMsg]); setIsTyping(false); }, 1500); };
+            const modeConfig = {
+                text: {
+                    title: '텍스트 대화',
+                    description: '질문을 입력하면 바로 대화를 시작합니다.',
+                    placeholder: "메시지를 입력하거나 '/'를 눌러 명령어를 실행하세요...",
+                    actions: [ { label: '이미지 생성', icon: Image }, { label: '비디오 분석', icon: Video } ]
+                },
+                image: {
+                    title: '이미지 작업',
+                    description: '생성, 편집, 스타일 변환 요청에 최적화된 대화창입니다.',
+                    placeholder: '원하는 이미지 스타일이나 수정 요청을 입력하세요...',
+                    actions: [ { label: '이미지 업로드', icon: Image }, { label: '스타일 프리셋', icon: Settings } ]
+                },
+                video: {
+                    title: '비디오 분석',
+                    description: '요약, 장면 분할, 하이라이트 추출에 맞춘 대화창입니다.',
+                    placeholder: '분석할 비디오 링크나 목표를 입력하세요...',
+                    actions: [ { label: '비디오 업로드', icon: Video }, { label: '하이라이트 추출', icon: Sparkles } ]
+                }
+            };
+            const activeConfig = modeConfig[activeMode];
+            const handleSend = () => { if (!input.trim()) return; const userMsg = { id: Date.now(), role: 'user', type: activeMode, content: input }; setMessages(prev => [...prev, userMsg]); setInput(''); setIsTyping(true); setTimeout(() => { const aiMsg = { id: Date.now() + 1, role: 'ai', type: activeMode, content: `"${userMsg.content}"에 대한 요청을 처리했습니다.\n추가적인 수정 사항이 있으신가요?` }; setMessages(prev => [...prev, aiMsg]); setIsTyping(false); }, 1500); };
             const handleKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
 
             return (
@@ -33,19 +54,27 @@ const AIStudio = () => {
                             </div>
                         </div>
                         <div className="w-full lg:flex-1 bg-slate-100 rounded-[2rem] border-2 border-slate-200 flex flex-col shadow-inner overflow-hidden relative min-h-[500px]">
-                             {connectedTools.length > 0 && (
-                                 <div className="absolute top-4 right-4 z-10 bg-white/95 backdrop-blur-sm border border-blue-100 rounded-2xl px-4 py-3 shadow-lg flex flex-col gap-2">
-                                     <div className="text-[10px] font-bold uppercase text-blue-500 tracking-wide flex items-center gap-1.5"><Database size={12}/> 스킬 불러오기 (내 커넥터)</div>
-                                     <div className="flex flex-wrap gap-2 max-w-[240px]">
-                                         {connectedTools.map(t => (
-                                             <span key={t.id} className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-blue-50 text-blue-700 rounded-xl text-[11px] font-bold border border-blue-100">
-                                                 {t.name}
-                                             </span>
-                                         ))}
-                                     </div>
-                                 </div>
-                             )}
                              <div ref={chatScrollRef} className="flex-1 p-6 space-y-8 overflow-y-auto no-scrollbar">
+                                {activeMode !== 'text' && (
+                                    <div className="bg-white border-2 border-slate-200 rounded-3xl p-6 shadow-sm flex flex-col gap-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-10 h-10 rounded-2xl bg-blue-50 text-blue-600 flex items-center justify-center border border-blue-100">
+                                                {activeMode === 'image' ? <Image size={20} /> : <Video size={20} />}
+                                            </div>
+                                            <div>
+                                                <div className="text-sm font-bold text-slate-900">{activeConfig.title}</div>
+                                                <div className="text-xs text-slate-500 font-medium">{activeConfig.description}</div>
+                                            </div>
+                                        </div>
+                                        <div className="flex flex-wrap gap-2">
+                                            {activeConfig.actions.map(action => (
+                                                <button key={action.label} className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                                                    <action.icon size={14} /> {action.label}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                )}
                                 {messages.map((msg, index) => (
                                     <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in`}>
                                         <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} gap-2 max-w-[85%]`}>
@@ -61,8 +90,15 @@ const AIStudio = () => {
                                 {isTyping && (<div className="flex justify-start animate-in fade-in"><div className="flex flex-col items-start gap-2"><div className="flex items-center gap-2 mb-1"><div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white shadow-sm">AI</div><span className="text-xs font-bold text-slate-500">Gemini</span></div><div className="bg-white border-2 border-slate-200 px-5 py-4 rounded-[20px] rounded-tl-none text-sm shadow-sm flex items-center gap-1.5"><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div></div></div></div>)}
                              </div>
                              <div className="p-5 bg-white border-t-2 border-slate-200">
-                                <div className="relative"><textarea rows="1" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl pl-5 pr-14 py-4 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none font-medium transition-all shadow-inner" placeholder="메시지를 입력하거나 '/'를 눌러 명령어를 실행하세요..."></textarea><div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2"><button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"><Mic size={20}/></button><button onClick={handleSend} className="p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors shadow-md hover:scale-105 active:scale-95"><ArrowRight size={20} strokeWidth={3}/></button></div></div>
-                                <div className="flex items-center gap-4 mt-4 px-2"><button className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors"><Image size={14}/> 이미지 생성</button><button className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors"><Video size={14}/> 비디오 분석</button><div className="flex-1"></div><span className="text-[10px] text-slate-300 font-bold uppercase tracking-wide">Shift + Enter for new line</span></div>
+                                <div className="relative"><textarea rows="1" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl pl-5 pr-14 py-4 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none font-medium transition-all shadow-inner" placeholder={activeConfig.placeholder}></textarea><div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2"><button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"><Mic size={20}/></button><button onClick={handleSend} className="p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors shadow-md hover:scale-105 active:scale-95"><ArrowRight size={20} strokeWidth={3}/></button></div></div>
+                                <div className="flex items-center gap-4 mt-4 px-2">
+                                    {activeConfig.actions.map(action => (
+                                        <button key={action.label} className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
+                                            <action.icon size={14} /> {action.label}
+                                        </button>
+                                    ))}
+                                    <div className="flex-1"></div><span className="text-[10px] text-slate-300 font-bold uppercase tracking-wide">Shift + Enter for new line</span>
+                                </div>
                              </div>
                         </div>
                     </div>
