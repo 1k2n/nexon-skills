@@ -1,17 +1,87 @@
-const { useState } = window.React;
+const { useState, useEffect } = window.React;
 const { MessageSquare, ArrowRight, Cpu, Bell } = window.LucideReact;
 const { WorkflowEditor } = window.AppComponents;
 
 const AIWorkflow = () => {
+            const draftWorkflows = [
+                { id: 'draft-1', title: 'CS 문의 자동 분류', updatedAt: '방금 전', description: 'Webhook → LLM 분류 → Slack 라우팅' },
+                { id: 'draft-2', title: '일간 리포트 자동 요약', updatedAt: '2시간 전', description: 'DB 수집 → 요약 모델 → 이메일 발송' },
+                { id: 'draft-3', title: '결제 이상 탐지 알림', updatedAt: '어제', description: '지표 감지 → 임계치 판단 → 알림' },
+            ];
             const [isEditorOpen, setIsEditorOpen] = useState(false);
-            if (isEditorOpen) { return <WorkflowEditor onClose={() => setIsEditorOpen(false)} />; }
+            const [activeDraftId, setActiveDraftId] = useState(null);
+
+            const syncFromUrl = () => {
+                const draftId = new URL(window.location.href).searchParams.get('draft');
+                if (draftId) {
+                    setActiveDraftId(draftId);
+                    setIsEditorOpen(true);
+                } else {
+                    setActiveDraftId(null);
+                    setIsEditorOpen(false);
+                }
+            };
+
+            useEffect(() => {
+                syncFromUrl();
+                window.addEventListener('popstate', syncFromUrl);
+                return () => window.removeEventListener('popstate', syncFromUrl);
+            }, []);
+
+            const openEditor = (draftId = null) => {
+                const url = new URL(window.location.href);
+                if (draftId) {
+                    url.searchParams.set('draft', draftId);
+                } else {
+                    url.searchParams.delete('draft');
+                }
+                window.history.pushState({ draftId }, '', url);
+                setActiveDraftId(draftId);
+                setIsEditorOpen(true);
+            };
+
+            const handleEditorClose = () => {
+                const url = new URL(window.location.href);
+                url.searchParams.delete('draft');
+                window.history.pushState({ draftId: null }, '', url);
+                setActiveDraftId(null);
+                setIsEditorOpen(false);
+            };
+
+            if (isEditorOpen) { return <WorkflowEditor onClose={handleEditorClose} activeDraftId={activeDraftId} />; }
             return (
-                <div className="space-y-8 animate-in">
+                <div className="space-y-10 animate-in">
                     <div><h2 className="text-4xl font-bold text-slate-900">AI 워크플로우</h2><p className="text-slate-500 font-medium mt-2 text-lg">복잡한 업무 프로세스를 자동화 에이전트로 연결하세요.</p></div>
                     <div className="bg-slate-900 rounded-[3rem] p-12 text-white relative overflow-hidden shadow-2xl border-4 border-slate-900">
-                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-16"><div className="space-y-8 flex-1"><h3 className="text-4xl font-bold leading-tight">비주얼 빌더로 <br />쉽게 설계하세요.</h3><p className="text-slate-400 leading-relaxed font-normal text-lg">드래그 앤 드롭으로 트리거를 설정하고, LLM과 커스텀 툴을 연결하여 완벽한 자동화 시나리오를 구성할 수 있습니다.</p><button onClick={() => setIsEditorOpen(true)} className="game-btn bg-blue-500 hover:bg-blue-600 px-8 py-4 rounded-2xl font-bold text-lg transition-all shadow-[0px_6px_0px_#1e40af] active:shadow-none active:translate-y-[6px]">새 워크플로우 만들기</button></div><div className="flex-1 w-full bg-white/5 backdrop-blur-md rounded-3xl border-2 border-white/10 p-8 space-y-6 shadow-inner"><div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/10"><div className="p-3 bg-blue-500 rounded-xl shadow-lg"><MessageSquare size={20} fill="white"/></div><div className="text-base font-bold">고객 문의 접수</div></div><div className="flex justify-center"><ArrowRight size={24} className="rotate-90 text-white/30" strokeWidth={3}/></div><div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/10"><div className="p-3 bg-purple-500 rounded-xl shadow-lg"><Cpu size={20}/></div><div className="text-base font-bold">AI 분석 (LLM)</div></div><div className="flex justify-center"><ArrowRight size={24} className="rotate-90 text-white/30" strokeWidth={3}/></div><div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/10"><div className="p-3 bg-green-500 rounded-xl shadow-lg"><Bell size={20}/></div><div className="text-base font-bold">자동 알림 및 배정</div></div></div></div>
+                        <div className="relative z-10 flex flex-col md:flex-row items-center gap-16"><div className="space-y-8 flex-1"><h3 className="text-4xl font-bold leading-tight">비주얼 빌더로 <br />쉽게 설계하세요.</h3><p className="text-slate-400 leading-relaxed font-normal text-lg">드래그 앤 드롭으로 트리거를 설정하고, LLM과 커스텀 툴을 연결하여 완벽한 자동화 시나리오를 구성할 수 있습니다.</p><button onClick={() => openEditor()} className="game-btn bg-blue-500 hover:bg-blue-600 px-8 py-4 rounded-2xl font-bold text-lg transition-all shadow-[0px_6px_0px_#1e40af] active:shadow-none active:translate-y-[6px]">새 워크플로우 만들기</button></div><div className="flex-1 w-full bg-white/5 backdrop-blur-md rounded-3xl border-2 border-white/10 p-8 space-y-6 shadow-inner"><div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/10"><div className="p-3 bg-blue-500 rounded-xl shadow-lg"><MessageSquare size={20} fill="white"/></div><div className="text-base font-bold">고객 문의 접수</div></div><div className="flex justify-center"><ArrowRight size={24} className="rotate-90 text-white/30" strokeWidth={3}/></div><div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/10"><div className="p-3 bg-purple-500 rounded-xl shadow-lg"><Cpu size={20}/></div><div className="text-base font-bold">AI 분석 (LLM)</div></div><div className="flex justify-center"><ArrowRight size={24} className="rotate-90 text-white/30" strokeWidth={3}/></div><div className="flex items-center gap-4 bg-white/10 p-4 rounded-2xl border border-white/10"><div className="p-3 bg-green-500 rounded-xl shadow-lg"><Bell size={20}/></div><div className="text-base font-bold">자동 알림 및 배정</div></div></div></div>
                         <div className="absolute top-0 right-0 w-96 h-96 bg-blue-500/30 blur-[150px] -z-0"></div>
                         <div className="absolute bottom-0 left-0 w-64 h-64 bg-purple-500/20 blur-[100px] -z-0"></div>
+                    </div>
+                    <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-8 shadow-lg">
+                        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                            <div>
+                                <h3 className="text-2xl font-bold text-slate-900">임시 저장된 워크플로우</h3>
+                                <p className="text-slate-500 mt-2">제작 중인 워크플로우를 이어서 수정할 수 있습니다.</p>
+                            </div>
+                            <div className="text-sm text-slate-400 font-semibold">최근 업데이트 순</div>
+                        </div>
+                        <div className="mt-6 grid gap-4 md:grid-cols-3">
+                            {draftWorkflows.map((workflow) => (
+                                <button
+                                    key={workflow.id}
+                                    onClick={() => openEditor(workflow.id)}
+                                    className="text-left border border-slate-200 rounded-2xl p-5 bg-slate-50 hover:bg-white hover:border-blue-300 transition-all shadow-sm hover:shadow-md"
+                                >
+                                    <div className="flex items-center justify-between">
+                                        <span className="text-xs font-semibold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-1 rounded-full">Draft</span>
+                                        <span className="text-xs text-slate-400">{workflow.updatedAt}</span>
+                                    </div>
+                                    <h4 className="mt-3 text-lg font-bold text-slate-800">{workflow.title}</h4>
+                                    <p className="mt-2 text-sm text-slate-500">{workflow.description}</p>
+                                    <div className="mt-4 text-sm font-semibold text-blue-600">이어하기 →</div>
+                                </button>
+                            ))}
+                        </div>
                     </div>
                 </div>
             );
