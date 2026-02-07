@@ -154,17 +154,9 @@
         let responseText = null;
 
         try {
-            responseText = fetchSync(feedUrl);
+            responseText = fetchSync(proxyUrl);
         } catch (error) {
             responseText = null;
-        }
-
-        if (!responseText) {
-            try {
-                responseText = fetchSync(proxyUrl);
-            } catch (error) {
-                responseText = null;
-            }
         }
 
         if (responseText) {
