@@ -109,26 +109,70 @@
             return clean.length > limit ? `${clean.slice(0, limit)}…` : clean;
         };
 
-        const extractXml = (text) => {
+        const normalizeProxyText = (text) => {
             if (!text) {
                 return "";
             }
-            const fencedMatch = text.match(/```(?:xml)?\n([\s\S]*?)```/);
+            return text
+                .split("\n")
+                .map((line) => line.replace(/^\s*\d+\s*\|?\s?/, ""))
+                .join("\n");
+        };
+
+        const extractXml = (text) => {
+            const normalizedText = normalizeProxyText(text);
+            const fencedMatch = normalizedText.match(/```(?:xml)?\n([\s\S]*?)```/);
             if (fencedMatch) {
                 return fencedMatch[1].trim();
             }
-            const startIndex = text.search(/<rss|<feed/);
+            const startIndex = normalizedText.search(/<rss|<feed/);
             if (startIndex === -1) {
-                return text.trim();
+                return normalizedText.trim();
             }
-            const rssEnd = text.lastIndexOf("</rss>");
-            const feedEnd = text.lastIndexOf("</feed>");
+            const rssEnd = normalizedText.lastIndexOf("</rss>");
+            const feedEnd = normalizedText.lastIndexOf("</feed>");
             const endIndex = Math.max(rssEnd, feedEnd);
             if (endIndex === -1) {
-                return text.slice(startIndex).trim();
+                return normalizedText.slice(startIndex).trim();
             }
             const endOffset = endIndex === rssEnd ? "</rss>".length : "</feed>".length;
-            return text.slice(startIndex, endIndex + endOffset).trim();
+            return normalizedText.slice(startIndex, endIndex + endOffset).trim();
+        };
+
+        const parsePlainTextItems = (text) => {
+            const normalizedText = normalizeProxyText(text);
+            const items = [];
+            let current = {};
+            const pushCurrent = () => {
+                if (current.title || current.link || current.description || current.pubDate) {
+                    items.push(current);
+                }
+                current = {};
+            };
+
+            normalizedText.split("\n").forEach((line) => {
+                const match = line.match(/^(title|link|pubDate|description)\s*:\s*(.+)$/i);
+                if (!match) {
+                    return;
+                }
+                const key = match[1].toLowerCase();
+                const value = match[2].trim();
+                if (key === "title") {
+                    if (current.title) {
+                        pushCurrent();
+                    }
+                    current.title = value;
+                } else if (key === "link") {
+                    current.link = value;
+                } else if (key === "pubdate") {
+                    current.pubDate = value;
+                } else if (key === "description") {
+                    current.description = value;
+                }
+            });
+
+            pushCurrent();
+            return items;
         };
 
         const parseFeed = (xmlText) => {
@@ -137,11 +181,27 @@
             const doc = parser.parseFromString(cleanedXml, "text/xml");
             const items = Array.from(doc.querySelectorAll("item"));
 
-            return items.slice(0, 9).map((item) => ({
-                title: item.querySelector("title")?.textContent ?? "",
-                link: item.querySelector("link")?.textContent ?? "",
-                pubDate: item.querySelector("pubDate")?.textContent ?? "",
-                description: item.querySelector("description")?.textContent ?? "",
+            if (items.length) {
+                return items.slice(0, 9).map((item) => ({
+                    title: item.querySelector("title")?.textContent ?? "",
+                    link: item.querySelector("link")?.textContent ?? "",
+                    pubDate: item.querySelector("pubDate")?.textContent ?? "",
+                    description: item.querySelector("description")?.textContent ?? "",
+                }));
+            }
+
+            const plainTextItems = parsePlainTextItems(xmlText);
+            if (plainTextItems.length) {
+                return plainTextItems.slice(0, 9);
+            }
+
+            const normalizedText = normalizeProxyText(xmlText);
+            const itemMatches = normalizedText.match(/<item>[\s\S]*?<\/item>/g) ?? [];
+            return itemMatches.slice(0, 9).map((block) => ({
+                title: block.match(/<title><!\\[CDATA\\[(.*?)]]><\\/title>|<title>(.*?)<\\/title>/)?.slice(1).find(Boolean) ?? "",
+                link: block.match(/<link>(.*?)<\\/link>/)?.[1] ?? "",
+                pubDate: block.match(/<pubDate>(.*?)<\\/pubDate>/)?.[1] ?? "",
+                description: block.match(/<description><!\\[CDATA\\[(.*?)]]><\\/description>|<description>(.*?)<\\/description>/)?.slice(1).find(Boolean) ?? "",
             }));
         };
 
