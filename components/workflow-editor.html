@@ -36,7 +36,16 @@ const WorkflowEditor = ({ onClose }) => {
             const handleSidebarDragStart = (e, type, label, iconName) => { e.dataTransfer.setData('application/reactflow', JSON.stringify({ type, label, iconName })); e.dataTransfer.effectAllowed = 'move'; };
             const handleDrop = (e) => { e.preventDefault(); const typeData = e.dataTransfer.getData('application/reactflow'); if (typeData && canvasRef.current) { const { type, label, iconName } = JSON.parse(typeData); const rect = canvasRef.current.getBoundingClientRect(); const x = e.clientX - rect.left - 88; const y = e.clientY - rect.top - 40; const newNode = { id: Date.now(), type, label, x, y, iconName }; setNodes(nds => [...nds, newNode]); setSelectedNodeId(newNode.id); setSelectedEdgeId(null); } };
             const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
-            const getPath = (sx, sy, tx, ty) => `M ${sx} ${sy} C ${sx + 50} ${sy}, ${tx - 50} ${ty}, ${tx} ${ty}`;
+            const getPath = (sx, sy, tx, ty) => {
+                const dx = tx - sx;
+                const dy = ty - sy;
+                const horizontalOffset = Math.max(140, Math.min(260, Math.abs(dx) * 0.55));
+                const verticalOffset = Math.max(120, Math.min(220, Math.abs(dy) * 0.6));
+                const bendDirection = dy === 0 ? -1 : Math.sign(dy);
+                const midX = sx + dx / 2;
+                const midY = sy + bendDirection * verticalOffset;
+                return `M ${sx} ${sy} C ${sx + horizontalOffset} ${sy}, ${midX - horizontalOffset} ${midY}, ${midX} ${midY} S ${tx - horizontalOffset} ${ty}, ${tx} ${ty}`;
+            };
             const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
             const selectedEdge = selectedEdgeId ? edges.find(e => e.id === selectedEdgeId) : null;
             const isPropertyPanelVisible = selectedNode || selectedEdge;
