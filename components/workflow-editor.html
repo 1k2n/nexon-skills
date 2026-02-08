@@ -43,8 +43,8 @@ const WorkflowEditor = ({ onClose }) => {
             const handleDrop = (e) => { e.preventDefault(); const typeData = e.dataTransfer.getData('application/reactflow'); if (typeData && canvasRef.current) { const { type, label, iconName } = JSON.parse(typeData); const rect = canvasRef.current.getBoundingClientRect(); const x = e.clientX - rect.left - 88; const y = e.clientY - rect.top - 40; const newNode = { id: Date.now(), type, label, x, y, iconName }; setNodes(nds => [...nds, newNode]); setSelectedNodeId(newNode.id); setSelectedEdgeId(null); } };
             const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
             const getPath = (sx, sy, tx, ty, edge) => {
-                const pivotX = (sx + tx) / 2 + (edge?.offsetX || 0);
-                const pivotY = (sy + ty) / 2 + (edge?.offsetY || 0);
+                const pivotX = (sx + tx) / 2 + ((edge && edge.offsetX) || 0);
+                const pivotY = (sy + ty) / 2 + ((edge && edge.offsetY) || 0);
                 const points = [
                     { x: sx, y: sy },
                     { x: pivotX, y: sy },
