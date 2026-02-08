@@ -40,7 +40,6 @@ const App = () => {
             const [showStickySearch, setShowStickySearch] = useState(false);
             const [footerLogoError, setFooterLogoError] = useState(false);
             const skipHistoryUpdate = useRef(false);
-            const isSkillsLab = currentTab === '스킬 실험실';
 
             useEffect(() => { 
                 const handleScroll = () => { 
@@ -141,7 +140,7 @@ const App = () => {
                     />
 
                     {/* Main Content Area */}
-                    <main className={isSkillsLab ? 'flex-1 w-full' : 'flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10'}>
+                    <main className="flex-1 max-w-7xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-10">
                         {renderContent()}
                     </main>
 
