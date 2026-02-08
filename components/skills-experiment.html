@@ -34,12 +34,6 @@ const SkillsExperiment = () => {
         }
     ]), []);
 
-    const signals = useMemo(() => ([
-        { name: '행동 추적 이벤트', detail: '최근 7일/30일 행동 로그와 난이도 분포' },
-        { name: '경제 지표', detail: '아이템 시세, 마켓 유동성, 핵심 재료 수급' },
-        { name: '커뮤니티 피드백', detail: '포럼/디스코드 핫이슈 요약' }
-    ]), []);
-
     const connectors = useMemo(() => ([
         { name: 'Gameplay Log Stream', detail: '실시간 행동 로그를 실험에 연결합니다.' },
         { name: 'Commerce Dashboard', detail: '아이템 시세/재고 정보를 가져옵니다.' },
@@ -80,71 +74,64 @@ const SkillsExperiment = () => {
 
     return (
         <div className="space-y-6">
-            <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm flex flex-col gap-6">
+            <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
                 <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-3">
-                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
-                                <Beaker size={22} />
-                            </div>
-                            <div>
-                                <h2 className="text-2xl font-bold text-slate-900">스킬 실험실</h2>
-                                <p className="text-sm text-slate-500 font-medium">스킬을 연결하고, 실시간으로 결과를 검증하는 실험실입니다.</p>
-                            </div>
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+                            <Beaker size={22} />
                         </div>
-                        <div className="flex flex-wrap gap-2 text-xs font-bold text-slate-500">
-                            <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600">Verified</span>
-                            <span className="px-3 py-1 rounded-full bg-slate-100">Skill Sandbox</span>
-                            <span className="px-3 py-1 rounded-full bg-slate-100">Trace Console</span>
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-900">스킬 실험실</h2>
+                            <p className="text-sm text-slate-500 font-medium">스킬을 연결하고 결과를 빠르게 확인하는 실험 공간입니다.</p>
                         </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3">
                         <button onClick={() => setActiveModal('template')} className="px-4 py-2.5 rounded-xl border-2 border-slate-200 bg-slate-50 text-sm font-bold text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors flex items-center gap-2">
-                            <SlidersHorizontal size={16} /> 실험 템플릿 관리
+                            <SlidersHorizontal size={16} /> 빠른 시작 템플릿
                         </button>
                         <button onClick={() => setActiveModal('start')} className="px-4 py-2.5 rounded-xl border-2 border-indigo-500 bg-indigo-500 text-sm font-bold text-white shadow-md hover:bg-indigo-600 transition-colors flex items-center gap-2">
-                            <Play size={16} /> 라이브 실험 시작
+                            <Play size={16} /> 실험 시작하기
                         </button>
                     </div>
                 </div>
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+                <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {[
-                        { title: '연결된 스킬', value: '12', icon: Layers, desc: '승인된 스킬 8개 포함' },
-                        { title: '실험 성공률', value: '96%', icon: CheckCircle2, desc: '최근 24시간 기준' },
-                        { title: '보안 점검', value: 'A+', icon: ShieldCheck, desc: 'PII 검수 통과' }
-                    ].map((stat) => (
-                        <div key={stat.title} className="border-2 border-slate-100 rounded-2xl p-4 bg-slate-50 flex items-center gap-4">
+                        { title: '1. 스킬 선택', desc: '실험에 사용할 스킬을 선택하세요.', icon: Layers },
+                        { title: '2. 프롬프트 작성', desc: '질문이나 요청을 입력합니다.', icon: Sparkles },
+                        { title: '3. 연결 확인', desc: '커넥터/에이전트를 연결하세요.', icon: ShieldCheck }
+                    ].map((card) => (
+                        <div key={card.title} className="border-2 border-slate-100 rounded-2xl p-4 bg-slate-50 flex items-start gap-4">
                             <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-indigo-500">
-                                <stat.icon size={18} />
+                                <card.icon size={18} />
                             </div>
                             <div>
-                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">{stat.title}</div>
-                                <div className="text-lg font-bold text-slate-900">{stat.value}</div>
-                                <div className="text-xs text-slate-500">{stat.desc}</div>
+                                <div className="text-sm font-bold text-slate-900">{card.title}</div>
+                                <div className="text-xs text-slate-500 mt-1">{card.desc}</div>
                             </div>
                         </div>
                     ))}
                 </div>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-[1.2fr_0.8fr] gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-[1.6fr_1fr] gap-6">
                 <div className="space-y-6">
                     <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">스킬 시나리오</h3>
-                                <p className="text-sm text-slate-500">어떤 스킬을 연결할지 선택하고, 테스트 프롬프트를 입력하세요.</p>
+                                <h3 className="text-lg font-bold text-slate-900">실험 구성</h3>
+                                <p className="text-sm text-slate-500">스킬을 고르고 프롬프트를 입력한 뒤 실행해 보세요.</p>
                             </div>
                             <button onClick={handleReset} className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors flex items-center gap-1.5">
-                                <RefreshCcw size={14} /> 자동 리셋
+                                <RefreshCcw size={14} /> 기본값으로 초기화
                             </button>
                         </div>
                         <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 space-y-2">
                             <div className="flex items-center gap-2 font-bold text-slate-700"><BookOpen size={16} /> 초심자 가이드</div>
                             <ol className="list-decimal pl-5 space-y-1">
-                                <li>실험에 사용할 스킬을 하나 선택하세요.</li>
-                                <li>테스트 프롬프트에 원하는 질문을 적습니다.</li>
-                                <li>아래의 실행 버튼을 눌러 결과를 확인합니다.</li>
+                                <li>카드에서 실험 스킬을 선택합니다.</li>
+                                <li>프롬프트에 요청을 입력합니다.</li>
+                                <li>오른쪽에서 커넥터/에이전트를 연결합니다.</li>
+                                <li>실험 시작하기를 눌러 결과를 확인합니다.</li>
                             </ol>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -187,7 +174,7 @@ const SkillsExperiment = () => {
                                         onClick={runExperiment}
                                         className="flex-1 px-4 py-3 rounded-xl bg-slate-900 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors"
                                     >
-                                        <Send size={16} /> 실행 요청 보내기
+                                        <Send size={16} /> 실험 실행
                                     </button>
                                     <button onClick={handleCopy} className="px-4 py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-600 flex items-center justify-center gap-2 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
                                         <Copy size={16} /> 프롬프트 복제
@@ -196,7 +183,9 @@ const SkillsExperiment = () => {
                             </div>
                         </div>
                     </div>
+                </div>
 
+                <div className="space-y-6">
                     <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                             <div>
@@ -205,7 +194,7 @@ const SkillsExperiment = () => {
                             </div>
                             <span className="text-xs font-bold text-slate-400">2개 그룹 연결됨</span>
                         </div>
-                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                        <div className="space-y-4">
                             <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                                 <div className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-3">내 커넥터</div>
                                 <div className="space-y-3">
@@ -241,14 +230,12 @@ const SkillsExperiment = () => {
                             선택한 항목: <span className="font-bold text-slate-600">{selectedSignal}</span>
                         </div>
                     </div>
-                </div>
 
-                <div className="space-y-6">
                     <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
                         <div className="flex items-center justify-between">
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900">실험 로그</h3>
-                                <p className="text-sm text-slate-500">실행 상태와 핵심 추론 단계를 확인합니다.</p>
+                                <p className="text-sm text-slate-500">실행 상태와 핵심 단계를 확인합니다.</p>
                             </div>
                             <span className={`text-xs font-bold px-3 py-1 rounded-full ${runStatus === 'running' ? 'bg-amber-100 text-amber-700' : runStatus === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
                                 {runStatus === 'running' ? 'RUNNING' : runStatus === 'success' ? 'SUCCESS' : 'IDLE'}
