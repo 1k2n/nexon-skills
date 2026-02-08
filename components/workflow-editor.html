@@ -36,7 +36,20 @@ const WorkflowEditor = ({ onClose }) => {
             const handleSidebarDragStart = (e, type, label, iconName) => { e.dataTransfer.setData('application/reactflow', JSON.stringify({ type, label, iconName })); e.dataTransfer.effectAllowed = 'move'; };
             const handleDrop = (e) => { e.preventDefault(); const typeData = e.dataTransfer.getData('application/reactflow'); if (typeData && canvasRef.current) { const { type, label, iconName } = JSON.parse(typeData); const rect = canvasRef.current.getBoundingClientRect(); const x = e.clientX - rect.left - 88; const y = e.clientY - rect.top - 40; const newNode = { id: Date.now(), type, label, x, y, iconName }; setNodes(nds => [...nds, newNode]); setSelectedNodeId(newNode.id); setSelectedEdgeId(null); } };
             const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
-            const getPath = (sx, sy, tx, ty) => `M ${sx} ${sy} C ${sx + 50} ${sy}, ${tx - 50} ${ty}, ${tx} ${ty}`;
+            const getPath = (sx, sy, tx, ty) => {
+                const dx = tx - sx;
+                const dy = ty - sy;
+                const direction = dx >= 0 ? 1 : -1;
+                const distance = Math.hypot(dx, dy);
+                const curveStrength = Math.min(220, Math.max(120, distance * 0.45));
+                const verticalBend = Math.min(140, Math.max(60, Math.abs(dy) * 0.6));
+                const bendDirection = dy === 0 ? 1 : Math.sign(dy);
+                const c1x = sx + curveStrength * direction;
+                const c1y = sy + verticalBend * bendDirection;
+                const c2x = tx - curveStrength * direction;
+                const c2y = ty - verticalBend * bendDirection;
+                return `M ${sx} ${sy} C ${c1x} ${c1y}, ${c2x} ${c2y}, ${tx} ${ty}`;
+            };
             const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
             const selectedEdge = selectedEdgeId ? edges.find(e => e.id === selectedEdgeId) : null;
             const isPropertyPanelVisible = selectedNode || selectedEdge;
