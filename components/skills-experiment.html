@@ -1,16 +1,17 @@
 const { useMemo, useState } = window.React;
-const { Sparkles, SlidersHorizontal, Play, TerminalSquare, Layers, ShieldCheck, Brain, Beaker, RefreshCcw, Send, Copy, CheckCircle2 } = window.LucideReact;
+const { Sparkles, SlidersHorizontal, Play, TerminalSquare, Layers, ShieldCheck, Brain, Beaker, RefreshCcw, Send, Copy, CheckCircle2, X, BookOpen } = window.LucideReact;
 
 const SkillsExperiment = () => {
-    const [activeSkill, setActiveSkill] = useState('Claude Flow Orchestrator');
+    const [activeSkill, setActiveSkill] = useState('Flow Orchestrator');
     const [prompt, setPrompt] = useState('유저가 길드 콘텐츠를 기획 중입니다. 각 클래스별 인기 장비를 요약하고, 커뮤니티 가이드 링크를 제안해줘.');
     const [runStatus, setRunStatus] = useState('idle');
     const [selectedSignal, setSelectedSignal] = useState('행동 추적 이벤트');
+    const [activeModal, setActiveModal] = useState(null);
     const skills = useMemo(() => ([
         {
-            title: 'Claude Flow Orchestrator',
+            title: 'Flow Orchestrator',
             desc: '다중 스킬을 연결해 복합 워크플로우를 실행합니다.',
-            tags: ['Workflow', 'Claude 3.6', 'Stable'],
+            tags: ['Workflow', 'Stable'],
             owner: 'NEXON Skills'
         },
         {
@@ -22,7 +23,7 @@ const SkillsExperiment = () => {
         {
             title: 'Balance Sentinel',
             desc: '패치 노트를 분석해 밸런스 위험도를 예측합니다.',
-            tags: ['Analysis', 'Claude 3.6', 'Pro'],
+            tags: ['Analysis', 'Pro'],
             owner: 'Live Ops'
         },
         {
@@ -42,11 +43,28 @@ const SkillsExperiment = () => {
     const runExperiment = () => {
         if (!prompt.trim()) return;
         setRunStatus('running');
+        setActiveModal('run');
         setTimeout(() => {
             setRunStatus('success');
             setTimeout(() => setRunStatus('idle'), 2200);
         }, 1200);
     };
+
+    const handleCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(prompt);
+            setActiveModal('copy');
+        } catch (error) {
+            setActiveModal('copy-fallback');
+        }
+    };
+
+    const handleReset = () => {
+        setPrompt('유저가 길드 콘텐츠를 기획 중입니다. 각 클래스별 인기 장비를 요약하고, 커뮤니티 가이드 링크를 제안해줘.');
+        setActiveModal('reset');
+    };
+
+    const closeModal = () => setActiveModal(null);
 
     return (
         <div className="space-y-6">
@@ -59,27 +77,27 @@ const SkillsExperiment = () => {
                             </div>
                             <div>
                                 <h2 className="text-2xl font-bold text-slate-900">스킬 실험실</h2>
-                                <p className="text-sm text-slate-500 font-medium">Claude Skills를 연결하고, 실시간으로 결과를 검증하는 실험실입니다.</p>
+                                <p className="text-sm text-slate-500 font-medium">스킬을 연결하고, 실시간으로 결과를 검증하는 실험실입니다.</p>
                             </div>
                         </div>
                         <div className="flex flex-wrap gap-2 text-xs font-bold text-slate-500">
-                            <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600">Claude 3.6 Verified</span>
+                            <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600">Verified</span>
                             <span className="px-3 py-1 rounded-full bg-slate-100">Skill Sandbox</span>
                             <span className="px-3 py-1 rounded-full bg-slate-100">Trace Console</span>
                         </div>
                     </div>
                     <div className="flex flex-col sm:flex-row gap-3">
-                        <button className="px-4 py-2.5 rounded-xl border-2 border-slate-200 bg-slate-50 text-sm font-bold text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors flex items-center gap-2">
+                        <button onClick={() => setActiveModal('template')} className="px-4 py-2.5 rounded-xl border-2 border-slate-200 bg-slate-50 text-sm font-bold text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors flex items-center gap-2">
                             <SlidersHorizontal size={16} /> 실험 템플릿 관리
                         </button>
-                        <button className="px-4 py-2.5 rounded-xl border-2 border-indigo-500 bg-indigo-500 text-sm font-bold text-white shadow-md hover:bg-indigo-600 transition-colors flex items-center gap-2">
+                        <button onClick={() => setActiveModal('start')} className="px-4 py-2.5 rounded-xl border-2 border-indigo-500 bg-indigo-500 text-sm font-bold text-white shadow-md hover:bg-indigo-600 transition-colors flex items-center gap-2">
                             <Play size={16} /> 라이브 실험 시작
                         </button>
                     </div>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                     {[
-                        { title: '연결된 스킬', value: '12', icon: Layers, desc: '클로드 기반 스킬 8개 포함' },
+                        { title: '연결된 스킬', value: '12', icon: Layers, desc: '승인된 스킬 8개 포함' },
                         { title: '실험 성공률', value: '96%', icon: CheckCircle2, desc: '최근 24시간 기준' },
                         { title: '보안 점검', value: 'A+', icon: ShieldCheck, desc: 'PII 검수 통과' }
                     ].map((stat) => (
@@ -102,12 +120,20 @@ const SkillsExperiment = () => {
                     <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
                         <div className="flex items-center justify-between mb-4">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">Claude Skills 시나리오</h3>
+                                <h3 className="text-lg font-bold text-slate-900">스킬 시나리오</h3>
                                 <p className="text-sm text-slate-500">어떤 스킬을 연결할지 선택하고, 테스트 프롬프트를 입력하세요.</p>
                             </div>
-                            <button className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors flex items-center gap-1.5">
+                            <button onClick={handleReset} className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors flex items-center gap-1.5">
                                 <RefreshCcw size={14} /> 자동 리셋
                             </button>
+                        </div>
+                        <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 space-y-2">
+                            <div className="flex items-center gap-2 font-bold text-slate-700"><BookOpen size={16} /> 초심자 가이드</div>
+                            <ol className="list-decimal pl-5 space-y-1">
+                                <li>실험에 사용할 스킬을 하나 선택하세요.</li>
+                                <li>테스트 프롬프트에 원하는 질문을 적습니다.</li>
+                                <li>아래의 실행 버튼을 눌러 결과를 확인합니다.</li>
+                            </ol>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                             {skills.map((skill) => (
@@ -151,7 +177,7 @@ const SkillsExperiment = () => {
                                     >
                                         <Send size={16} /> 실행 요청 보내기
                                     </button>
-                                    <button className="px-4 py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-600 flex items-center justify-center gap-2 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+                                    <button onClick={handleCopy} className="px-4 py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-600 flex items-center justify-center gap-2 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
                                         <Copy size={16} /> 프롬프트 복제
                                     </button>
                                 </div>
@@ -163,7 +189,7 @@ const SkillsExperiment = () => {
                         <div className="flex items-center justify-between mb-4">
                             <div>
                                 <h3 className="text-lg font-bold text-slate-900">실험 시그널 선택</h3>
-                                <p className="text-sm text-slate-500">Claude가 참고할 데이터 소스를 활성화합니다.</p>
+                                <p className="text-sm text-slate-500">실험에 참고할 데이터 소스를 활성화합니다.</p>
                             </div>
                             <span className="text-xs font-bold text-slate-400">3개 소스 연결됨</span>
                         </div>
@@ -171,7 +197,7 @@ const SkillsExperiment = () => {
                             {signals.map(signal => (
                                 <button
                                     key={signal.name}
-                                    onClick={() => setSelectedSignal(signal.name)}
+                                    onClick={() => { setSelectedSignal(signal.name); setActiveModal('signal'); }}
                                     className={`p-4 rounded-2xl border-2 text-left transition-all ${selectedSignal === signal.name ? 'border-indigo-500 bg-indigo-50' : 'border-slate-100 hover:border-indigo-200 hover:bg-slate-50'}`}
                                 >
                                     <div className="text-sm font-bold text-slate-900">{signal.name}</div>
@@ -186,7 +212,7 @@ const SkillsExperiment = () => {
                     <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
                         <div className="flex items-center justify-between">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">Claude 실험 로그</h3>
+                                <h3 className="text-lg font-bold text-slate-900">실험 로그</h3>
                                 <p className="text-sm text-slate-500">실행 상태와 핵심 추론 단계를 확인합니다.</p>
                             </div>
                             <span className={`text-xs font-bold px-3 py-1 rounded-full ${runStatus === 'running' ? 'bg-amber-100 text-amber-700' : runStatus === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
@@ -194,11 +220,11 @@ const SkillsExperiment = () => {
                             </span>
                         </div>
                         <div className="mt-6 space-y-4">
-                            {[
-                                { label: 'Skill Router', detail: 'Claude 3.6이 스킬 체인을 구성했습니다.', status: '완료' },
-                                { label: 'Context Builder', detail: '플레이어 로그 + 커뮤니티 인사이트 결합', status: '진행 중' },
-                                { label: 'Safety Check', detail: '민감 정보 필터링 완료', status: '완료' }
-                            ].map((log) => (
+                                {[
+                                    { label: 'Skill Router', detail: '스킬 체인을 구성했습니다.', status: '완료' },
+                                    { label: 'Context Builder', detail: '플레이어 로그 + 커뮤니티 인사이트 결합', status: '진행 중' },
+                                    { label: 'Safety Check', detail: '민감 정보 필터링 완료', status: '완료' }
+                                ].map((log) => (
                                 <div key={log.label} className="flex items-start gap-3 p-3 rounded-2xl border border-slate-100 bg-slate-50">
                                     <div className="w-8 h-8 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-indigo-500">
                                         <TerminalSquare size={16} />
@@ -219,7 +245,7 @@ const SkillsExperiment = () => {
                                 <Sparkles size={18} />
                             </div>
                             <div>
-                                <h3 className="text-lg font-bold">Claude Response Preview</h3>
+                                <h3 className="text-lg font-bold">Response Preview</h3>
                                 <p className="text-xs text-slate-300">실험 결과 미리보기 (읽기 전용)</p>
                             </div>
                         </div>
@@ -230,14 +256,44 @@ const SkillsExperiment = () => {
                                 <li>마법사: 속성 융합 로브 + 광역 주문 가속 파츠 추천</li>
                                 <li>궁수: 치명타 확률 기반의 경량 장비 조합</li>
                             </ul>
-                            <p className="text-xs text-slate-400">Claude says: 필요 시 세부 밸런스 변수를 추가로 계산할 수 있습니다.</p>
+                            <p className="text-xs text-slate-400">Tip: 필요 시 세부 밸런스 변수를 추가로 계산할 수 있습니다.</p>
                         </div>
-                        <button className="mt-5 px-4 py-2.5 rounded-xl bg-white text-slate-900 text-sm font-bold flex items-center gap-2">
+                        <button onClick={() => setActiveModal('preview')} className="mt-5 px-4 py-2.5 rounded-xl bg-white text-slate-900 text-sm font-bold flex items-center gap-2">
                             <Brain size={16} /> 전체 결과로 전환
                         </button>
                     </div>
                 </div>
             </div>
+            {activeModal && (
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+                    <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-xl w-full max-w-md p-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-lg font-bold text-slate-900">실험 알림</h4>
+                            <button onClick={closeModal} className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <div className="text-sm text-slate-600 leading-relaxed">
+                            {activeModal === 'template' && '템플릿 관리 화면을 불러오는 중입니다. 현재는 데모 모드로, 설정 값만 확인할 수 있습니다.'}
+                            {activeModal === 'start' && '라이브 실험 환경을 준비하고 있습니다. 연결된 스킬 상태를 확인한 뒤 시작하세요.'}
+                            {activeModal === 'run' && '실행 요청을 보냈습니다. 로그 패널에서 진행 상태를 확인하세요.'}
+                            {activeModal === 'copy' && '프롬프트를 클립보드에 복사했습니다.'}
+                            {activeModal === 'copy-fallback' && '브라우저 권한이 없어 복사에 실패했습니다. 텍스트를 수동으로 복사해 주세요.'}
+                            {activeModal === 'reset' && '기본 프롬프트로 되돌렸습니다.'}
+                            {activeModal === 'signal' && '선택한 시그널을 적용했습니다. 다음 실행부터 반영됩니다.'}
+                            {activeModal === 'preview' && '전체 결과 화면은 준비 중입니다. 현재는 미리보기만 제공합니다.'}
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                            <button onClick={closeModal} className="px-4 py-2 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+                                닫기
+                            </button>
+                            <button onClick={closeModal} className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">
+                                확인
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 };

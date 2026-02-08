@@ -81,11 +81,11 @@ const ConnectorsView = ({ setSelectedItem }) => {
 const AgentsView = ({ setSelectedItem }) => {
             const [activeTab, setActiveTab] = useState('전체');
             const [searchQuery, setSearchQuery] = useState('');
-            const tabs = ['전체', 'Custom', '스킬 실험실', 'Gemini', 'Snowflake', 'ChatGPT', 'Claude'];
+            const tabs = ['전체', 'Custom', '스킬 실험실', 'Gemini', 'Snowflake', 'ChatGPT', 'Premium'];
             const agents = [
                 { name: 'CS Responder', vendor: 'Gemini', model: 'Gemini 3 Pro', status: 'Running' },
                 { name: 'Data Analyst', vendor: 'Snowflake', model: 'Cortex Llama', status: 'Paused' },
-                { name: 'Creative Writer', vendor: 'Claude', model: 'Claude 3.6 Opus', status: 'Running' },
+                { name: 'Creative Writer', vendor: 'Premium', model: 'Creative Suite X', status: 'Running' },
                 { name: 'Legacy Bot', vendor: 'Custom', model: 'In-house BERT', status: 'Stopped' },
             ];
             const filtered = agents.filter(a => (activeTab === '전체' || a.vendor === activeTab) && a.name.toLowerCase().includes(searchQuery.toLowerCase()));
@@ -98,7 +98,7 @@ const AgentsView = ({ setSelectedItem }) => {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         {filtered.map((item, idx) => (
                             <div key={idx} onClick={() => setSelectedItem({ type: 'Agent', title: item.name, desc: `Model: ${item.model}\nVendor: ${item.vendor}\nStatus: ${item.status}\n\n이 에이전트는 ${item.vendor}의 ${item.model} 모델을 기반으로 동작합니다.`, author: item.vendor, stars: 500 + idx * 10 })} className="bg-white p-6 rounded-3xl border-2 border-slate-100 game-shadow game-shadow-hover transition-all group cursor-pointer">
-                                <div className="flex items-center gap-4 mb-4"><div className="w-12 h-12 bg-gradient-to-br from-slate-100 to-slate-50 border-2 border-slate-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm">{item.vendor === 'Gemini' ? '✨' : item.vendor === 'Claude' ? '🧠' : item.vendor === 'Snowflake' ? '❄️' : '🤖'}</div><div><h3 className="font-bold text-lg text-slate-900 group-hover:text-blue-600 transition-colors">{item.name}</h3><p className="text-xs font-bold text-slate-400 mt-1">{item.vendor} • {item.model}</p></div></div>
+                                <div className="flex items-center gap-4 mb-4"><div className="w-12 h-12 bg-gradient-to-br from-slate-100 to-slate-50 border-2 border-slate-100 rounded-2xl flex items-center justify-center text-2xl shadow-sm">{item.vendor === 'Gemini' ? '✨' : item.vendor === 'Snowflake' ? '❄️' : item.vendor === 'Premium' ? '⭐' : '🤖'}</div><div><h3 className="font-bold text-lg text-slate-900 group-hover:text-blue-600 transition-colors">{item.name}</h3><p className="text-xs font-bold text-slate-400 mt-1">{item.vendor} • {item.model}</p></div></div>
                                 <div className="flex justify-between items-center text-xs mt-2"><span className={`px-3 py-1 rounded-full font-bold border ${item.status === 'Running' ? 'bg-green-50 text-green-700 border-green-200' : 'bg-slate-100 text-slate-500 border-slate-200'}`}>{item.status}</span><button className="text-slate-300 hover:text-slate-600 transition-colors bg-slate-50 p-2 rounded-lg"><Settings size={16}/></button></div>
                             </div>
                         ))}
