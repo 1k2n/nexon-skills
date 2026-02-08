@@ -1,0 +1,334 @@
+const { useMemo, useState } = window.React;
+const { Sparkles, SlidersHorizontal, Play, TerminalSquare, Layers, ShieldCheck, Brain, Beaker, RefreshCcw, Send, Copy, CheckCircle2, X, BookOpen } = window.LucideReact;
+
+const SkillsExperiment = () => {
+    const [activeSkill, setActiveSkill] = useState('Flow Orchestrator');
+    const [prompt, setPrompt] = useState('유저가 길드 콘텐츠를 기획 중입니다. 각 클래스별 인기 장비를 요약하고, 커뮤니티 가이드 링크를 제안해줘.');
+    const [runStatus, setRunStatus] = useState('idle');
+    const [selectedSignal, setSelectedSignal] = useState('Gameplay Log Stream');
+    const [loaderTab, setLoaderTab] = useState('내 커넥터');
+    const [resultTab, setResultTab] = useState('실험 로그');
+    const [activeModal, setActiveModal] = useState(null);
+    const skills = useMemo(() => ([
+        {
+            title: 'Flow Orchestrator',
+            desc: '다중 스킬을 연결해 복합 워크플로우를 실행합니다.',
+            tags: ['Workflow', 'Stable'],
+            owner: 'NEXON Skills'
+        },
+        {
+            title: 'Lore Keeper',
+            desc: '세계관/서사를 기반으로 일관된 스토리 출력을 제공합니다.',
+            tags: ['Prompt', 'Memory', 'Beta'],
+            owner: 'AI Narrative Lab'
+        },
+        {
+            title: 'Balance Sentinel',
+            desc: '패치 노트를 분석해 밸런스 위험도를 예측합니다.',
+            tags: ['Analysis', 'Pro'],
+            owner: 'Live Ops'
+        },
+        {
+            title: 'Quest Smith',
+            desc: '플레이어 성향에 맞춘 퀘스트 브리프를 생성합니다.',
+            tags: ['Generation', 'Design'],
+            owner: 'Content Studio'
+        }
+    ]), []);
+
+    const connectors = useMemo(() => ([
+        { name: 'Gameplay Log Stream', detail: '실시간 행동 로그를 실험에 연결합니다.' },
+        { name: 'Commerce Dashboard', detail: '아이템 시세/재고 정보를 가져옵니다.' },
+        { name: 'Community Pulse', detail: '포럼/디스코드 반응을 요약합니다.' }
+    ]), []);
+
+    const agents = useMemo(() => ([
+        { name: 'Summary Agent', detail: '핵심 인사이트를 요약합니다.' },
+        { name: 'Balance Agent', detail: '밸런스 위험 요소를 추출합니다.' },
+        { name: 'Quest Agent', detail: '퀘스트 아이디어를 제안합니다.' }
+    ]), []);
+
+    const runExperiment = () => {
+        if (!prompt.trim()) return;
+        setRunStatus('running');
+        setActiveModal('run');
+        setTimeout(() => {
+            setRunStatus('success');
+            setTimeout(() => setRunStatus('idle'), 2200);
+        }, 1200);
+    };
+
+    const handleCopy = async () => {
+        try {
+            await navigator.clipboard.writeText(prompt);
+            setActiveModal('copy');
+        } catch (error) {
+            setActiveModal('copy-fallback');
+        }
+    };
+
+    const handleReset = () => {
+        setPrompt('유저가 길드 콘텐츠를 기획 중입니다. 각 클래스별 인기 장비를 요약하고, 커뮤니티 가이드 링크를 제안해줘.');
+        setActiveModal('reset');
+    };
+
+    const closeModal = () => setActiveModal(null);
+
+    return (
+        <div className="w-full space-y-6">
+            <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
+                <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
+                            <Beaker size={22} />
+                        </div>
+                        <div>
+                            <h2 className="text-2xl font-bold text-slate-900">스킬 실험실</h2>
+                            <p className="text-sm text-slate-500 font-medium">스킬 조합을 빠르게 검증하고, 기대 결과를 미리 확인하는 실험 공간입니다.</p>
+                        </div>
+                    </div>
+                    <div className="flex flex-col sm:flex-row gap-3">
+                        <button onClick={() => setActiveModal('template')} className="px-4 py-2.5 rounded-xl border-2 border-slate-200 bg-slate-50 text-sm font-bold text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors flex items-center gap-2">
+                            <SlidersHorizontal size={16} /> 빠른 시작 템플릿
+                        </button>
+                        <button onClick={() => setActiveModal('start')} className="px-4 py-2.5 rounded-xl border-2 border-indigo-500 bg-indigo-500 text-sm font-bold text-white shadow-md hover:bg-indigo-600 transition-colors flex items-center gap-2">
+                            <Play size={16} /> 실험 시작하기
+                        </button>
+                    </div>
+                </div>
+                <div className="mt-6 grid grid-cols-1 lg:grid-cols-3 gap-4">
+                    {[
+                        { title: '실험으로 얻는 것', desc: '스킬 조합의 결과 예측과 실행 로그', icon: Layers },
+                        { title: '검증 포인트', desc: '연결 상태, 입력 품질, 응답 방향', icon: ShieldCheck },
+                        { title: '진행 방식', desc: '스킬 선택 → 입력 작성 → 실행 확인', icon: Sparkles }
+                    ].map((card) => (
+                        <div key={card.title} className="border-2 border-slate-100 rounded-2xl p-4 bg-slate-50 flex items-start gap-4">
+                            <div className="w-10 h-10 rounded-xl bg-white border border-slate-200 flex items-center justify-center text-indigo-500">
+                                <card.icon size={18} />
+                            </div>
+                            <div>
+                                <div className="text-sm font-bold text-slate-900">{card.title}</div>
+                                <div className="text-xs text-slate-500 mt-1">{card.desc}</div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900">실험 구성</h3>
+                            <p className="text-sm text-slate-500">스킬과 입력을 정리해 실행 시나리오를 완성합니다.</p>
+                        </div>
+                        <button onClick={handleReset} className="px-3 py-2 rounded-lg border border-slate-200 text-xs font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-300 transition-colors flex items-center gap-1.5">
+                            <RefreshCcw size={14} /> 기본값으로 초기화
+                        </button>
+                    </div>
+                    <div className="mb-4 rounded-2xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-600 space-y-2">
+                        <div className="flex items-center gap-2 font-bold text-slate-700"><BookOpen size={16} /> 이 영역에서 확인하는 것</div>
+                        <ul className="list-disc pl-5 space-y-1">
+                            <li>어떤 스킬이 실험에 사용되는지</li>
+                            <li>실험 입력(프롬프트) 품질과 의도</li>
+                            <li>실행 후 어떤 결과를 기대하는지</li>
+                        </ul>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {skills.map((skill) => (
+                            <button
+                                key={skill.title}
+                                onClick={() => setActiveSkill(skill.title)}
+                                className={`text-left p-4 rounded-2xl border-2 transition-all ${activeSkill === skill.title ? 'border-indigo-500 bg-indigo-50 shadow-md' : 'border-slate-100 hover:border-indigo-200 hover:bg-slate-50'}`}
+                            >
+                                <div className="flex items-center justify-between">
+                                    <div>
+                                        <div className="text-sm font-bold text-slate-900">{skill.title}</div>
+                                        <div className="text-xs text-slate-500 mt-1">{skill.desc}</div>
+                                    </div>
+                                    <span className="text-[10px] font-bold text-indigo-600">{skill.owner}</span>
+                                </div>
+                                <div className="flex flex-wrap gap-2 mt-3">
+                                    {skill.tags.map(tag => (
+                                        <span key={tag} className="text-[10px] font-bold px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-500">{tag}</span>
+                                    ))}
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                    <div className="mt-6 border-2 border-slate-100 rounded-2xl p-4 bg-slate-50">
+                        <div className="flex items-center justify-between">
+                            <div className="text-xs font-bold text-slate-400 uppercase tracking-wide">선택한 스킬</div>
+                            <span className="text-xs font-bold text-indigo-600">{activeSkill}</span>
+                        </div>
+                        <div className="mt-4 space-y-3">
+                            <label className="text-xs font-bold text-slate-500">테스트 프롬프트</label>
+                            <textarea
+                                rows="4"
+                                value={prompt}
+                                onChange={(e) => setPrompt(e.target.value)}
+                                className="w-full rounded-2xl border-2 border-slate-200 bg-white p-4 text-sm font-medium text-slate-700 focus:outline-none focus:border-indigo-400"
+                            />
+                            <div className="flex flex-col sm:flex-row gap-3">
+                                <button
+                                    onClick={runExperiment}
+                                    className="flex-1 px-4 py-3 rounded-xl bg-slate-900 text-white text-sm font-bold flex items-center justify-center gap-2 hover:bg-slate-800 transition-colors"
+                                >
+                                    <Send size={16} /> 실험 실행
+                                </button>
+                                <button onClick={handleCopy} className="px-4 py-3 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-600 flex items-center justify-center gap-2 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+                                    <Copy size={16} /> 프롬프트 복제
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
+                    <div className="flex items-center justify-between mb-4">
+                        <div>
+                            <h3 className="text-lg font-bold text-slate-900">스킬 불러오기</h3>
+                            <p className="text-sm text-slate-500">내 커넥터와 내 에이전트를 골라 실험에 연결합니다.</p>
+                        </div>
+                        <span className="text-xs font-bold text-slate-400">2개 그룹 연결됨</span>
+                    </div>
+                    <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                        <div className="flex items-center gap-2 mb-4">
+                            {['내 커넥터', '내 에이전트'].map(tab => (
+                                <button
+                                    key={tab}
+                                    onClick={() => {
+                                        setLoaderTab(tab);
+                                        setSelectedSignal(tab === '내 커넥터' ? connectors[0].name : agents[0].name);
+                                    }}
+                                    className={`px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all ${loaderTab === tab ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600'}`}
+                                >
+                                    {tab}
+                                </button>
+                            ))}
+                        </div>
+                        <div className="space-y-3">
+                            {(loaderTab === '내 에이전트' ? agents : connectors).map(item => (
+                                <button
+                                    key={item.name}
+                                    onClick={() => { setSelectedSignal(item.name); setActiveModal('signal'); }}
+                                    className={`w-full p-4 rounded-2xl border-2 text-left transition-all ${selectedSignal === item.name ? 'border-indigo-500 bg-indigo-50' : 'border-slate-100 hover:border-indigo-200 hover:bg-white'}`}
+                                >
+                                    <div className="text-sm font-bold text-slate-900">{item.name}</div>
+                                    <div className="text-xs text-slate-500 mt-2">{item.detail}</div>
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="mt-4 text-xs text-slate-400">
+                        선택한 항목: <span className="font-bold text-slate-600">{selectedSignal}</span>
+                    </div>
+                    <div className="mt-4 rounded-2xl border border-slate-100 bg-slate-50 p-4 text-xs text-slate-500">
+                        연결된 커넥터/에이전트는 실행 단계에서 입력에 합쳐져 결과에 반영됩니다.
+                    </div>
+                </div>
+            </div>
+
+            <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
+                <div className="flex items-center justify-between mb-4">
+                    <div>
+                        <h3 className="text-lg font-bold text-slate-900">결과 보기</h3>
+                        <p className="text-sm text-slate-500">실험 흐름과 결과 미리보기를 함께 확인합니다.</p>
+                    </div>
+                    <span className={`text-xs font-bold px-3 py-1 rounded-full ${runStatus === 'running' ? 'bg-amber-100 text-amber-700' : runStatus === 'success' ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                        {runStatus === 'running' ? 'RUNNING' : runStatus === 'success' ? 'SUCCESS' : 'IDLE'}
+                    </span>
+                </div>
+                <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                    <div className="flex items-center gap-2 mb-4">
+                        {['실험 로그', '결과 프리뷰'].map(tab => (
+                            <button
+                                key={tab}
+                                onClick={() => setResultTab(tab)}
+                                className={`px-4 py-2 rounded-xl text-xs font-bold border-2 transition-all ${resultTab === tab ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-500 border-slate-200 hover:border-indigo-300 hover:text-indigo-600'}`}
+                            >
+                                {tab}
+                            </button>
+                        ))}
+                    </div>
+                    {resultTab === '결과 프리뷰' ? (
+                        <div className="bg-slate-900 rounded-[2rem] p-6 text-white shadow-lg">
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center">
+                                    <Sparkles size={18} />
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-bold">Response Preview</h3>
+                                    <p className="text-xs text-slate-300">실험 결과 미리보기 (읽기 전용)</p>
+                                </div>
+                            </div>
+                            <div className="mt-4 text-sm leading-relaxed text-slate-200 space-y-3">
+                                <p>길드 콘텐츠 기획안을 위해, 최근 선호도가 높은 클래스별 장비를 요약했습니다. 추가로 커뮤니티 가이드 링크를 연결했습니다.</p>
+                                <ul className="list-disc pl-5 space-y-1">
+                                    <li>전사: 고대 룬 세트, 방어형 스킬 강화 슬롯 제안</li>
+                                    <li>마법사: 속성 융합 로브 + 광역 주문 가속 파츠 추천</li>
+                                    <li>궁수: 치명타 확률 기반의 경량 장비 조합</li>
+                                </ul>
+                                <p className="text-xs text-slate-400">Tip: 필요 시 세부 밸런스 변수를 추가로 계산할 수 있습니다.</p>
+                            </div>
+                            <button onClick={() => setActiveModal('preview')} className="mt-5 px-4 py-2.5 rounded-xl bg-white text-slate-900 text-sm font-bold flex items-center gap-2">
+                                <Brain size={16} /> 전체 결과로 전환
+                            </button>
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                            {[
+                                { label: 'Skill Router', detail: '스킬 체인을 구성했습니다.', status: '완료' },
+                                { label: 'Context Builder', detail: '플레이어 로그 + 커뮤니티 인사이트 결합', status: '진행 중' },
+                                { label: 'Safety Check', detail: '민감 정보 필터링 완료', status: '완료' }
+                            ].map((log) => (
+                                <div key={log.label} className="flex items-start gap-3 p-3 rounded-2xl border border-slate-100 bg-white">
+                                    <div className="w-8 h-8 rounded-xl bg-slate-50 border border-slate-200 flex items-center justify-center text-indigo-500">
+                                        <TerminalSquare size={16} />
+                                    </div>
+                                    <div>
+                                        <div className="text-sm font-bold text-slate-900">{log.label}</div>
+                                        <div className="text-xs text-slate-500">{log.detail}</div>
+                                    </div>
+                                    <div className="ml-auto text-xs font-bold text-slate-400">{log.status}</div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            </div>
+            {activeModal && (
+                <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm flex items-center justify-center z-50 px-4">
+                    <div className="bg-white rounded-3xl border-2 border-slate-200 shadow-xl w-full max-w-md p-6 space-y-4">
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-lg font-bold text-slate-900">실험 알림</h4>
+                            <button onClick={closeModal} className="p-2 rounded-full hover:bg-slate-100 text-slate-400 hover:text-slate-600 transition-colors">
+                                <X size={16} />
+                            </button>
+                        </div>
+                        <div className="text-sm text-slate-600 leading-relaxed">
+                            {activeModal === 'template' && '템플릿 관리 화면을 불러오는 중입니다. 현재는 데모 모드로, 설정 값만 확인할 수 있습니다.'}
+                            {activeModal === 'start' && '라이브 실험 환경을 준비하고 있습니다. 연결된 스킬 상태를 확인한 뒤 시작하세요.'}
+                            {activeModal === 'run' && '실행 요청을 보냈습니다. 로그 패널에서 진행 상태를 확인하세요.'}
+                            {activeModal === 'copy' && '프롬프트를 클립보드에 복사했습니다.'}
+                            {activeModal === 'copy-fallback' && '브라우저 권한이 없어 복사에 실패했습니다. 텍스트를 수동으로 복사해 주세요.'}
+                            {activeModal === 'reset' && '기본 프롬프트로 되돌렸습니다.'}
+                            {activeModal === 'signal' && '선택한 시그널을 적용했습니다. 다음 실행부터 반영됩니다.'}
+                            {activeModal === 'preview' && '전체 결과 화면은 준비 중입니다. 현재는 미리보기만 제공합니다.'}
+                        </div>
+                        <div className="flex justify-end gap-2 pt-2">
+                            <button onClick={closeModal} className="px-4 py-2 rounded-xl border-2 border-slate-200 text-sm font-bold text-slate-600 hover:border-indigo-300 hover:text-indigo-600 transition-colors">
+                                닫기
+                            </button>
+                            <button onClick={closeModal} className="px-4 py-2 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">
+                                확인
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+        </div>
+    );
+};
+
+window.AppComponents.SkillsExperiment = SkillsExperiment;
