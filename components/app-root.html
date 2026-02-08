@@ -11,7 +11,7 @@ const {
     AINews,
     IntegrationGuide,
     AIWorkflow,
-    AIStudio,
+    SkillsExperiment,
     FavoritesView,
     HomePage,
 } = window.AppComponents;
@@ -110,7 +110,7 @@ const App = () => {
                     case '스킬 트렌드': return <AINews setSelectedItem={setSelectedItem} />;
                     case '스킬 가이드': return <IntegrationGuide />;
                     case 'AI 워크플로우': return <AIWorkflow />;
-                    case 'AI 실험실': return <AIStudio />;
+                    case '스킬 실험실': return <SkillsExperiment />;
                     case '즐겨찾기': return <FavoritesView setSelectedItem={setSelectedItem} />;
                     default: return <HomePage selectedGame={selectedGame} setSelectedGame={setSelectedGame} gameList={GAME_LIST} showStickySearch={showStickySearch} setSelectedItem={setSelectedItem} isLoggedIn={isLoggedIn} setShowLoginScreen={setShowLoginScreen} />;
                 }
