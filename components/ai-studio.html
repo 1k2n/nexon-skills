@@ -354,10 +354,10 @@ const AIStudio = () => {
             </div>
 
             {/* Main grid layout */}
-            <div className="flex flex-col gap-5 lg:grid lg:gap-4" style={{gridTemplateColumns: '300px 1fr 340px', gridTemplateRows: '1fr auto'}}>
+            <div className="flex flex-col gap-5">
 
                 {/* Left: Skill Browser (Connectors + Output Plugins) – spans both rows */}
-                <div className="bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm flex flex-col overflow-hidden" style={{gridRow: '1 / -1'}}>
+                <div className="bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm flex flex-col overflow-hidden">
                     {/* Tabs */}
                     <div className="flex border-b-2 border-slate-100 flex-shrink-0">
                         <button onClick={() => setActiveTab('connectors')} className={`flex-1 py-3.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-all border-b-2 -mb-[2px] ${activeTab === 'connectors' ? 'text-blue-600 border-blue-600 bg-blue-50/50' : 'text-slate-400 border-transparent hover:text-slate-600'}`}>
