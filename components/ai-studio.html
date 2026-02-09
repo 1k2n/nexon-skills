@@ -174,11 +174,11 @@ const AIStudio = () => {
                 </div>
             </div>
 
-            {/* Main 3-column layout */}
-            <div className="flex flex-col lg:flex-row gap-5">
+            {/* Main 3-column layout – items-stretch so columns match canvas height */}
+            <div className="flex flex-col lg:flex-row lg:items-stretch gap-5">
 
                 {/* Left: Connector Browser */}
-                <div className="w-full lg:w-[300px] bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm flex flex-col overflow-hidden order-2 lg:order-1 lg:max-h-[500px]">
+                <div className="w-full lg:w-[300px] bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm flex flex-col overflow-hidden order-2 lg:order-1">
                     <div className="p-5 border-b-2 border-slate-100 bg-slate-50 flex-shrink-0">
                         <div className="text-xs font-bold uppercase text-slate-400 tracking-wide flex items-center gap-2 mb-3"><Database size={14}/> 커넥터 불러오기</div>
                         <div className="relative">
@@ -357,15 +357,15 @@ const AIStudio = () => {
                             <Eye size={14}/> skill.md 확인하기 <ChevronRight size={14}/>
                         </button>
                     </div>
-                </div>
-            </div>
 
-            {/* System Prompt - full width below canvas */}
-            <div className="bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm overflow-hidden">
-                <div className="p-5 border-b-2 border-slate-100 flex items-center bg-slate-50">
-                    <span className="text-xs font-bold uppercase text-slate-400 flex items-center gap-2 tracking-wide"><Settings size={14}/> 시스템 프롬프트</span>
+                    {/* System Prompt - fills remaining vertical space */}
+                    <div className="bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm overflow-hidden flex flex-col flex-1 min-h-[140px]">
+                        <div className="p-5 border-b-2 border-slate-100 flex items-center bg-slate-50 flex-shrink-0">
+                            <span className="text-xs font-bold uppercase text-slate-400 flex items-center gap-2 tracking-wide"><Settings size={14}/> 시스템 프롬프트</span>
+                        </div>
+                        <textarea className="w-full flex-1 p-5 text-sm focus:outline-none resize-none leading-relaxed text-slate-600 font-medium" value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} placeholder="AI의 역할과 행동 지침을 정의하세요..."></textarea>
+                    </div>
                 </div>
-                <textarea className="w-full p-5 text-sm focus:outline-none resize-none leading-relaxed text-slate-600 font-medium h-32" value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} placeholder="AI의 역할과 행동 지침을 정의하세요..."></textarea>
             </div>
         </div>
     );
