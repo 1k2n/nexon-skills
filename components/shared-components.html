@@ -7,6 +7,14 @@ window.AppComponents.DomainTooltip = ({ title, domain }) => (
     </div>
 );
 
+window.AppComponents.ModalLayer = ({ onClose, children, maxWidth = 'max-w-2xl', containerClassName = '' }) => (
+    <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in" onClick={onClose}>
+        <div className={`bg-white rounded-[32px] shadow-2xl w-full ${maxWidth} overflow-hidden relative border-4 border-slate-900 ${containerClassName}`} onClick={e => e.stopPropagation()}>
+            {children}
+        </div>
+    </div>
+);
+
 window.AppComponents.NewsThumbnail = ({ category }) => {
     const getColors = () => {
         switch (category) {
