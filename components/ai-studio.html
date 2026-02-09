@@ -1,11 +1,11 @@
 const { useState, useRef, useEffect, useCallback } = window.React;
-const { Database, Box, MessageSquare, Check, Plus, Settings, X, Search, Bot, Cpu, Eye, Download, Play, Code, Layers, FileText, Globe, Terminal, Sparkles, ChevronRight, Copy, Table, BarChart, Image, FileDown, Monitor, Puzzle, Shield, Thermometer, Lightbulb } = window.LucideReact;
+const { Database, Box, MessageSquare, Check, Plus, Settings, X, Search, Bot, Cpu, Eye, Download, Play, Code, Layers, FileText, Globe, Terminal, Sparkles, ChevronRight, Copy, Table, BarChart, Image, FileDown, Monitor, Puzzle, Shield, Thermometer } = window.LucideReact;
 
 const AIStudio = () => {
     const [selectedConnectors, setSelectedConnectors] = useState([]);
     const [selectedPlugins, setSelectedPlugins] = useState([]);
     const [agentName, setAgentName] = useState('My Custom Agent');
-    const [agentInstructions, setAgentInstructions] = useState('사용자 요청을 분석하고, 연결된 커넥터와 플러그인을 활용하여 최적의 결과를 제공하는 AI 에이전트입니다.');
+    const [agentInstructions, setAgentInstructions] = useState('사용자 요청을 분석하고, 연결된 커넥터와 출력 플러그인을 활용하여 최적의 결과를 제공하는 AI 에이전트입니다.');
     const [selectedModel, setSelectedModel] = useState('gemini-3-pro');
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('전체');
@@ -13,12 +13,8 @@ const AIStudio = () => {
     const [showPreview, setShowPreview] = useState(false);
     const [copied, setCopied] = useState(false);
     const [svgLines, setSvgLines] = useState([]);
-
-    /* ---- New config states ---- */
-    const [outputFormat, setOutputFormat] = useState('markdown');
     const [temperature, setTemperature] = useState(0.7);
     const [guardrails, setGuardrails] = useState([]);
-    const [examples, setExamples] = useState(['']);
 
     const canvasRef = useRef(null);
     const cardRefs = useRef({});
@@ -34,7 +30,7 @@ const AIStudio = () => {
         { id: 'c6', name: 'Server Restart', type: 'NXCommand', icon: Terminal, endpt: 'cmd://restart-server', desc: '서버 재시작' },
     ];
 
-    const builtinPlugins = [
+    const outputPlugins = [
         { id: 'p1', name: 'PDF 문서 생성', type: 'Document', icon: FileText, desc: 'PDF 파일 동적 생성 및 다운로드', capability: 'pdf-generation' },
         { id: 'p2', name: 'XLSX 스프레드시트', type: 'Spreadsheet', icon: Table, desc: 'Excel 파일 생성·편집·내보내기', capability: 'xlsx-generation' },
         { id: 'p3', name: 'PPTX 프레젠테이션', type: 'Presentation', icon: Monitor, desc: 'PowerPoint 슬라이드 자동 생성', capability: 'pptx-generation' },
@@ -50,15 +46,6 @@ const AIStudio = () => {
         { id: 'cortex-llama', name: 'Cortex Llama', vendor: 'Snowflake', emoji: '❄️' },
     ];
 
-    const outputFormats = [
-        { id: 'markdown', label: 'Markdown' },
-        { id: 'json', label: 'JSON' },
-        { id: 'html', label: 'HTML' },
-        { id: 'plain', label: 'Plain Text' },
-        { id: 'table', label: '표 (Table)' },
-        { id: 'free', label: '자유 형식' },
-    ];
-
     const guardrailOptions = [
         '개인정보 보호', '비속어 금지', '외부 URL 차단',
         '민감정보 마스킹', '정치적 중립', '금융 조언 금지',
@@ -66,7 +53,6 @@ const AIStudio = () => {
 
     const typeFilters = ['전체', 'Private API', 'Sandbox API', 'MCP', 'RAG', 'Public API', 'NXCommand'];
     const currentModel = models.find(m => m.id === selectedModel);
-    const currentFormat = outputFormats.find(f => f.id === outputFormat);
 
     const filteredConnectors = allConnectors.filter(c =>
         (activeFilter === '전체' || c.type === activeFilter) &&
@@ -94,53 +80,50 @@ const AIStudio = () => {
         setGuardrails(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
     };
 
-    const addExample = () => {
-        if (examples.length < 3) setExamples([...examples, '']);
-    };
+    const hasItems = selectedConnectors.length > 0 || selectedPlugins.length > 0;
 
-    const updateExample = (i, val) => {
-        const updated = [...examples];
-        updated[i] = val;
-        setExamples(updated);
-    };
-
-    const removeExample = (i) => {
-        if (examples.length > 1) setExamples(examples.filter((_, idx) => idx !== i));
-    };
-
-    /* ---- Combined items for canvas ---- */
-    const canvasItems = [
-        ...selectedConnectors.map(c => ({ ...c, kind: 'connector' })),
-        ...selectedPlugins.map(p => ({ ...p, kind: 'plugin' })),
-    ];
-
-    /* ---- SVG line calculation from actual DOM positions ---- */
+    /* ---- SVG line calculation: Input→Agent→Output ---- */
     const updateLines = useCallback(() => {
-        const items = [...selectedConnectors, ...selectedPlugins];
-        if (!canvasRef.current || !agentNodeRef.current || items.length === 0) {
+        if (!canvasRef.current || !agentNodeRef.current || !hasItems) {
             setSvgLines([]);
             return;
         }
         const canvasRect = canvasRef.current.getBoundingClientRect();
         const agentRect = agentNodeRef.current.getBoundingClientRect();
-        const ex = agentRect.left - canvasRect.left;
-        const ey = agentRect.top + agentRect.height / 2 - canvasRect.top;
+        const agentCenterY = agentRect.top + agentRect.height / 2 - canvasRect.top;
 
-        const newLines = items.map(item => {
-            const el = cardRefs.current[item.id];
-            if (!el) return null;
+        const newLines = [];
+
+        /* connector.right → agent.left */
+        selectedConnectors.forEach(c => {
+            const el = cardRefs.current[c.id];
+            if (!el) return;
             const rect = el.getBoundingClientRect();
-            return {
+            newLines.push({
                 sx: rect.right - canvasRect.left,
                 sy: rect.top + rect.height / 2 - canvasRect.top,
-                ex,
-                ey,
-                kind: item.id.startsWith('p') ? 'plugin' : 'connector'
-            };
-        }).filter(Boolean);
+                ex: agentRect.left - canvasRect.left,
+                ey: agentCenterY,
+                kind: 'connector'
+            });
+        });
+
+        /* agent.right → plugin.left */
+        selectedPlugins.forEach(p => {
+            const el = cardRefs.current[p.id];
+            if (!el) return;
+            const rect = el.getBoundingClientRect();
+            newLines.push({
+                sx: agentRect.right - canvasRect.left,
+                sy: agentCenterY,
+                ex: rect.left - canvasRect.left,
+                ey: rect.top + rect.height / 2 - canvasRect.top,
+                kind: 'plugin'
+            });
+        });
 
         setSvgLines(newLines);
-    }, [selectedConnectors, selectedPlugins]);
+    }, [selectedConnectors, selectedPlugins, hasItems]);
 
     useEffect(() => {
         const frame = requestAnimationFrame(updateLines);
@@ -163,9 +146,6 @@ const AIStudio = () => {
 
     const guardrailYaml = guardrails.map(g => '  - "' + g + '"').join('\n');
 
-    const validExamples = examples.filter(e => e.trim());
-    const exampleYaml = validExamples.map(e => '  - "' + e + '"').join('\n');
-
     const skillMdContent = [
         '---',
         'name: "' + agentName + '"',
@@ -173,16 +153,13 @@ const AIStudio = () => {
         'model: ' + selectedModel,
         'version: 1.0.0',
         'status: draft',
-        'output_format: ' + outputFormat,
         'temperature: ' + temperature,
         'connectors:',
         connectorYaml || '  []',
-        'plugins:',
+        'output_plugins:',
         pluginYaml || '  []',
         'guardrails:',
         guardrailYaml || '  []',
-        'examples:',
-        exampleYaml || '  []',
         '---',
         '',
         '# ' + agentName,
@@ -192,36 +169,29 @@ const AIStudio = () => {
         agentInstructions,
         '```',
         '',
-        '## Output Format',
-        (currentFormat?.label || 'N/A'),
-        '',
-        '## Connected Skills',
+        '## Connected Skills (Input)',
         ...(selectedConnectors.length > 0
             ? selectedConnectors.map(c => '- **' + c.name + '** (`' + c.type + '`) - `' + c.endpt + '`')
             : ['(커넥터 없음)']),
         '',
-        '## Built-in Plugins',
+        '## Output Plugins',
         ...(selectedPlugins.length > 0
             ? selectedPlugins.map(p => '- **' + p.name + '** (`' + p.type + '`) - `' + p.capability + '`')
-            : ['(플러그인 없음)']),
+            : ['(출력 플러그인 없음)']),
         '',
         '## Guardrails',
         ...(guardrails.length > 0
             ? guardrails.map(g => '- ' + g)
             : ['(가드레일 없음)']),
         '',
-        ...(validExamples.length > 0
-            ? ['## Example Prompts', ...validExamples.map((e, i) => (i + 1) + '. "' + e + '"'), '']
-            : []),
         '## Model Configuration',
         '| Key | Value |',
         '|-----|-------|',
         '| Model | ' + (currentModel?.name || 'N/A') + ' |',
         '| Vendor | ' + (currentModel?.vendor || 'N/A') + ' |',
         '| Temperature | ' + temperature + ' |',
-        '| Output | ' + (currentFormat?.label || 'N/A') + ' |',
-        '| Connectors | ' + selectedConnectors.length + '개 연결됨 |',
-        '| Plugins | ' + selectedPlugins.length + '개 활성화 |',
+        '| Connectors (Input) | ' + selectedConnectors.length + '개 연결됨 |',
+        '| Output Plugins | ' + selectedPlugins.length + '개 활성화 |',
         '| Guardrails | ' + guardrails.length + '개 설정됨 |',
     ].join('\n');
 
@@ -267,7 +237,7 @@ const AIStudio = () => {
                         AI 실험실
                         <span className="hidden sm:inline text-sm font-bold text-slate-400 px-3 border-l-2 border-slate-200 uppercase tracking-widest">Skill Experiment Lab</span>
                     </h2>
-                    <p className="text-sm text-slate-500 font-medium">커넥터와 기본 플러그인을 조합하고, LLM과 결합된 에이전트를 실험 제작합니다.</p>
+                    <p className="text-sm text-slate-500 font-medium">커넥터(입력)와 출력 플러그인을 조합하고, LLM과 결합된 에이전트를 실험 제작합니다.</p>
                 </div>
                 <div className="flex gap-3 w-full lg:w-auto">
                     <button onClick={() => setShowPreview(true)} className="game-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-slate-800 transition-all shadow-[0px_4px_0px_#000] active:shadow-none active:translate-y-[4px]">
@@ -282,7 +252,7 @@ const AIStudio = () => {
             {/* Main grid layout */}
             <div className="flex flex-col gap-5 lg:grid lg:gap-4" style={{gridTemplateColumns: '300px 1fr 340px', gridTemplateRows: '1fr auto'}}>
 
-                {/* Left: Skill Browser (Connectors + Plugins) – spans both rows */}
+                {/* Left: Skill Browser (Connectors + Output Plugins) – spans both rows */}
                 <div className="bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm flex flex-col overflow-hidden" style={{gridRow: '1 / -1'}}>
                     {/* Tabs */}
                     <div className="flex border-b-2 border-slate-100 flex-shrink-0">
@@ -293,7 +263,7 @@ const AIStudio = () => {
                         </button>
                         <button onClick={() => setActiveTab('plugins')} className={`flex-1 py-3.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-all border-b-2 -mb-[2px] ${activeTab === 'plugins' ? 'text-emerald-600 border-emerald-600 bg-emerald-50/50' : 'text-slate-400 border-transparent hover:text-slate-600'}`}>
                             <Puzzle size={13}/>
-                            <span>기본 플러그인</span>
+                            <span>출력 플러그인</span>
                             {selectedPlugins.length > 0 && <span className="bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold min-w-[18px] text-center leading-none">{selectedPlugins.length}</span>}
                         </button>
                     </div>
@@ -301,7 +271,7 @@ const AIStudio = () => {
                     {activeTab === 'connectors' ? (
                         <>
                             <div className="p-5 border-b-2 border-slate-100 bg-slate-50 flex-shrink-0">
-                                <div className="text-xs font-bold uppercase text-slate-400 tracking-wide flex items-center gap-2 mb-3"><Database size={14}/> 커넥터 불러오기</div>
+                                <div className="text-xs font-bold uppercase text-slate-400 tracking-wide flex items-center gap-2 mb-3"><Database size={14}/> 커넥터 불러오기 <span className="text-blue-400 normal-case tracking-normal">Input</span></div>
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-300" size={16}/>
                                     <input type="text" className="w-full pl-9 pr-3 py-2.5 border-2 border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-500 font-medium transition-colors bg-white" placeholder="커넥터 검색..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
@@ -338,11 +308,11 @@ const AIStudio = () => {
                     ) : (
                         <>
                             <div className="p-5 border-b-2 border-slate-100 bg-emerald-50/50 flex-shrink-0">
-                                <div className="text-xs font-bold uppercase text-emerald-600 tracking-wide flex items-center gap-2 mb-1"><Puzzle size={14}/> 기본 제공 플러그인</div>
-                                <p className="text-[11px] text-slate-400 leading-relaxed">Claude Skills에서 기본 제공하는 파일 생성 및 데이터 출력 플러그인입니다.</p>
+                                <div className="text-xs font-bold uppercase text-emerald-600 tracking-wide flex items-center gap-2 mb-1"><Puzzle size={14}/> 출력 플러그인 <span className="text-emerald-400 normal-case tracking-normal">Output</span></div>
+                                <p className="text-[11px] text-slate-400 leading-relaxed">에이전트가 결과를 생성할 때 사용하는 파일 출력 플러그인입니다.</p>
                             </div>
                             <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
-                                {builtinPlugins.map(plugin => {
+                                {outputPlugins.map(plugin => {
                                     const isSelected = selectedPlugins.some(p => p.id === plugin.id);
                                     const Icon = plugin.icon;
                                     return (
@@ -365,7 +335,7 @@ const AIStudio = () => {
                     )}
 
                     {/* Selected items summary */}
-                    {(selectedConnectors.length > 0 || selectedPlugins.length > 0) && (
+                    {hasItems && (
                         <div className="p-4 border-t-2 border-slate-100 bg-slate-50 flex-shrink-0">
                             <div className="text-[10px] font-bold text-slate-300 mb-2 uppercase tracking-wide">선택됨 ({selectedConnectors.length + selectedPlugins.length})</div>
                             <div className="flex flex-wrap gap-1.5">
@@ -386,10 +356,11 @@ const AIStudio = () => {
                     )}
                 </div>
 
-                {/* Center: Canvas */}
+                {/* Center: Canvas – Input → Agent → Output flow */}
                 <div ref={canvasRef} className="bg-slate-100 rounded-[2rem] border-2 border-slate-200 shadow-inner overflow-hidden relative min-h-[380px]">
                     <div className="absolute inset-0 opacity-30 pointer-events-none" style={{backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
 
+                    {/* SVG connection lines */}
                     <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex: 5}}>
                         <defs>
                             <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -397,8 +368,8 @@ const AIStudio = () => {
                                 <stop offset="100%" stopColor="#c4b5fd"/>
                             </linearGradient>
                             <linearGradient id="pluginLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="#6ee7b7"/>
-                                <stop offset="100%" stopColor="#a7f3d0"/>
+                                <stop offset="0%" stopColor="#c4b5fd"/>
+                                <stop offset="100%" stopColor="#6ee7b7"/>
                             </linearGradient>
                         </defs>
                         {svgLines.map((line, i) => {
@@ -407,58 +378,112 @@ const AIStudio = () => {
                             return (
                                 <g key={i}>
                                     <path d={'M ' + line.sx + ' ' + line.sy + ' C ' + midX + ' ' + line.sy + ', ' + midX + ' ' + line.ey + ', ' + line.ex + ' ' + line.ey} stroke={isPlugin ? 'url(#pluginLineGrad)' : 'url(#lineGrad)'} strokeWidth="2.5" fill="none" opacity="0.5"/>
-                                    <circle cx={line.sx} cy={line.sy} r="3" fill={isPlugin ? '#6ee7b7' : '#93c5fd'}/>
+                                    <circle cx={isPlugin ? line.ex : line.sx} cy={isPlugin ? line.ey : line.sy} r="3" fill={isPlugin ? '#6ee7b7' : '#93c5fd'}/>
                                 </g>
                             );
                         })}
-                        {svgLines.length > 0 && <circle cx={svgLines[0].ex} cy={svgLines[0].ey} r="5" fill="#8b5cf6"/>}
                     </svg>
 
-                    {canvasItems.length === 0 ? (
+                    {!hasItems ? (
+                        /* Empty state: flow diagram */
                         <div className="absolute inset-0 flex flex-col items-center justify-center" style={{zIndex: 10}}>
-                            <div className="w-20 h-20 bg-white rounded-3xl border-2 border-dashed border-slate-300 flex items-center justify-center mb-4 shadow-sm">
-                                <Layers size={32} className="text-slate-300"/>
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="flex flex-col items-center gap-1.5">
+                                    <div className="w-14 h-14 bg-white rounded-2xl border-2 border-dashed border-blue-200 flex items-center justify-center shadow-sm">
+                                        <Database size={22} className="text-blue-300"/>
+                                    </div>
+                                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Input</span>
+                                </div>
+                                <ChevronRight size={18} className="text-slate-300 mt-[-16px]"/>
+                                <div className="flex flex-col items-center gap-1.5">
+                                    <div className="w-16 h-16 bg-white rounded-2xl border-2 border-dashed border-purple-200 flex items-center justify-center shadow-sm">
+                                        <Bot size={28} className="text-purple-300"/>
+                                    </div>
+                                    <span className="text-[9px] font-bold text-purple-400 uppercase tracking-wider">Agent</span>
+                                </div>
+                                <ChevronRight size={18} className="text-slate-300 mt-[-16px]"/>
+                                <div className="flex flex-col items-center gap-1.5">
+                                    <div className="w-14 h-14 bg-white rounded-2xl border-2 border-dashed border-emerald-200 flex items-center justify-center shadow-sm">
+                                        <Puzzle size={22} className="text-emerald-300"/>
+                                    </div>
+                                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">Output</span>
+                                </div>
                             </div>
                             <p className="text-slate-400 font-bold text-lg">스킬을 조합하세요</p>
-                            <p className="text-sm text-slate-300 mt-2 text-center px-8 leading-relaxed">왼쪽에서 커넥터 또는 플러그인을 선택하면<br/>에이전트와의 연결이 시각화됩니다</p>
+                            <p className="text-sm text-slate-300 mt-2 text-center px-8 leading-relaxed">왼쪽에서 커넥터(입력)와 출력 플러그인을 선택하면<br/>에이전트의 데이터 흐름이 시각화됩니다</p>
                         </div>
                     ) : (
-                        <div className="absolute inset-0 flex items-center justify-center p-6 lg:p-8" style={{zIndex: 10}}>
-                            <div className="flex flex-col gap-2.5 flex-shrink-0">
-                                {canvasItems.map((item) => {
-                                    const Icon = item.icon;
-                                    const isPlugin = item.kind === 'plugin';
-                                    return (
-                                        <div key={item.id} ref={el => { cardRefs.current[item.id] = el; }} className={`bg-white px-4 py-3 rounded-xl border-2 shadow-sm flex items-center gap-2.5 hover:shadow-md transition-all cursor-default ${isPlugin ? 'border-emerald-200 hover:border-emerald-400' : 'border-blue-200 hover:border-blue-400'}`}>
-                                            <div className={`p-1.5 rounded-lg border ${isPlugin ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
-                                                <Icon size={14} strokeWidth={2.5}/>
+                        /* Active state: Input → Agent → Output */
+                        <div className="absolute inset-0 flex items-center justify-center p-4 lg:p-6" style={{zIndex: 10}}>
+                            {/* Left: Input connectors */}
+                            {selectedConnectors.length > 0 && (
+                                <div className="flex flex-col gap-2 flex-shrink-0 items-end">
+                                    <div className="text-[9px] font-bold text-blue-400 uppercase tracking-wider text-center w-full mb-0.5">Input</div>
+                                    {selectedConnectors.map((c) => {
+                                        const Icon = c.icon;
+                                        return (
+                                            <div key={c.id} ref={el => { cardRefs.current[c.id] = el; }} className="bg-white px-3 py-2.5 rounded-xl border-2 border-blue-200 shadow-sm flex items-center gap-2 hover:border-blue-400 hover:shadow-md transition-all cursor-default">
+                                                <div className="p-1 rounded-lg bg-blue-50 text-blue-600 border border-blue-100"><Icon size={12} strokeWidth={2.5}/></div>
+                                                <div>
+                                                    <div className="text-[11px] font-bold text-slate-700 leading-tight">{c.name}</div>
+                                                    <div className="text-[8px] text-slate-400 font-mono">{c.endpt}</div>
+                                                </div>
                                             </div>
-                                            <div>
-                                                <div className="text-xs font-bold text-slate-700 leading-tight">{item.name}</div>
-                                                <div className="text-[9px] text-slate-400 font-mono">{isPlugin ? item.capability : item.endpt}</div>
-                                            </div>
-                                            {isPlugin && <span className="text-[7px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 uppercase tracking-wider">Plugin</span>}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                            <div className="w-20 lg:w-40 flex-shrink-0"></div>
-                            <div ref={agentNodeRef} className="bg-white p-5 rounded-2xl border-2 border-purple-300 shadow-lg flex-shrink-0 min-w-[160px]">
+                                        );
+                                    })}
+                                </div>
+                            )}
+
+                            {/* Spacer left */}
+                            {selectedConnectors.length > 0 && <div className="w-6 lg:w-16 flex-shrink-0"></div>}
+
+                            {/* Center: Agent Node */}
+                            <div ref={agentNodeRef} className="bg-white p-5 rounded-2xl border-2 border-purple-300 shadow-lg flex-shrink-0 min-w-[150px]">
                                 <div className="text-center">
                                     <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center text-white mb-3 shadow-md border-2 border-purple-600">
                                         <Bot size={28}/>
                                     </div>
                                     <div className="font-bold text-slate-900 text-sm">{agentName}</div>
                                     <div className="text-[10px] text-slate-400 font-bold mt-1">{currentModel?.emoji} {currentModel?.name}</div>
-                                    <div className="mt-3 pt-3 border-t border-slate-100">
-                                        <div className="text-[9px] text-slate-300 uppercase tracking-wider font-bold">연결된 스킬</div>
-                                        <div className="text-xl font-bold text-purple-600 mt-0.5">{canvasItems.length}</div>
+                                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-center gap-4">
+                                        <div className="text-center">
+                                            <div className="text-[8px] text-blue-400 uppercase tracking-wider font-bold">IN</div>
+                                            <div className="text-sm font-bold text-blue-600">{selectedConnectors.length}</div>
+                                        </div>
+                                        <div className="w-px h-6 bg-slate-200"></div>
+                                        <div className="text-center">
+                                            <div className="text-[8px] text-emerald-400 uppercase tracking-wider font-bold">OUT</div>
+                                            <div className="text-sm font-bold text-emerald-600">{selectedPlugins.length}</div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
+
+                            {/* Spacer right */}
+                            {selectedPlugins.length > 0 && <div className="w-6 lg:w-16 flex-shrink-0"></div>}
+
+                            {/* Right: Output plugins */}
+                            {selectedPlugins.length > 0 && (
+                                <div className="flex flex-col gap-2 flex-shrink-0 items-start">
+                                    <div className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider text-center w-full mb-0.5">Output</div>
+                                    {selectedPlugins.map((p) => {
+                                        const Icon = p.icon;
+                                        return (
+                                            <div key={p.id} ref={el => { cardRefs.current[p.id] = el; }} className="bg-white px-3 py-2.5 rounded-xl border-2 border-emerald-200 shadow-sm flex items-center gap-2 hover:border-emerald-400 hover:shadow-md transition-all cursor-default">
+                                                <div className="p-1 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100"><Icon size={12} strokeWidth={2.5}/></div>
+                                                <div>
+                                                    <div className="text-[11px] font-bold text-slate-700 leading-tight">{p.name}</div>
+                                                    <div className="text-[8px] text-slate-400 font-mono">{p.capability}</div>
+                                                </div>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
                     )}
 
+                    {/* Canvas footer label */}
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2" style={{zIndex: 10}}>
                         <div className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200 shadow-sm text-[10px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-2">
                             <Sparkles size={12}/> Skill Composition Canvas
@@ -489,7 +514,7 @@ const AIStudio = () => {
                     </div>
                 </div>
 
-                {/* Bottom-center: Agent Instructions (renamed from 시스템 프롬프트) */}
+                {/* Bottom-center: Agent Instructions */}
                 <div className="bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[180px]">
                     <div className="p-5 border-b-2 border-slate-100 flex items-center bg-slate-50 flex-shrink-0">
                         <span className="text-xs font-bold uppercase text-slate-400 flex items-center gap-2 tracking-wide"><Settings size={14}/> 에이전트 지침 <span className="text-slate-300 normal-case tracking-normal">Agent Instructions</span></span>
@@ -510,19 +535,15 @@ const AIStudio = () => {
                             <span className="font-bold text-white">{currentModel?.name}</span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Output</span>
-                            <span className="font-bold text-violet-400">{currentFormat?.label}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
                             <span className="text-slate-400">Temperature</span>
                             <span className="font-bold text-orange-400">{temperature}</span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Connectors</span>
+                            <span className="text-slate-400">Input (Connectors)</span>
                             <span className="font-bold text-blue-400">{selectedConnectors.length}개</span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Plugins</span>
+                            <span className="text-slate-400">Output (Plugins)</span>
                             <span className="font-bold text-emerald-400">{selectedPlugins.length}개</span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
@@ -540,22 +561,8 @@ const AIStudio = () => {
                 </div>
             </div>
 
-            {/* ============ Additional Skill Configuration ============ */}
+            {/* ============ Temperature + Guardrails ============ */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-
-                {/* 출력 형식 (Output Format) */}
-                <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm">
-                    <div className="text-xs font-bold uppercase text-slate-400 mb-4 tracking-wide flex items-center gap-2"><FileText size={14}/> 출력 형식 <span className="text-slate-300 normal-case tracking-normal">Output Format</span></div>
-                    <div className="flex flex-wrap gap-2">
-                        {outputFormats.map(f => (
-                            <button key={f.id} onClick={() => setOutputFormat(f.id)} className={`px-3.5 py-2 rounded-xl text-xs font-bold border-2 transition-all ${outputFormat === f.id ? 'bg-violet-50 text-violet-700 border-violet-500 shadow-sm' : 'bg-white text-slate-400 border-slate-200 hover:border-violet-300 hover:text-slate-600'}`}>
-                                {outputFormat === f.id && <Check size={12} className="inline mr-1" strokeWidth={3}/>}
-                                {f.label}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
                 {/* Temperature */}
                 <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm">
                     <div className="text-xs font-bold uppercase text-slate-400 mb-4 tracking-wide flex items-center gap-2"><Thermometer size={14}/> Temperature</div>
@@ -585,28 +592,6 @@ const AIStudio = () => {
                                 {g}
                             </button>
                         ))}
-                    </div>
-                </div>
-
-                {/* 예시 프롬프트 (Example Prompts) */}
-                <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm">
-                    <div className="text-xs font-bold uppercase text-slate-400 mb-1 tracking-wide flex items-center gap-2"><Lightbulb size={14}/> 예시 프롬프트 <span className="text-slate-300 normal-case tracking-normal">Few-shot Examples</span></div>
-                    <p className="text-[10px] text-slate-300 mb-4">에이전트에게 기대하는 사용 예시를 입력합니다. (최대 3개)</p>
-                    <div className="space-y-2">
-                        {examples.map((ex, i) => (
-                            <div key={i} className="flex gap-2 items-center">
-                                <span className="text-[10px] font-bold text-slate-300 w-5 text-center flex-shrink-0">{i + 1}.</span>
-                                <input type="text" value={ex} onChange={(e) => updateExample(i, e.target.value)} className="flex-1 px-3 py-2.5 border-2 border-slate-200 rounded-xl text-xs font-medium focus:outline-none focus:border-amber-500 transition-colors" placeholder="예시 프롬프트를 입력하세요..."/>
-                                {examples.length > 1 && (
-                                    <button onClick={() => removeExample(i)} className="p-1.5 hover:bg-slate-100 rounded-lg transition-colors flex-shrink-0"><X size={14} className="text-slate-300" strokeWidth={2.5}/></button>
-                                )}
-                            </div>
-                        ))}
-                        {examples.length < 3 && (
-                            <button onClick={addExample} className="w-full py-2.5 border-2 border-dashed border-slate-200 rounded-xl text-xs font-bold text-slate-400 hover:border-slate-300 hover:text-slate-500 transition-colors flex items-center justify-center gap-1.5">
-                                <Plus size={14}/> 예시 추가
-                            </button>
-                        )}
                     </div>
                 </div>
             </div>
