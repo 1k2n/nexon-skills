@@ -15,6 +15,7 @@ const AIStudio = () => {
     const [svgLines, setSvgLines] = useState([]);
     const [temperature, setTemperature] = useState(0.7);
     const [guardrails, setGuardrails] = useState([]);
+    const [zoomLevel, setZoomLevel] = useState(1);
 
     const canvasRef = useRef(null);
     const cardRefs = useRef({});
@@ -81,6 +82,9 @@ const AIStudio = () => {
     };
 
     const hasItems = selectedConnectors.length > 0 || selectedPlugins.length > 0;
+    const clampZoom = (value) => Math.min(1.6, Math.max(0.5, value));
+    const applyZoom = (delta) => setZoomLevel(current => clampZoom(current + delta));
+    const resetZoom = () => setZoomLevel(1);
 
     /* ---- SVG line calculation: Input→Agent→Output ---- */
     const updateLines = useCallback(() => {
@@ -90,7 +94,7 @@ const AIStudio = () => {
         }
         const canvasRect = canvasRef.current.getBoundingClientRect();
         const agentRect = agentNodeRef.current.getBoundingClientRect();
-        const agentCenterY = agentRect.top + agentRect.height / 2 - canvasRect.top;
+        const agentCenterY = (agentRect.top + agentRect.height / 2 - canvasRect.top) / zoomLevel;
 
         const newLines = [];
 
@@ -100,9 +104,9 @@ const AIStudio = () => {
             if (!el) return;
             const rect = el.getBoundingClientRect();
             newLines.push({
-                sx: rect.right - canvasRect.left,
-                sy: rect.top + rect.height / 2 - canvasRect.top,
-                ex: agentRect.left - canvasRect.left,
+                sx: (rect.right - canvasRect.left) / zoomLevel,
+                sy: (rect.top + rect.height / 2 - canvasRect.top) / zoomLevel,
+                ex: (agentRect.left - canvasRect.left) / zoomLevel,
                 ey: agentCenterY,
                 kind: 'connector'
             });
@@ -114,16 +118,16 @@ const AIStudio = () => {
             if (!el) return;
             const rect = el.getBoundingClientRect();
             newLines.push({
-                sx: agentRect.right - canvasRect.left,
+                sx: (agentRect.right - canvasRect.left) / zoomLevel,
                 sy: agentCenterY,
-                ex: rect.left - canvasRect.left,
-                ey: rect.top + rect.height / 2 - canvasRect.top,
+                ex: (rect.left - canvasRect.left) / zoomLevel,
+                ey: (rect.top + rect.height / 2 - canvasRect.top) / zoomLevel,
                 kind: 'plugin'
             });
         });
 
         setSvgLines(newLines);
-    }, [selectedConnectors, selectedPlugins, hasItems]);
+    }, [selectedConnectors, selectedPlugins, hasItems, zoomLevel]);
 
     useEffect(() => {
         const frame = requestAnimationFrame(updateLines);
@@ -134,6 +138,13 @@ const AIStudio = () => {
         window.addEventListener('resize', updateLines);
         return () => window.removeEventListener('resize', updateLines);
     }, [updateLines]);
+
+    const handleCanvasWheel = (e) => {
+        if (!e.ctrlKey && !e.metaKey) return;
+        e.preventDefault();
+        const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
+        setZoomLevel(current => clampZoom(current + zoomDelta));
+    };
 
     /* ---- skill.md generation ---- */
     const connectorYaml = selectedConnectors.map(c =>
@@ -357,131 +368,138 @@ const AIStudio = () => {
                 </div>
 
                 {/* Center: Canvas – Input → Agent → Output flow */}
-                <div ref={canvasRef} className="bg-slate-100 rounded-[2rem] border-2 border-slate-200 shadow-inner overflow-hidden relative min-h-[380px]">
+                <div ref={canvasRef} className="bg-slate-100 rounded-[2rem] border-2 border-slate-200 shadow-inner overflow-hidden relative min-h-[380px]" onWheel={handleCanvasWheel}>
                     <div className="absolute inset-0 opacity-30 pointer-events-none" style={{backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
+                    <div className="absolute right-4 top-4 z-30 flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 shadow-sm px-2 py-1 text-xs font-semibold text-slate-600">
+                        <button type="button" onClick={() => applyZoom(0.1)} className="w-7 h-7 rounded-full border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors">+</button>
+                        <span className="min-w-[52px] text-center">{Math.round(zoomLevel * 100)}%</span>
+                        <button type="button" onClick={() => applyZoom(-0.1)} className="w-7 h-7 rounded-full border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors">-</button>
+                        <button type="button" onClick={resetZoom} className="px-2 py-1 rounded-full border border-slate-200 text-[10px] uppercase tracking-wide text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors">Reset</button>
+                    </div>
+                    <div className="absolute inset-0" style={{ transform: `scale(${zoomLevel})`, transformOrigin: '50% 50%' }}>
+                        {/* SVG connection lines */}
+                        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex: 5}}>
+                            <defs>
+                                <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#93c5fd"/>
+                                    <stop offset="100%" stopColor="#c4b5fd"/>
+                                </linearGradient>
+                                <linearGradient id="pluginLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                    <stop offset="0%" stopColor="#c4b5fd"/>
+                                    <stop offset="100%" stopColor="#6ee7b7"/>
+                                </linearGradient>
+                            </defs>
+                            {svgLines.map((line, i) => {
+                                const midX = (line.sx + line.ex) / 2;
+                                const isPlugin = line.kind === 'plugin';
+                                return (
+                                    <g key={i}>
+                                        <path d={'M ' + line.sx + ' ' + line.sy + ' C ' + midX + ' ' + line.sy + ', ' + midX + ' ' + line.ey + ', ' + line.ex + ' ' + line.ey} stroke={isPlugin ? 'url(#pluginLineGrad)' : 'url(#lineGrad)'} strokeWidth="2.5" fill="none" opacity="0.5"/>
+                                        <circle cx={isPlugin ? line.ex : line.sx} cy={isPlugin ? line.ey : line.sy} r="3" fill={isPlugin ? '#6ee7b7' : '#93c5fd'}/>
+                                    </g>
+                                );
+                            })}
+                        </svg>
 
-                    {/* SVG connection lines */}
-                    <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex: 5}}>
-                        <defs>
-                            <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="#93c5fd"/>
-                                <stop offset="100%" stopColor="#c4b5fd"/>
-                            </linearGradient>
-                            <linearGradient id="pluginLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                <stop offset="0%" stopColor="#c4b5fd"/>
-                                <stop offset="100%" stopColor="#6ee7b7"/>
-                            </linearGradient>
-                        </defs>
-                        {svgLines.map((line, i) => {
-                            const midX = (line.sx + line.ex) / 2;
-                            const isPlugin = line.kind === 'plugin';
-                            return (
-                                <g key={i}>
-                                    <path d={'M ' + line.sx + ' ' + line.sy + ' C ' + midX + ' ' + line.sy + ', ' + midX + ' ' + line.ey + ', ' + line.ex + ' ' + line.ey} stroke={isPlugin ? 'url(#pluginLineGrad)' : 'url(#lineGrad)'} strokeWidth="2.5" fill="none" opacity="0.5"/>
-                                    <circle cx={isPlugin ? line.ex : line.sx} cy={isPlugin ? line.ey : line.sy} r="3" fill={isPlugin ? '#6ee7b7' : '#93c5fd'}/>
-                                </g>
-                            );
-                        })}
-                    </svg>
-
-                    {!hasItems ? (
-                        /* Empty state: flow diagram */
-                        <div className="absolute inset-0 flex flex-col items-center justify-center" style={{zIndex: 10}}>
-                            <div className="flex items-center gap-3 mb-6">
-                                <div className="flex flex-col items-center gap-1.5">
-                                    <div className="w-14 h-14 bg-white rounded-2xl border-2 border-dashed border-blue-200 flex items-center justify-center shadow-sm">
-                                        <Database size={22} className="text-blue-300"/>
-                                    </div>
-                                    <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Input</span>
-                                </div>
-                                <ChevronRight size={18} className="text-slate-300 mt-[-16px]"/>
-                                <div className="flex flex-col items-center gap-1.5">
-                                    <div className="w-16 h-16 bg-white rounded-2xl border-2 border-dashed border-purple-200 flex items-center justify-center shadow-sm">
-                                        <Bot size={28} className="text-purple-300"/>
-                                    </div>
-                                    <span className="text-[9px] font-bold text-purple-400 uppercase tracking-wider">Agent</span>
-                                </div>
-                                <ChevronRight size={18} className="text-slate-300 mt-[-16px]"/>
-                                <div className="flex flex-col items-center gap-1.5">
-                                    <div className="w-14 h-14 bg-white rounded-2xl border-2 border-dashed border-emerald-200 flex items-center justify-center shadow-sm">
-                                        <Puzzle size={22} className="text-emerald-300"/>
-                                    </div>
-                                    <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">Output</span>
-                                </div>
-                            </div>
-                            <p className="text-slate-400 font-bold text-lg">스킬을 조합하세요</p>
-                            <p className="text-sm text-slate-300 mt-2 text-center px-8 leading-relaxed">왼쪽에서 커넥터(입력)와 출력 플러그인을 선택하면<br/>에이전트의 데이터 흐름이 시각화됩니다</p>
-                        </div>
-                    ) : (
-                        /* Active state: Input → Agent → Output */
-                        <div className="absolute inset-0 flex items-center justify-center p-4 lg:p-6" style={{zIndex: 10}}>
-                            {/* Left: Input connectors */}
-                            {selectedConnectors.length > 0 && (
-                                <div className="flex flex-col gap-2 flex-shrink-0 items-end">
-                                    <div className="text-[9px] font-bold text-blue-400 uppercase tracking-wider text-center w-full mb-0.5">Input</div>
-                                    {selectedConnectors.map((c) => {
-                                        const Icon = c.icon;
-                                        return (
-                                            <div key={c.id} ref={el => { cardRefs.current[c.id] = el; }} className="bg-white px-3 py-2.5 rounded-xl border-2 border-blue-200 shadow-sm flex items-center gap-2 hover:border-blue-400 hover:shadow-md transition-all cursor-default">
-                                                <div className="p-1 rounded-lg bg-blue-50 text-blue-600 border border-blue-100"><Icon size={12} strokeWidth={2.5}/></div>
-                                                <div>
-                                                    <div className="text-[11px] font-bold text-slate-700 leading-tight">{c.name}</div>
-                                                    <div className="text-[8px] text-slate-400 font-mono">{c.endpt}</div>
-                                                </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-
-                            {/* Spacer left */}
-                            {selectedConnectors.length > 0 && <div className="w-6 lg:w-16 flex-shrink-0"></div>}
-
-                            {/* Center: Agent Node */}
-                            <div ref={agentNodeRef} className="bg-white p-5 rounded-2xl border-2 border-purple-300 shadow-lg flex-shrink-0 min-w-[150px]">
-                                <div className="text-center">
-                                    <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center text-white mb-3 shadow-md border-2 border-purple-600">
-                                        <Bot size={28}/>
-                                    </div>
-                                    <div className="font-bold text-slate-900 text-sm">{agentName}</div>
-                                    <div className="text-[10px] text-slate-400 font-bold mt-1">{currentModel?.emoji} {currentModel?.name}</div>
-                                    <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-center gap-4">
-                                        <div className="text-center">
-                                            <div className="text-[8px] text-blue-400 uppercase tracking-wider font-bold">IN</div>
-                                            <div className="text-sm font-bold text-blue-600">{selectedConnectors.length}</div>
+                        {!hasItems ? (
+                            /* Empty state: flow diagram */
+                            <div className="absolute inset-0 flex flex-col items-center justify-center" style={{zIndex: 10}}>
+                                <div className="flex items-center gap-3 mb-6">
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        <div className="w-14 h-14 bg-white rounded-2xl border-2 border-dashed border-blue-200 flex items-center justify-center shadow-sm">
+                                            <Database size={22} className="text-blue-300"/>
                                         </div>
-                                        <div className="w-px h-6 bg-slate-200"></div>
-                                        <div className="text-center">
-                                            <div className="text-[8px] text-emerald-400 uppercase tracking-wider font-bold">OUT</div>
-                                            <div className="text-sm font-bold text-emerald-600">{selectedPlugins.length}</div>
+                                        <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Input</span>
+                                    </div>
+                                    <ChevronRight size={18} className="text-slate-300 mt-[-16px]"/>
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        <div className="w-16 h-16 bg-white rounded-2xl border-2 border-dashed border-purple-200 flex items-center justify-center shadow-sm">
+                                            <Bot size={28} className="text-purple-300"/>
+                                        </div>
+                                        <span className="text-[9px] font-bold text-purple-400 uppercase tracking-wider">Agent</span>
+                                    </div>
+                                    <ChevronRight size={18} className="text-slate-300 mt-[-16px]"/>
+                                    <div className="flex flex-col items-center gap-1.5">
+                                        <div className="w-14 h-14 bg-white rounded-2xl border-2 border-dashed border-emerald-200 flex items-center justify-center shadow-sm">
+                                            <Puzzle size={22} className="text-emerald-300"/>
+                                        </div>
+                                        <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">Output</span>
+                                    </div>
+                                </div>
+                                <p className="text-slate-400 font-bold text-lg">스킬을 조합하세요</p>
+                                <p className="text-sm text-slate-300 mt-2 text-center px-8 leading-relaxed">왼쪽에서 커넥터(입력)와 출력 플러그인을 선택하면<br/>에이전트의 데이터 흐름이 시각화됩니다</p>
+                            </div>
+                        ) : (
+                            /* Active state: Input → Agent → Output */
+                            <div className="absolute inset-0 flex items-center justify-center p-4 lg:p-6" style={{zIndex: 10}}>
+                                {/* Left: Input connectors */}
+                                {selectedConnectors.length > 0 && (
+                                    <div className="flex flex-col gap-2 flex-shrink-0 items-end">
+                                        <div className="text-[9px] font-bold text-blue-400 uppercase tracking-wider text-center w-full mb-0.5">Input</div>
+                                        {selectedConnectors.map((c) => {
+                                            const Icon = c.icon;
+                                            return (
+                                                <div key={c.id} ref={el => { cardRefs.current[c.id] = el; }} className="bg-white px-3 py-2.5 rounded-xl border-2 border-blue-200 shadow-sm flex items-center gap-2 hover:border-blue-400 hover:shadow-md transition-all cursor-default">
+                                                    <div className="p-1 rounded-lg bg-blue-50 text-blue-600 border border-blue-100"><Icon size={12} strokeWidth={2.5}/></div>
+                                                    <div>
+                                                        <div className="text-[11px] font-bold text-slate-700 leading-tight">{c.name}</div>
+                                                        <div className="text-[8px] text-slate-400 font-mono">{c.endpt}</div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                {/* Spacer left */}
+                                {selectedConnectors.length > 0 && <div className="w-6 lg:w-16 flex-shrink-0"></div>}
+
+                                {/* Center: Agent Node */}
+                                <div ref={agentNodeRef} className="bg-white p-5 rounded-2xl border-2 border-purple-300 shadow-lg flex-shrink-0 min-w-[150px]">
+                                    <div className="text-center">
+                                        <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center text-white mb-3 shadow-md border-2 border-purple-600">
+                                            <Bot size={28}/>
+                                        </div>
+                                        <div className="font-bold text-slate-900 text-sm">{agentName}</div>
+                                        <div className="text-[10px] text-slate-400 font-bold mt-1">{currentModel?.emoji} {currentModel?.name}</div>
+                                        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-center gap-4">
+                                            <div className="text-center">
+                                                <div className="text-[8px] text-blue-400 uppercase tracking-wider font-bold">IN</div>
+                                                <div className="text-sm font-bold text-blue-600">{selectedConnectors.length}</div>
+                                            </div>
+                                            <div className="w-px h-6 bg-slate-200"></div>
+                                            <div className="text-center">
+                                                <div className="text-[8px] text-emerald-400 uppercase tracking-wider font-bold">OUT</div>
+                                                <div className="text-sm font-bold text-emerald-600">{selectedPlugins.length}</div>
+                                            </div>
                                         </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            {/* Spacer right */}
-                            {selectedPlugins.length > 0 && <div className="w-6 lg:w-16 flex-shrink-0"></div>}
+                                {/* Spacer right */}
+                                {selectedPlugins.length > 0 && <div className="w-6 lg:w-16 flex-shrink-0"></div>}
 
-                            {/* Right: Output plugins */}
-                            {selectedPlugins.length > 0 && (
-                                <div className="flex flex-col gap-2 flex-shrink-0 items-start">
-                                    <div className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider text-center w-full mb-0.5">Output</div>
-                                    {selectedPlugins.map((p) => {
-                                        const Icon = p.icon;
-                                        return (
-                                            <div key={p.id} ref={el => { cardRefs.current[p.id] = el; }} className="bg-white px-3 py-2.5 rounded-xl border-2 border-emerald-200 shadow-sm flex items-center gap-2 hover:border-emerald-400 hover:shadow-md transition-all cursor-default">
-                                                <div className="p-1 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100"><Icon size={12} strokeWidth={2.5}/></div>
-                                                <div>
-                                                    <div className="text-[11px] font-bold text-slate-700 leading-tight">{p.name}</div>
-                                                    <div className="text-[8px] text-slate-400 font-mono">{p.capability}</div>
+                                {/* Right: Output plugins */}
+                                {selectedPlugins.length > 0 && (
+                                    <div className="flex flex-col gap-2 flex-shrink-0 items-start">
+                                        <div className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider text-center w-full mb-0.5">Output</div>
+                                        {selectedPlugins.map((p) => {
+                                            const Icon = p.icon;
+                                            return (
+                                                <div key={p.id} ref={el => { cardRefs.current[p.id] = el; }} className="bg-white px-3 py-2.5 rounded-xl border-2 border-emerald-200 shadow-sm flex items-center gap-2 hover:border-emerald-400 hover:shadow-md transition-all cursor-default">
+                                                    <div className="p-1 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100"><Icon size={12} strokeWidth={2.5}/></div>
+                                                    <div>
+                                                        <div className="text-[11px] font-bold text-slate-700 leading-tight">{p.name}</div>
+                                                        <div className="text-[8px] text-slate-400 font-mono">{p.capability}</div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                        );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    )}
+                                            );
+                                        })}
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                    </div>
 
                     {/* Canvas footer label */}
                     <div className="absolute bottom-4 left-1/2 -translate-x-1/2" style={{zIndex: 10}}>
