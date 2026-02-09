@@ -1,5 +1,6 @@
 const { useState, useRef, useEffect, useCallback } = window.React;
 const { Database, Box, MessageSquare, Check, Plus, Settings, X, Search, Bot, Cpu, Eye, Download, Play, Code, Layers, FileText, Globe, Terminal, Sparkles, ChevronRight, Copy, Table, BarChart, Image, FileDown, Monitor, Puzzle, Shield, Thermometer } = window.LucideReact;
+const { ModalLayer } = window.AppComponents;
 
 const AIStudio = () => {
     const [selectedConnectors, setSelectedConnectors] = useState([]);
@@ -16,6 +17,7 @@ const AIStudio = () => {
     const [temperature, setTemperature] = useState(0.7);
     const [guardrails, setGuardrails] = useState([]);
     const [zoomLevel, setZoomLevel] = useState(1);
+    const [outputFormat, setOutputFormat] = useState('skillmd');
 
     const canvasRef = useRef(null);
     const cardRefs = useRef({});
@@ -180,7 +182,7 @@ const AIStudio = () => {
         agentInstructions,
         '```',
         '',
-        '## Connected Skills (Input)',
+        '## Connected Skills (Connectors)',
         ...(selectedConnectors.length > 0
             ? selectedConnectors.map(c => '- **' + c.name + '** (`' + c.type + '`) - `' + c.endpt + '`')
             : ['(커넥터 없음)']),
@@ -201,23 +203,104 @@ const AIStudio = () => {
         '| Model | ' + (currentModel?.name || 'N/A') + ' |',
         '| Vendor | ' + (currentModel?.vendor || 'N/A') + ' |',
         '| Temperature | ' + temperature + ' |',
-        '| Connectors (Input) | ' + selectedConnectors.length + '개 연결됨 |',
+        '| Connectors | ' + selectedConnectors.length + '개 연결됨 |',
         '| Output Plugins | ' + selectedPlugins.length + '개 활성화 |',
         '| Guardrails | ' + guardrails.length + '개 설정됨 |',
     ].join('\n');
 
+    const claudeSkillContent = [
+        '# Claude Skill Spec (YAML)',
+        'name: "' + agentName + '"',
+        'description: "' + agentInstructions + '"',
+        'model: "' + selectedModel + '"',
+        'tools:',
+        ...(selectedConnectors.length > 0
+            ? selectedConnectors.map(c => `  - name: ${c.id}\n    description: ${c.name} (${c.type}) - ${c.desc}\n    input_schema:\n      type: object\n      properties:\n        query:\n          type: string\n          description: ${c.endpt}`)
+            : ['  []']),
+        '',
+        '# Output Plugins (reference)',
+        ...(selectedPlugins.length > 0
+            ? selectedPlugins.map(p => `- ${p.name}: ${p.capability}`)
+            : ['- (출력 플러그인 없음)']),
+    ].join('\n');
+
+    const openAiToolContent = [
+        '# OpenAI Tool Schema (JSON)',
+        JSON.stringify({
+            name: agentName,
+            description: agentInstructions,
+            model: selectedModel,
+            tools: selectedConnectors.map(c => ({
+                type: 'function',
+                function: {
+                    name: c.id,
+                    description: `${c.name} (${c.type}) - ${c.desc}`,
+                    parameters: {
+                        type: 'object',
+                        properties: {
+                            query: {
+                                type: 'string',
+                                description: c.endpt,
+                            },
+                        },
+                        required: ['query'],
+                    },
+                },
+            })),
+            output_plugins: selectedPlugins.map(p => ({
+                name: p.name,
+                capability: p.capability,
+            })),
+            guardrails,
+        }, null, 2),
+    ].join('\n');
+
+    const geminiFunctionContent = [
+        '# Gemini Function Declarations (JSON)',
+        JSON.stringify({
+            agent: agentName,
+            model: selectedModel,
+            instructions: agentInstructions,
+            function_declarations: selectedConnectors.map(c => ({
+                name: c.id,
+                description: `${c.name} (${c.type}) - ${c.desc}`,
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        query: {
+                            type: 'string',
+                            description: c.endpt,
+                        },
+                    },
+                    required: ['query'],
+                },
+            })),
+            output_plugins: selectedPlugins.map(p => ({
+                name: p.name,
+                capability: p.capability,
+            })),
+            guardrails,
+        }, null, 2),
+    ].join('\n');
+
+    const outputContent = () => {
+        if (outputFormat === 'claude') return claudeSkillContent;
+        if (outputFormat === 'openai') return openAiToolContent;
+        if (outputFormat === 'gemini') return geminiFunctionContent;
+        return skillMdContent;
+    };
+
     const handleCopy = () => {
-        navigator.clipboard.writeText(skillMdContent).catch(() => {});
+        navigator.clipboard.writeText(outputContent()).catch(() => {});
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
 
     return (
-        <div className="space-y-5 animate-in">
+        <>
             {/* skill.md Preview Modal */}
             {showPreview && (
-                <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in" onClick={() => setShowPreview(false)}>
-                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border-4 border-slate-900" onClick={e => e.stopPropagation()}>
+                <ModalLayer onClose={() => setShowPreview(false)} maxWidth="max-w-2xl">
                         <div className="flex items-center justify-between px-6 py-4 border-b-2 border-slate-100 bg-slate-50">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-purple-100 text-purple-600 rounded-xl border border-purple-200"><Code size={18} strokeWidth={2.5}/></div>
@@ -228,8 +311,30 @@ const AIStudio = () => {
                             </div>
                             <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-slate-200 rounded-xl transition-colors"><X size={20} className="text-slate-400" strokeWidth={3}/></button>
                         </div>
+                        <div className="px-6 pt-5">
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { id: 'skillmd', label: 'skill.md' },
+                                    { id: 'claude', label: 'Claude Skill' },
+                                    { id: 'openai', label: 'OpenAI Tool' },
+                                    { id: 'gemini', label: 'Gemini Function' },
+                                ].map(format => (
+                                    <button
+                                        key={format.id}
+                                        onClick={() => { setOutputFormat(format.id); setCopied(false); }}
+                                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${
+                                            outputFormat === format.id
+                                                ? 'bg-slate-900 text-white border-slate-900'
+                                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                                        }`}
+                                    >
+                                        {format.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                         <div className="p-6 max-h-[60vh] overflow-y-auto">
-                            <pre className="bg-slate-900 text-slate-100 p-6 rounded-2xl text-sm font-mono leading-relaxed whitespace-pre-wrap border-2 border-slate-800">{skillMdContent}</pre>
+                            <pre className="bg-slate-900 text-slate-100 p-6 rounded-2xl text-sm font-mono leading-relaxed whitespace-pre-wrap border-2 border-slate-800">{outputContent()}</pre>
                         </div>
                         <div className="px-6 py-4 border-t-2 border-slate-100 bg-slate-50 flex justify-end gap-3">
                             <button onClick={handleCopy} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-xl transition-colors flex items-center gap-2 border border-slate-200">
@@ -237,18 +342,18 @@ const AIStudio = () => {
                             </button>
                             <button className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm flex items-center gap-2"><Download size={16}/> 다운로드</button>
                         </div>
-                    </div>
-                </div>
+                </ModalLayer>
             )}
 
-            {/* Header */}
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-sm gap-4">
+            <div className="space-y-5 animate-in">
+                {/* Header */}
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-sm gap-4">
                 <div className="flex flex-col gap-2">
                     <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
                         AI 실험실
                         <span className="hidden sm:inline text-sm font-bold text-slate-400 px-3 border-l-2 border-slate-200 uppercase tracking-widest">Skill Experiment Lab</span>
                     </h2>
-                    <p className="text-sm text-slate-500 font-medium">커넥터(입력)와 출력 플러그인을 조합하고, LLM과 결합된 에이전트를 실험 제작합니다.</p>
+                    <p className="text-sm text-slate-500 font-medium">커넥터(입·출력)와 출력 플러그인을 조합하고, LLM과 결합된 에이전트를 실험 제작합니다.</p>
                 </div>
                 <div className="flex gap-3 w-full lg:w-auto">
                     <button onClick={() => setShowPreview(true)} className="game-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-slate-800 transition-all shadow-[0px_4px_0px_#000] active:shadow-none active:translate-y-[4px]">
@@ -282,7 +387,7 @@ const AIStudio = () => {
                     {activeTab === 'connectors' ? (
                         <>
                             <div className="p-5 border-b-2 border-slate-100 bg-slate-50 flex-shrink-0">
-                                <div className="text-xs font-bold uppercase text-slate-400 tracking-wide flex items-center gap-2 mb-3"><Database size={14}/> 커넥터 불러오기 <span className="text-blue-400 normal-case tracking-normal">Input</span></div>
+                                <div className="text-xs font-bold uppercase text-slate-400 tracking-wide flex items-center gap-2 mb-3"><Database size={14}/> 커넥터 불러오기 <span className="text-blue-400 normal-case tracking-normal">Input/Output</span></div>
                                 <div className="relative">
                                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-300" size={16}/>
                                     <input type="text" className="w-full pl-9 pr-3 py-2.5 border-2 border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-500 font-medium transition-colors bg-white" placeholder="커넥터 검색..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
@@ -409,7 +514,7 @@ const AIStudio = () => {
                                         <div className="w-14 h-14 bg-white rounded-2xl border-2 border-dashed border-blue-200 flex items-center justify-center shadow-sm">
                                             <Database size={22} className="text-blue-300"/>
                                         </div>
-                                        <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Input</span>
+                                        <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Connector</span>
                                     </div>
                                     <ChevronRight size={18} className="text-slate-300 mt-[-16px]"/>
                                     <div className="flex flex-col items-center gap-1.5">
@@ -427,7 +532,7 @@ const AIStudio = () => {
                                     </div>
                                 </div>
                                 <p className="text-slate-400 font-bold text-lg">스킬을 조합하세요</p>
-                                <p className="text-sm text-slate-300 mt-2 text-center px-8 leading-relaxed">왼쪽에서 커넥터(입력)와 출력 플러그인을 선택하면<br/>에이전트의 데이터 흐름이 시각화됩니다</p>
+                                <p className="text-sm text-slate-300 mt-2 text-center px-8 leading-relaxed">왼쪽에서 커넥터(입·출력)와 출력 플러그인을 선택하면<br/>에이전트의 데이터 흐름이 시각화됩니다</p>
                             </div>
                         ) : (
                             /* Active state: Input → Agent → Output */
@@ -435,7 +540,7 @@ const AIStudio = () => {
                                 {/* Left: Input connectors */}
                                 {selectedConnectors.length > 0 && (
                                     <div className="flex flex-col gap-2 flex-shrink-0 items-end">
-                                        <div className="text-[9px] font-bold text-blue-400 uppercase tracking-wider text-center w-full mb-0.5">Input</div>
+                                        <div className="text-[9px] font-bold text-blue-400 uppercase tracking-wider text-center w-full mb-0.5">Connector</div>
                                         {selectedConnectors.map((c) => {
                                             const Icon = c.icon;
                                             return (
@@ -464,7 +569,7 @@ const AIStudio = () => {
                                         <div className="text-[10px] text-slate-400 font-bold mt-1">{currentModel?.emoji} {currentModel?.name}</div>
                                         <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-center gap-4">
                                             <div className="text-center">
-                                                <div className="text-[8px] text-blue-400 uppercase tracking-wider font-bold">IN</div>
+                                                <div className="text-[8px] text-blue-400 uppercase tracking-wider font-bold">CONN</div>
                                                 <div className="text-sm font-bold text-blue-600">{selectedConnectors.length}</div>
                                             </div>
                                             <div className="w-px h-6 bg-slate-200"></div>
@@ -557,7 +662,7 @@ const AIStudio = () => {
                             <span className="font-bold text-orange-400">{temperature}</span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Input (Connectors)</span>
+                            <span className="text-slate-400">Connectors</span>
                             <span className="font-bold text-blue-400">{selectedConnectors.length}개</span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
@@ -579,8 +684,8 @@ const AIStudio = () => {
                 </div>
             </div>
 
-            {/* ============ Temperature + Guardrails ============ */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* ============ Temperature + Guardrails ============ */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Temperature */}
                 <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm">
                     <div className="text-xs font-bold uppercase text-slate-400 mb-4 tracking-wide flex items-center gap-2"><Thermometer size={14}/> Temperature</div>
@@ -612,8 +717,9 @@ const AIStudio = () => {
                         ))}
                     </div>
                 </div>
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 
