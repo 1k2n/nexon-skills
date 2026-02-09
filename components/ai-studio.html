@@ -1,95 +1,332 @@
-const { useState, useEffect, useRef } = window.React;
-const { Database, Box, MessageSquare, Check, Plus, Settings, Mic, ArrowRight, Image, Video, Maximize2, X, Sparkles } = window.LucideReact;
+const { useState } = window.React;
+const { Database, Box, MessageSquare, Check, Plus, Settings, X, Search, Bot, Cpu, Eye, Download, Play, Code, Layers, FileText, Globe, Terminal, Sparkles, ChevronRight, Copy } = window.LucideReact;
 
 const AIStudio = () => {
-            const [connectedTools, setConnectedTools] = useState([]);
-            const [input, setInput] = useState('');
-            const [messages, setMessages] = useState([ { id: 1, role: 'user', type: 'text', content: '이 제품 디자인의 개선점을 분석하고, 더 모던한 스타일로 변형해줘.', hasImage: true }, { id: 2, role: 'ai', type: 'text', content: '업로드하신 디자인은 미니멀하지만, 색상 대비가 부족하여 시인성이 낮습니다. 다음과 같이 개선을 제안합니다:\n\n• 메인 액션 버튼에 강조색(Accent Color) 적용\n• 모서리 라운딩(Radius)을 24px로 증가\n• 그림자(Shadow) 심도를 낮춰 플랫한 느낌 강화\n\n제안 사항을 반영하여 생성한 시안입니다.', hasResultImage: true } ]);
-            const [isTyping, setIsTyping] = useState(false);
-            const chatScrollRef = useRef(null);
-            const availableConnectors = [ { id: 'c1', name: 'Nexon User API', type: 'Private API', icon: Database }, { id: 'c2', name: 'Maple Inventory', type: 'Sandbox API', icon: Box }, { id: 'c3', name: 'Slack Notifier', type: 'MCP', icon: MessageSquare } ];
-            const toggleTool = (tool) => { if (connectedTools.some(t => t.id === tool.id)) { setConnectedTools(prev => prev.filter(t => t.id !== tool.id)); } else { setConnectedTools(prev => [...prev, tool]); } };
-            useEffect(() => {
-                if (!chatScrollRef.current) return;
-                chatScrollRef.current.scrollTop = chatScrollRef.current.scrollHeight;
-            }, [messages, isTyping]);
-            const modeConfig = {
-                title: '통합 멀티모달',
-                description: '이미지, 비디오, 텍스트 요청을 한 곳에서 처리합니다.',
-                placeholder: "텍스트·이미지·비디오 요청을 입력하거나 '/'를 눌러 명령어를 실행하세요...",
-                actions: [
-                    { label: '이미지 업로드', icon: Image },
-                    { label: '비디오 업로드', icon: Video },
-                    { label: '스타일 프리셋', icon: Settings },
-                    { label: '하이라이트 추출', icon: Sparkles }
-                ]
-            };
-            const handleSend = () => { if (!input.trim()) return; const userMsg = { id: Date.now(), role: 'user', type: 'multimodal', content: input }; setMessages(prev => [...prev, userMsg]); setInput(''); setIsTyping(true); setTimeout(() => { const aiMsg = { id: Date.now() + 1, role: 'ai', type: 'multimodal', content: `"${userMsg.content}"에 대한 요청을 처리했습니다.\n추가적인 수정 사항이 있으신가요?` }; setMessages(prev => [...prev, aiMsg]); setIsTyping(false); }, 1500); };
-            const handleKeyDown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
+    const [selectedConnectors, setSelectedConnectors] = useState([]);
+    const [agentName, setAgentName] = useState('My Custom Agent');
+    const [systemPrompt, setSystemPrompt] = useState('사용자 요청을 분석하고, 연결된 커넥터를 활용하여 최적의 결과를 제공하는 AI 에이전트입니다.');
+    const [selectedModel, setSelectedModel] = useState('gemini-3-pro');
+    const [searchQuery, setSearchQuery] = useState('');
+    const [activeFilter, setActiveFilter] = useState('전체');
+    const [showPreview, setShowPreview] = useState(false);
+    const [copied, setCopied] = useState(false);
 
-            return (
-                <div className="space-y-6 animate-in h-auto lg:h-[calc(100vh-200px)] flex flex-col">
-                    <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-sm gap-6">
-                        <div className="flex flex-col gap-2">
-                            <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">AI 실험실 <span className="hidden sm:inline text-sm font-bold text-slate-400 px-3 border-l-2 border-slate-200 uppercase tracking-widest">Unified Multimodal</span></h2>
-                            <p className="text-sm text-slate-500 font-medium">{modeConfig.description}</p>
-                        </div>
-                        <div className="flex flex-col sm:flex-row gap-3 w-full lg:w-auto">
-                            <div className="flex flex-wrap gap-2 w-full sm:w-auto">
-                                {modeConfig.actions.map(action => (
-                                    <button key={action.label} className="text-xs font-bold text-slate-600 hover:text-slate-900 flex items-center gap-1.5 bg-slate-100 px-3 py-2 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors w-full sm:w-auto justify-center">
-                                        <action.icon size={14} /> {action.label}
-                                    </button>
-                                ))}
-                            </div>
-                            <select className="bg-slate-50 border-2 border-slate-200 rounded-xl px-5 py-2.5 text-sm font-bold focus:ring-0 focus:border-blue-500 outline-none w-full sm:w-auto text-slate-700 cursor-pointer hover:border-blue-300 transition-colors"><option>Gemini 3 Pro (Multimodal)</option><option>GPT-4o</option><option>Claude 3.6 Opus</option></select>
-                        </div>
-                    </div>
-                    <div className="flex-1 flex flex-col lg:flex-row gap-6 overflow-hidden">
-                        <div className="w-full lg:flex-1 bg-slate-100 rounded-[2rem] border-2 border-slate-200 flex flex-col shadow-inner overflow-hidden relative min-h-[420px] order-1">
-                             <div ref={chatScrollRef} className="flex-1 p-6 space-y-8 overflow-y-auto no-scrollbar">
-                                {messages.map((msg, index) => (
-                                    <div key={msg.id} className={`flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'} animate-in`}>
-                                        <div className={`flex flex-col ${msg.role === 'user' ? 'items-end' : 'items-start'} gap-2 max-w-[85%]`}>
-                                            {msg.role === 'ai' && (<div className="flex items-center gap-2 mb-1"><div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white shadow-sm">AI</div><span className="text-xs font-bold text-slate-500">Gemini</span></div>)}
-                                            {msg.hasImage && (<div className="bg-white p-2 rounded-2xl border-2 border-slate-200 shadow-sm"><div className="w-48 h-32 bg-slate-100 rounded-xl flex items-center justify-center text-slate-300 mb-2 border-2 border-dashed border-slate-200"><Image size={32}/></div></div>)}
-                                            <div className={`px-6 py-4 rounded-[20px] text-sm shadow-sm whitespace-pre-wrap font-medium leading-relaxed ${msg.role === 'user' ? 'bg-slate-900 text-white rounded-tr-none shadow-[0px_4px_0px_rgba(0,0,0,0.1)]' : 'bg-white border-2 border-slate-200 text-slate-700 rounded-tl-none shadow-[0px_4px_0px_#e2e8f0]'}`}>
-                                                {msg.content}
-                                            </div>
-                                            {msg.hasResultImage && (<div className="bg-white p-3 rounded-3xl border-2 border-slate-200 shadow-sm mt-2 group cursor-pointer relative overflow-hidden hover:scale-[1.02] transition-transform"><div className="w-72 h-48 bg-gradient-to-br from-indigo-50 to-blue-50 rounded-2xl flex items-center justify-center border-2 border-slate-100"><svg viewBox="0 0 100 100" className="w-full h-full p-8 opacity-50"><rect x="20" y="20" width="60" height="60" rx="16" fill="#4F46E5" opacity="0.2"/><circle cx="70" cy="30" r="5" fill="#4F46E5"/><rect x="30" y="40" width="40" height="6" rx="3" fill="#4F46E5" opacity="0.6"/><rect x="30" y="54" width="30" height="6" rx="3" fill="#4F46E5" opacity="0.4"/><rect x="30" y="70" width="20" height="8" rx="4" fill="#4F46E5"/></svg></div><div className="absolute inset-0 bg-black/10 group-hover:bg-black/20 transition-colors flex items-center justify-center opacity-0 group-hover:opacity-100"><div className="bg-white/90 p-3 rounded-full shadow-lg backdrop-blur-sm"><Maximize2 className="text-slate-900" size={24}/></div></div></div>)}
-                                        </div>
-                                    </div>
-                                ))}
-                                {isTyping && (<div className="flex justify-start animate-in fade-in"><div className="flex flex-col items-start gap-2"><div className="flex items-center gap-2 mb-1"><div className="w-8 h-8 rounded-xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-[10px] font-bold border-2 border-white shadow-sm">AI</div><span className="text-xs font-bold text-slate-500">Gemini</span></div><div className="bg-white border-2 border-slate-200 px-5 py-4 rounded-[20px] rounded-tl-none text-sm shadow-sm flex items-center gap-1.5"><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce"></div><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '150ms'}}></div><div className="w-2 h-2 bg-slate-400 rounded-full animate-bounce" style={{animationDelay: '300ms'}}></div></div></div></div>)}
-                             </div>
-                             <div className="p-5 bg-white border-t-2 border-slate-200">
-                                <div className="relative"><textarea rows="1" value={input} onChange={(e) => setInput(e.target.value)} onKeyDown={handleKeyDown} className="w-full bg-slate-50 border-2 border-slate-200 rounded-2xl pl-5 pr-14 py-4 text-sm focus:outline-none focus:border-blue-500 focus:bg-white resize-none font-medium transition-all shadow-inner" placeholder={modeConfig.placeholder}></textarea><div className="absolute right-3 top-1/2 transform -translate-y-1/2 flex items-center gap-2"><button className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition-colors"><Mic size={20}/></button><button onClick={handleSend} className="p-2 bg-slate-900 text-white rounded-xl hover:bg-slate-800 transition-colors shadow-md hover:scale-105 active:scale-95"><ArrowRight size={20} strokeWidth={3}/></button></div></div>
-                                <div className="flex items-center gap-4 mt-4 px-2">
-                                    {modeConfig.actions.map(action => (
-                                        <button key={action.label} className="text-xs font-bold text-slate-500 hover:text-slate-900 flex items-center gap-1.5 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200 hover:border-slate-300 transition-colors">
-                                            <action.icon size={14} /> {action.label}
-                                        </button>
-                                    ))}
-                                    <div className="flex-1"></div><span className="text-[10px] text-slate-300 font-bold uppercase tracking-wide">Shift + Enter for new line</span>
+    const allConnectors = [
+        { id: 'c1', name: 'Nexon User API', type: 'Private API', icon: Database, endpt: '/api/v1/user', desc: '넥슨 사용자 정보 조회' },
+        { id: 'c2', name: 'Maple Inventory', type: 'Sandbox API', icon: Box, endpt: '/sandbox/maple/inv', desc: '메이플 인벤토리' },
+        { id: 'c3', name: 'Slack Notifier', type: 'MCP', icon: MessageSquare, endpt: 'mcp://slack-bot', desc: '슬랙 메시지 전송' },
+        { id: 'c4', name: 'Internal Wiki RAG', type: 'RAG', icon: FileText, endpt: 'vec://wiki-prod', desc: '사내 위키 검색' },
+        { id: 'c5', name: 'Global Weather', type: 'Public API', icon: Globe, endpt: 'api.weather.com', desc: '날씨 정보 조회' },
+        { id: 'c6', name: 'Server Restart', type: 'NXCommand', icon: Terminal, endpt: 'cmd://restart-server', desc: '서버 재시작' },
+    ];
+
+    const models = [
+        { id: 'gemini-3-pro', name: 'Gemini 3 Pro', vendor: 'Google', emoji: '✨' },
+        { id: 'gpt-4o', name: 'GPT-4o', vendor: 'OpenAI', emoji: '🟢' },
+        { id: 'claude-3.6-opus', name: 'Claude 3.6 Opus', vendor: 'Anthropic', emoji: '🧠' },
+        { id: 'cortex-llama', name: 'Cortex Llama', vendor: 'Snowflake', emoji: '❄️' },
+    ];
+
+    const typeFilters = ['전체', 'Private API', 'Sandbox API', 'MCP', 'RAG', 'Public API', 'NXCommand'];
+    const currentModel = models.find(m => m.id === selectedModel);
+
+    const filteredConnectors = allConnectors.filter(c =>
+        (activeFilter === '전체' || c.type === activeFilter) &&
+        c.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+    const toggleConnector = (connector) => {
+        setSelectedConnectors(prev =>
+            prev.some(c => c.id === connector.id)
+                ? prev.filter(c => c.id !== connector.id)
+                : [...prev, connector]
+        );
+    };
+
+    const connectorYaml = selectedConnectors.map(c =>
+        '  - name: "' + c.name + '"\n    type: ' + c.type + '\n    endpoint: "' + c.endpt + '"'
+    ).join('\n');
+
+    const skillMdContent = [
+        '---',
+        'name: "' + agentName + '"',
+        'type: agent',
+        'model: ' + selectedModel,
+        'version: 1.0.0',
+        'status: draft',
+        'connectors:',
+        connectorYaml || '  []',
+        '---',
+        '',
+        '# ' + agentName,
+        '',
+        '## System Prompt',
+        '```',
+        systemPrompt,
+        '```',
+        '',
+        '## Connected Skills',
+        ...(selectedConnectors.length > 0
+            ? selectedConnectors.map(c => '- **' + c.name + '** (`' + c.type + '`) - `' + c.endpt + '`')
+            : ['(커넥터 없음)']),
+        '',
+        '## Model Configuration',
+        '| Key | Value |',
+        '|-----|-------|',
+        '| Model | ' + (currentModel?.name || 'N/A') + ' |',
+        '| Vendor | ' + (currentModel?.vendor || 'N/A') + ' |',
+        '| Connectors | ' + selectedConnectors.length + '개 연결됨 |',
+    ].join('\n');
+
+    const handleCopy = () => {
+        navigator.clipboard.writeText(skillMdContent).catch(() => {});
+        setCopied(true);
+        setTimeout(() => setCopied(false), 2000);
+    };
+
+    return (
+        <div className="space-y-5 animate-in h-auto lg:h-[calc(100vh-200px)] flex flex-col">
+            {/* skill.md Preview Modal */}
+            {showPreview && (
+                <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-in" onClick={() => setShowPreview(false)}>
+                    <div className="bg-white rounded-[2rem] shadow-2xl w-full max-w-2xl overflow-hidden border-4 border-slate-900" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between px-6 py-4 border-b-2 border-slate-100 bg-slate-50">
+                            <div className="flex items-center gap-3">
+                                <div className="p-2 bg-purple-100 text-purple-600 rounded-xl border border-purple-200"><Code size={18} strokeWidth={2.5}/></div>
+                                <div>
+                                    <h3 className="font-bold text-slate-900">skill.md</h3>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Generated Skill Definition</p>
                                 </div>
-                             </div>
+                            </div>
+                            <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-slate-200 rounded-xl transition-colors"><X size={20} className="text-slate-400" strokeWidth={3}/></button>
                         </div>
-                        <div className="w-full lg:w-[320px] xl:w-[360px] flex flex-col gap-4 order-2 lg:order-none">
-                            <div className="bg-white rounded-[2rem] border-2 border-slate-200 flex flex-col shadow-sm overflow-hidden min-h-[180px]">
-                                <div className="p-5 border-b-2 border-slate-100 flex justify-between items-center bg-slate-50">
-                                    <span className="text-xs font-bold uppercase text-slate-400 flex items-center gap-2 tracking-wide"><Settings size={14}/> 시스템 프롬프트</span>
-                                </div>
-                                <textarea className="flex-1 p-5 text-sm focus:outline-none resize-none leading-relaxed text-slate-600 h-28 lg:h-auto font-medium" placeholder="AI의 역할과 행동 지침을 정의하세요..." defaultValue="당신은 시각적 데이터를 분석하고 창의적인 솔루션을 제안하는 멀티모달 AI 전문가입니다."></textarea>
-                            </div>
-                            <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm flex flex-col overflow-hidden min-h-[220px]">
-                                <div className="text-xs font-bold uppercase text-slate-400 mb-4 flex items-center gap-2 flex-shrink-0 tracking-wide"><Database size={14}/> 스킬 불러오기 (내 커넥터)</div>
-                                <div className="flex-1 overflow-y-auto space-y-3 pr-1 h-32 lg:h-auto">{availableConnectors.map((tool, i) => { const isConnected = connectedTools.some(t => t.id === tool.id); const Icon = tool.icon; return (<div key={tool.id} onClick={() => toggleTool(tool)} className={`p-4 rounded-2xl border-2 cursor-pointer transition-all flex items-center justify-between group ${isConnected ? 'bg-blue-50 border-blue-500 shadow-md' : 'bg-white border-slate-100 hover:border-blue-300 hover:shadow-md'}`}><div className="flex items-center gap-3"><div className={`p-2.5 rounded-xl border-2 ${isConnected ? 'bg-blue-100 text-blue-600 border-blue-200' : 'bg-slate-50 text-slate-400 border-slate-100 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:border-blue-100'}`}><Icon size={18} strokeWidth={2.5} /></div><div><div className={`text-sm font-bold ${isConnected ? 'text-blue-900' : 'text-slate-700'}`}>{tool.name}</div><div className="text-[10px] text-slate-400 font-bold">{tool.type}</div></div></div><div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all border-2 ${isConnected ? 'bg-blue-500 text-white border-blue-600' : 'bg-slate-100 text-slate-300 border-slate-200 group-hover:border-blue-300 group-hover:text-blue-400'}`}>{isConnected ? <Check size={16} strokeWidth={4} /> : <Plus size={16} strokeWidth={4} />}</div></div>) })}</div>
-                                {connectedTools.length > 0 && (<div className="mt-4 pt-4 border-t-2 border-slate-100 flex-shrink-0"><div className="text-[10px] font-bold text-slate-300 mb-3 uppercase tracking-wide">연결됨</div><div className="flex flex-wrap gap-2">{connectedTools.map(t => (<span key={t.id} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-100 text-blue-700 rounded-xl text-xs font-bold animate-in border border-blue-200">{t.name}<button onClick={(e) => { e.stopPropagation(); toggleTool(t); }} className="hover:bg-blue-200 rounded-full p-0.5"><X size={12} strokeWidth={3} /></button></span>))}</div></div>)}
-                            </div>
+                        <div className="p-6 max-h-[60vh] overflow-y-auto">
+                            <pre className="bg-slate-900 text-slate-100 p-6 rounded-2xl text-sm font-mono leading-relaxed whitespace-pre-wrap border-2 border-slate-800">{skillMdContent}</pre>
+                        </div>
+                        <div className="px-6 py-4 border-t-2 border-slate-100 bg-slate-50 flex justify-end gap-3">
+                            <button onClick={handleCopy} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-xl transition-colors flex items-center gap-2 border border-slate-200">
+                                {copied ? <><Check size={16}/> 복사됨</> : <><Copy size={16}/> 복사하기</>}
+                            </button>
+                            <button className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm flex items-center gap-2"><Download size={16}/> 다운로드</button>
                         </div>
                     </div>
                 </div>
-            );
-        };
+            )}
+
+            {/* Header */}
+            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-sm gap-4">
+                <div className="flex flex-col gap-2">
+                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
+                        AI 실험실
+                        <span className="hidden sm:inline text-sm font-bold text-slate-400 px-3 border-l-2 border-slate-200 uppercase tracking-widest">Skill Experiment Lab</span>
+                    </h2>
+                    <p className="text-sm text-slate-500 font-medium">커넥터를 불러와 조합하고, LLM과 결합된 에이전트를 실험 제작합니다.</p>
+                </div>
+                <div className="flex gap-3 w-full lg:w-auto">
+                    <button onClick={() => setShowPreview(true)} className="game-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-slate-800 transition-all shadow-[0px_4px_0px_#000] active:shadow-none active:translate-y-[4px]">
+                        <Eye size={18}/> skill.md 미리보기
+                    </button>
+                    <button className="game-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-2xl text-sm font-bold hover:bg-blue-700 transition-all shadow-[0px_4px_0px_#1e40af] active:shadow-none active:translate-y-[4px]">
+                        <Play size={18}/> 테스트 실행
+                    </button>
+                </div>
+            </div>
+
+            {/* Main 3-column layout */}
+            <div className="flex-1 flex flex-col lg:flex-row gap-5 overflow-hidden">
+
+                {/* Left: Connector Browser */}
+                <div className="w-full lg:w-[300px] bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm flex flex-col overflow-hidden order-2 lg:order-1 max-h-[400px] lg:max-h-none">
+                    <div className="p-5 border-b-2 border-slate-100 bg-slate-50 flex-shrink-0">
+                        <div className="text-xs font-bold uppercase text-slate-400 tracking-wide flex items-center gap-2 mb-3"><Database size={14}/> 커넥터 불러오기</div>
+                        <div className="relative">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-300" size={16}/>
+                            <input type="text" className="w-full pl-9 pr-3 py-2.5 border-2 border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-500 font-medium transition-colors bg-white" placeholder="커넥터 검색..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
+                        </div>
+                    </div>
+                    <div className="px-4 pt-3 flex-shrink-0">
+                        <div className="flex gap-1.5 overflow-x-auto no-scrollbar pb-2">
+                            {typeFilters.map(f => (
+                                <button key={f} onClick={() => setActiveFilter(f)} className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all border ${activeFilter === f ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}>{f}</button>
+                            ))}
+                        </div>
+                    </div>
+                    <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+                        {filteredConnectors.map(connector => {
+                            const isSelected = selectedConnectors.some(c => c.id === connector.id);
+                            const Icon = connector.icon;
+                            return (
+                                <div key={connector.id} onClick={() => toggleConnector(connector)} className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-3 group ${isSelected ? 'bg-blue-50 border-blue-500 shadow-md' : 'bg-white border-slate-100 hover:border-blue-300 hover:shadow-sm'}`}>
+                                    <div className={`p-2 rounded-xl border-2 flex-shrink-0 ${isSelected ? 'bg-blue-100 text-blue-600 border-blue-200' : 'bg-slate-50 text-slate-400 border-slate-100 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:border-blue-100'}`}>
+                                        <Icon size={16} strokeWidth={2.5}/>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                        <div className={`text-sm font-bold truncate ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>{connector.name}</div>
+                                        <div className="text-[10px] text-slate-400 font-bold">{connector.type}</div>
+                                    </div>
+                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all border-2 ${isSelected ? 'bg-blue-500 text-white border-blue-600' : 'bg-slate-100 text-slate-300 border-slate-200 group-hover:border-blue-300 group-hover:text-blue-400'}`}>
+                                        {isSelected ? <Check size={14} strokeWidth={4}/> : <Plus size={14} strokeWidth={4}/>}
+                                    </div>
+                                </div>
+                            );
+                        })}
+                    </div>
+                    {selectedConnectors.length > 0 && (
+                        <div className="p-4 border-t-2 border-slate-100 bg-slate-50 flex-shrink-0">
+                            <div className="text-[10px] font-bold text-slate-300 mb-2 uppercase tracking-wide">선택됨 ({selectedConnectors.length})</div>
+                            <div className="flex flex-wrap gap-1.5">
+                                {selectedConnectors.map(c => (
+                                    <span key={c.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-lg text-[10px] font-bold border border-blue-200 animate-in">
+                                        {c.name}
+                                        <button onClick={(e) => { e.stopPropagation(); toggleConnector(c); }} className="hover:bg-blue-200 rounded-full p-0.5"><X size={10} strokeWidth={3}/></button>
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+                    )}
+                </div>
+
+                {/* Center: Composition Canvas */}
+                <div className="flex-1 bg-slate-100 rounded-[2rem] border-2 border-slate-200 shadow-inner overflow-hidden relative min-h-[320px] lg:min-h-0 order-1 lg:order-2">
+                    <div className="absolute inset-0 opacity-30 pointer-events-none" style={{backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
+
+                    {selectedConnectors.length === 0 ? (
+                        <div className="absolute inset-0 flex flex-col items-center justify-center z-10">
+                            <div className="w-20 h-20 bg-white rounded-3xl border-2 border-dashed border-slate-300 flex items-center justify-center mb-4 shadow-sm">
+                                <Layers size={32} className="text-slate-300"/>
+                            </div>
+                            <p className="text-slate-400 font-bold text-lg">스킬을 조합하세요</p>
+                            <p className="text-sm text-slate-300 mt-2 text-center px-8 leading-relaxed">왼쪽에서 커넥터를 선택하면<br/>에이전트와의 연결이 시각화됩니다</p>
+                        </div>
+                    ) : (
+                        <div className="absolute inset-0 flex items-center justify-center z-10 p-6 lg:p-8">
+                            {/* Connector cards */}
+                            <div className="flex flex-col gap-2.5 flex-shrink-0">
+                                {selectedConnectors.map((c, i) => {
+                                    const Icon = c.icon;
+                                    return (
+                                        <div key={c.id} className="bg-white px-4 py-3 rounded-xl border-2 border-blue-200 shadow-sm flex items-center gap-2.5 animate-in hover:border-blue-400 hover:shadow-md transition-all cursor-default" style={{animationDelay: i * 60 + 'ms'}}>
+                                            <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 border border-blue-100"><Icon size={14} strokeWidth={2.5}/></div>
+                                            <div>
+                                                <div className="text-xs font-bold text-slate-700 leading-tight">{c.name}</div>
+                                                <div className="text-[9px] text-slate-400 font-mono">{c.endpt}</div>
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+
+                            {/* SVG Connection Lines */}
+                            <svg className="w-24 lg:w-40 flex-shrink-0 overflow-visible" viewBox="0 0 160 200" preserveAspectRatio="xMidYMid meet" style={{height: Math.max(selectedConnectors.length * 56, 100)}}>
+                                <defs>
+                                    <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                        <stop offset="0%" stopColor="#93c5fd"/>
+                                        <stop offset="100%" stopColor="#c4b5fd"/>
+                                    </linearGradient>
+                                </defs>
+                                {selectedConnectors.map((_, i) => {
+                                    const total = selectedConnectors.length;
+                                    const spacing = Math.min(55, 180 / Math.max(total, 1));
+                                    const totalH = (total - 1) * spacing;
+                                    const sy = (200 - totalH) / 2 + i * spacing;
+                                    const ey = 100;
+                                    return (
+                                        <g key={i}>
+                                            <path d={'M 0 ' + sy + ' C 70 ' + sy + ', 90 ' + ey + ', 160 ' + ey} stroke="url(#lineGrad)" strokeWidth="2.5" fill="none" opacity="0.6"/>
+                                            <circle cx="0" cy={sy} r="3" fill="#93c5fd"/>
+                                        </g>
+                                    );
+                                })}
+                                <circle cx="160" cy="100" r="5" fill="#8b5cf6"/>
+                            </svg>
+
+                            {/* Agent Node */}
+                            <div className="bg-white p-5 rounded-2xl border-2 border-purple-300 shadow-lg flex-shrink-0 min-w-[160px] animate-in" style={{animationDelay: '150ms'}}>
+                                <div className="text-center">
+                                    <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center text-white mb-3 shadow-md border-2 border-purple-600">
+                                        <Bot size={28}/>
+                                    </div>
+                                    <div className="font-bold text-slate-900 text-sm">{agentName}</div>
+                                    <div className="text-[10px] text-slate-400 font-bold mt-1">{currentModel?.emoji} {currentModel?.name}</div>
+                                    <div className="mt-3 pt-3 border-t border-slate-100">
+                                        <div className="text-[9px] text-slate-300 uppercase tracking-wider font-bold">연결된 커넥터</div>
+                                        <div className="text-xl font-bold text-purple-600 mt-0.5">{selectedConnectors.length}</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Canvas footer info */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-10">
+                        <div className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200 shadow-sm text-[10px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-2">
+                            <Sparkles size={12}/> Skill Composition Canvas
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right: Agent Configuration */}
+                <div className="w-full lg:w-[320px] xl:w-[340px] flex flex-col gap-4 order-3 max-h-[600px] lg:max-h-none overflow-y-auto lg:overflow-y-auto no-scrollbar">
+                    {/* Agent Name */}
+                    <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm">
+                        <div className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wide flex items-center gap-2"><Bot size={14}/> 에이전트 이름</div>
+                        <input type="text" value={agentName} onChange={(e) => setAgentName(e.target.value)} className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:border-purple-500 transition-colors" placeholder="에이전트 이름을 입력하세요..."/>
+                    </div>
+
+                    {/* LLM Model Selector */}
+                    <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm">
+                        <div className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wide flex items-center gap-2"><Cpu size={14}/> LLM 모델</div>
+                        <div className="space-y-2">
+                            {models.map(model => (
+                                <button key={model.id} onClick={() => setSelectedModel(model.id)} className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-all ${selectedModel === model.id ? 'bg-purple-50 border-purple-500 shadow-sm' : 'bg-white border-slate-100 hover:border-purple-300'}`}>
+                                    <span className="text-lg">{model.emoji}</span>
+                                    <div className="flex-1">
+                                        <div className={`text-sm font-bold ${selectedModel === model.id ? 'text-purple-900' : 'text-slate-700'}`}>{model.name}</div>
+                                        <div className="text-[10px] text-slate-400">{model.vendor}</div>
+                                    </div>
+                                    {selectedModel === model.id && <Check size={16} className="text-purple-500" strokeWidth={3}/>}
+                                </button>
+                            ))}
+                        </div>
+                    </div>
+
+                    {/* System Prompt */}
+                    <div className="bg-white rounded-[2rem] border-2 border-slate-200 flex flex-col shadow-sm overflow-hidden min-h-[180px]">
+                        <div className="p-5 border-b-2 border-slate-100 flex justify-between items-center bg-slate-50 flex-shrink-0">
+                            <span className="text-xs font-bold uppercase text-slate-400 flex items-center gap-2 tracking-wide"><Settings size={14}/> 시스템 프롬프트</span>
+                        </div>
+                        <textarea className="flex-1 p-5 text-sm focus:outline-none resize-none leading-relaxed text-slate-600 font-medium h-28 lg:h-auto" value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} placeholder="AI의 역할과 행동 지침을 정의하세요..."></textarea>
+                    </div>
+
+                    {/* Quick Summary Card */}
+                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2rem] border-2 border-slate-700 p-5 shadow-sm text-white">
+                        <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-3 flex items-center gap-2"><Code size={12}/> Skill Summary</div>
+                        <div className="space-y-2">
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-slate-400">Agent</span>
+                                <span className="font-bold text-white truncate ml-2 max-w-[160px]">{agentName}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-slate-400">Model</span>
+                                <span className="font-bold text-white">{currentModel?.name}</span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-slate-400">Connectors</span>
+                                <span className="font-bold text-blue-400">{selectedConnectors.length}개</span>
+                            </div>
+                            <div className="flex items-center justify-between text-xs">
+                                <span className="text-slate-400">Status</span>
+                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-amber-500/20 text-amber-400 rounded-full text-[10px] font-bold border border-amber-500/30">Draft</span>
+                            </div>
+                        </div>
+                        <button onClick={() => setShowPreview(true)} className="w-full mt-4 pt-3 border-t border-slate-700 text-xs font-bold text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-colors">
+                            <Eye size={14}/> skill.md 확인하기 <ChevronRight size={14}/>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+};
 
 window.AppComponents.AIStudio = AIStudio;
