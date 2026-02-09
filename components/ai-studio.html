@@ -1,19 +1,21 @@
 const { useState, useRef, useEffect, useCallback } = window.React;
-const { Database, Box, MessageSquare, Check, Plus, Settings, X, Search, Bot, Cpu, Eye, Download, Play, Code, Layers, FileText, Globe, Terminal, Sparkles, ChevronRight, Copy } = window.LucideReact;
+const { Database, Box, MessageSquare, Check, Plus, Settings, X, Search, Bot, Cpu, Eye, Download, Play, Code, Layers, FileText, Globe, Terminal, Sparkles, ChevronRight, Copy, Table, BarChart, Image, FileDown, Monitor, Puzzle } = window.LucideReact;
 
 const AIStudio = () => {
     const [selectedConnectors, setSelectedConnectors] = useState([]);
+    const [selectedPlugins, setSelectedPlugins] = useState([]);
     const [agentName, setAgentName] = useState('My Custom Agent');
-    const [systemPrompt, setSystemPrompt] = useState('사용자 요청을 분석하고, 연결된 커넥터를 활용하여 최적의 결과를 제공하는 AI 에이전트입니다.');
+    const [systemPrompt, setSystemPrompt] = useState('사용자 요청을 분석하고, 연결된 커넥터와 플러그인을 활용하여 최적의 결과를 제공하는 AI 에이전트입니다.');
     const [selectedModel, setSelectedModel] = useState('gemini-3-pro');
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('전체');
+    const [activeTab, setActiveTab] = useState('connectors');
     const [showPreview, setShowPreview] = useState(false);
     const [copied, setCopied] = useState(false);
     const [svgLines, setSvgLines] = useState([]);
 
     const canvasRef = useRef(null);
-    const connectorCardRefs = useRef({});
+    const cardRefs = useRef({});
     const agentNodeRef = useRef(null);
 
     const allConnectors = [
@@ -23,6 +25,15 @@ const AIStudio = () => {
         { id: 'c4', name: 'Internal Wiki RAG', type: 'RAG', icon: FileText, endpt: 'vec://wiki-prod', desc: '사내 위키 검색' },
         { id: 'c5', name: 'Global Weather', type: 'Public API', icon: Globe, endpt: 'api.weather.com', desc: '날씨 정보 조회' },
         { id: 'c6', name: 'Server Restart', type: 'NXCommand', icon: Terminal, endpt: 'cmd://restart-server', desc: '서버 재시작' },
+    ];
+
+    const builtinPlugins = [
+        { id: 'p1', name: 'PDF 문서 생성', type: 'Document', icon: FileText, desc: 'PDF 파일 동적 생성 및 다운로드', capability: 'pdf-generation' },
+        { id: 'p2', name: 'XLSX 스프레드시트', type: 'Spreadsheet', icon: Table, desc: 'Excel 파일 생성·편집·내보내기', capability: 'xlsx-generation' },
+        { id: 'p3', name: 'PPTX 프레젠테이션', type: 'Presentation', icon: Monitor, desc: 'PowerPoint 슬라이드 자동 생성', capability: 'pptx-generation' },
+        { id: 'p4', name: 'CSV 데이터 변환', type: 'Data', icon: FileDown, desc: '구조화 데이터를 CSV로 변환·내보내기', capability: 'csv-export' },
+        { id: 'p5', name: '이미지 생성', type: 'Media', icon: Image, desc: 'AI 기반 이미지 생성 및 편집', capability: 'image-generation' },
+        { id: 'p6', name: '차트 시각화', type: 'Visualization', icon: BarChart, desc: '데이터 차트·그래프 자동 생성', capability: 'chart-visualization' },
     ];
 
     const models = [
@@ -48,9 +59,24 @@ const AIStudio = () => {
         );
     };
 
+    const togglePlugin = (plugin) => {
+        setSelectedPlugins(prev =>
+            prev.some(p => p.id === plugin.id)
+                ? prev.filter(p => p.id !== plugin.id)
+                : [...prev, plugin]
+        );
+    };
+
+    /* ---- Combined items for canvas ---- */
+    const canvasItems = [
+        ...selectedConnectors.map(c => ({ ...c, kind: 'connector' })),
+        ...selectedPlugins.map(p => ({ ...p, kind: 'plugin' })),
+    ];
+
     /* ---- SVG line calculation from actual DOM positions ---- */
     const updateLines = useCallback(() => {
-        if (!canvasRef.current || !agentNodeRef.current || selectedConnectors.length === 0) {
+        const items = [...selectedConnectors, ...selectedPlugins];
+        if (!canvasRef.current || !agentNodeRef.current || items.length === 0) {
             setSvgLines([]);
             return;
         }
@@ -59,20 +85,21 @@ const AIStudio = () => {
         const ex = agentRect.left - canvasRect.left;
         const ey = agentRect.top + agentRect.height / 2 - canvasRect.top;
 
-        const newLines = selectedConnectors.map(c => {
-            const el = connectorCardRefs.current[c.id];
+        const newLines = items.map(item => {
+            const el = cardRefs.current[item.id];
             if (!el) return null;
             const rect = el.getBoundingClientRect();
             return {
                 sx: rect.right - canvasRect.left,
                 sy: rect.top + rect.height / 2 - canvasRect.top,
                 ex,
-                ey
+                ey,
+                kind: item.id.startsWith('p') ? 'plugin' : 'connector'
             };
         }).filter(Boolean);
 
         setSvgLines(newLines);
-    }, [selectedConnectors]);
+    }, [selectedConnectors, selectedPlugins]);
 
     useEffect(() => {
         const frame = requestAnimationFrame(updateLines);
@@ -89,6 +116,10 @@ const AIStudio = () => {
         '  - name: "' + c.name + '"\n    type: ' + c.type + '\n    endpoint: "' + c.endpt + '"'
     ).join('\n');
 
+    const pluginYaml = selectedPlugins.map(p =>
+        '  - name: "' + p.name + '"\n    type: builtin\n    capability: ' + p.capability
+    ).join('\n');
+
     const skillMdContent = [
         '---',
         'name: "' + agentName + '"',
@@ -98,6 +129,8 @@ const AIStudio = () => {
         'status: draft',
         'connectors:',
         connectorYaml || '  []',
+        'plugins:',
+        pluginYaml || '  []',
         '---',
         '',
         '# ' + agentName,
@@ -112,12 +145,18 @@ const AIStudio = () => {
             ? selectedConnectors.map(c => '- **' + c.name + '** (`' + c.type + '`) - `' + c.endpt + '`')
             : ['(커넥터 없음)']),
         '',
+        '## Built-in Plugins',
+        ...(selectedPlugins.length > 0
+            ? selectedPlugins.map(p => '- **' + p.name + '** (`' + p.type + '`) - `' + p.capability + '`')
+            : ['(플러그인 없음)']),
+        '',
         '## Model Configuration',
         '| Key | Value |',
         '|-----|-------|',
         '| Model | ' + (currentModel?.name || 'N/A') + ' |',
         '| Vendor | ' + (currentModel?.vendor || 'N/A') + ' |',
         '| Connectors | ' + selectedConnectors.length + '개 연결됨 |',
+        '| Plugins | ' + selectedPlugins.length + '개 활성화 |',
     ].join('\n');
 
     const handleCopy = () => {
@@ -162,7 +201,7 @@ const AIStudio = () => {
                         AI 실험실
                         <span className="hidden sm:inline text-sm font-bold text-slate-400 px-3 border-l-2 border-slate-200 uppercase tracking-widest">Skill Experiment Lab</span>
                     </h2>
-                    <p className="text-sm text-slate-500 font-medium">커넥터를 불러와 조합하고, LLM과 결합된 에이전트를 실험 제작합니다.</p>
+                    <p className="text-sm text-slate-500 font-medium">커넥터와 기본 플러그인을 조합하고, LLM과 결합된 에이전트를 실험 제작합니다.</p>
                 </div>
                 <div className="flex gap-3 w-full lg:w-auto">
                     <button onClick={() => setShowPreview(true)} className="game-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-slate-800 transition-all shadow-[0px_4px_0px_#000] active:shadow-none active:translate-y-[4px]">
@@ -177,50 +216,108 @@ const AIStudio = () => {
             {/* Main grid layout – Tetris-style tight placement */}
             <div className="flex flex-col gap-5 lg:grid lg:gap-4" style={{gridTemplateColumns: '300px 1fr 340px', gridTemplateRows: '1fr auto'}}>
 
-                {/* Left: Connector Browser – spans both rows */}
+                {/* Left: Skill Browser (Connectors + Plugins) – spans both rows */}
                 <div className="bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm flex flex-col overflow-hidden" style={{gridRow: '1 / -1'}}>
-                    <div className="p-5 border-b-2 border-slate-100 bg-slate-50 flex-shrink-0">
-                        <div className="text-xs font-bold uppercase text-slate-400 tracking-wide flex items-center gap-2 mb-3"><Database size={14}/> 커넥터 불러오기</div>
-                        <div className="relative">
-                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-300" size={16}/>
-                            <input type="text" className="w-full pl-9 pr-3 py-2.5 border-2 border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-500 font-medium transition-colors bg-white" placeholder="커넥터 검색..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
-                        </div>
+                    {/* Tabs */}
+                    <div className="flex border-b-2 border-slate-100 flex-shrink-0">
+                        <button onClick={() => setActiveTab('connectors')} className={`flex-1 py-3.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-all border-b-2 -mb-[2px] ${activeTab === 'connectors' ? 'text-blue-600 border-blue-600 bg-blue-50/50' : 'text-slate-400 border-transparent hover:text-slate-600'}`}>
+                            <Database size={13}/>
+                            <span>커넥터</span>
+                            {selectedConnectors.length > 0 && <span className="bg-blue-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold min-w-[18px] text-center leading-none">{selectedConnectors.length}</span>}
+                        </button>
+                        <button onClick={() => setActiveTab('plugins')} className={`flex-1 py-3.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-all border-b-2 -mb-[2px] ${activeTab === 'plugins' ? 'text-emerald-600 border-emerald-600 bg-emerald-50/50' : 'text-slate-400 border-transparent hover:text-slate-600'}`}>
+                            <Puzzle size={13}/>
+                            <span>기본 플러그인</span>
+                            {selectedPlugins.length > 0 && <span className="bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold min-w-[18px] text-center leading-none">{selectedPlugins.length}</span>}
+                        </button>
                     </div>
-                    <div className="px-4 pt-3 flex-shrink-0">
-                        <div className="flex flex-wrap gap-1.5 pb-2">
-                            {typeFilters.map(f => (
-                                <button key={f} onClick={() => setActiveFilter(f)} className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all border ${activeFilter === f ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}>{f}</button>
-                            ))}
-                        </div>
-                    </div>
-                    <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
-                        {filteredConnectors.map(connector => {
-                            const isSelected = selectedConnectors.some(c => c.id === connector.id);
-                            const Icon = connector.icon;
-                            return (
-                                <div key={connector.id} onClick={() => toggleConnector(connector)} className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-3 group ${isSelected ? 'bg-blue-50 border-blue-500 shadow-md' : 'bg-white border-slate-100 hover:border-blue-300 hover:shadow-sm'}`}>
-                                    <div className={`p-2 rounded-xl border-2 flex-shrink-0 ${isSelected ? 'bg-blue-100 text-blue-600 border-blue-200' : 'bg-slate-50 text-slate-400 border-slate-100 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:border-blue-100'}`}>
-                                        <Icon size={16} strokeWidth={2.5}/>
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <div className={`text-sm font-bold truncate ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>{connector.name}</div>
-                                        <div className="text-[10px] text-slate-400 font-bold">{connector.type}</div>
-                                    </div>
-                                    <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all border-2 ${isSelected ? 'bg-blue-500 text-white border-blue-600' : 'bg-slate-100 text-slate-300 border-slate-200 group-hover:border-blue-300 group-hover:text-blue-400'}`}>
-                                        {isSelected ? <Check size={14} strokeWidth={4}/> : <Plus size={14} strokeWidth={4}/>}
-                                    </div>
+
+                    {activeTab === 'connectors' ? (
+                        <>
+                            {/* Connector search */}
+                            <div className="p-5 border-b-2 border-slate-100 bg-slate-50 flex-shrink-0">
+                                <div className="text-xs font-bold uppercase text-slate-400 tracking-wide flex items-center gap-2 mb-3"><Database size={14}/> 커넥터 불러오기</div>
+                                <div className="relative">
+                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-300" size={16}/>
+                                    <input type="text" className="w-full pl-9 pr-3 py-2.5 border-2 border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-500 font-medium transition-colors bg-white" placeholder="커넥터 검색..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
                                 </div>
-                            );
-                        })}
-                    </div>
-                    {selectedConnectors.length > 0 && (
+                            </div>
+                            {/* Connector type filters */}
+                            <div className="px-4 pt-3 flex-shrink-0">
+                                <div className="flex flex-wrap gap-1.5 pb-2">
+                                    {typeFilters.map(f => (
+                                        <button key={f} onClick={() => setActiveFilter(f)} className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all border ${activeFilter === f ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}>{f}</button>
+                                    ))}
+                                </div>
+                            </div>
+                            {/* Connector list */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+                                {filteredConnectors.map(connector => {
+                                    const isSelected = selectedConnectors.some(c => c.id === connector.id);
+                                    const Icon = connector.icon;
+                                    return (
+                                        <div key={connector.id} onClick={() => toggleConnector(connector)} className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-3 group ${isSelected ? 'bg-blue-50 border-blue-500 shadow-md' : 'bg-white border-slate-100 hover:border-blue-300 hover:shadow-sm'}`}>
+                                            <div className={`p-2 rounded-xl border-2 flex-shrink-0 ${isSelected ? 'bg-blue-100 text-blue-600 border-blue-200' : 'bg-slate-50 text-slate-400 border-slate-100 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:border-blue-100'}`}>
+                                                <Icon size={16} strokeWidth={2.5}/>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className={`text-sm font-bold truncate ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>{connector.name}</div>
+                                                <div className="text-[10px] text-slate-400 font-bold">{connector.type}</div>
+                                            </div>
+                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all border-2 ${isSelected ? 'bg-blue-500 text-white border-blue-600' : 'bg-slate-100 text-slate-300 border-slate-200 group-hover:border-blue-300 group-hover:text-blue-400'}`}>
+                                                {isSelected ? <Check size={14} strokeWidth={4}/> : <Plus size={14} strokeWidth={4}/>}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    ) : (
+                        <>
+                            {/* Plugin header */}
+                            <div className="p-5 border-b-2 border-slate-100 bg-emerald-50/50 flex-shrink-0">
+                                <div className="text-xs font-bold uppercase text-emerald-600 tracking-wide flex items-center gap-2 mb-1"><Puzzle size={14}/> 기본 제공 플러그인</div>
+                                <p className="text-[11px] text-slate-400 leading-relaxed">Claude Skills에서 기본 제공하는 파일 생성 및 데이터 출력 플러그인입니다.</p>
+                            </div>
+                            {/* Plugin list */}
+                            <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
+                                {builtinPlugins.map(plugin => {
+                                    const isSelected = selectedPlugins.some(p => p.id === plugin.id);
+                                    const Icon = plugin.icon;
+                                    return (
+                                        <div key={plugin.id} onClick={() => togglePlugin(plugin)} className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-3 group ${isSelected ? 'bg-emerald-50 border-emerald-500 shadow-md' : 'bg-white border-slate-100 hover:border-emerald-300 hover:shadow-sm'}`}>
+                                            <div className={`p-2 rounded-xl border-2 flex-shrink-0 ${isSelected ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-100 group-hover:bg-emerald-50 group-hover:text-emerald-500 group-hover:border-emerald-100'}`}>
+                                                <Icon size={16} strokeWidth={2.5}/>
+                                            </div>
+                                            <div className="flex-1 min-w-0">
+                                                <div className={`text-sm font-bold truncate ${isSelected ? 'text-emerald-900' : 'text-slate-700'}`}>{plugin.name}</div>
+                                                <div className="text-[10px] text-slate-400 font-bold">{plugin.desc}</div>
+                                            </div>
+                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all border-2 ${isSelected ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-slate-100 text-slate-300 border-slate-200 group-hover:border-emerald-300 group-hover:text-emerald-400'}`}>
+                                                {isSelected ? <Check size={14} strokeWidth={4}/> : <Plus size={14} strokeWidth={4}/>}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </>
+                    )}
+
+                    {/* Selected items summary – always visible */}
+                    {(selectedConnectors.length > 0 || selectedPlugins.length > 0) && (
                         <div className="p-4 border-t-2 border-slate-100 bg-slate-50 flex-shrink-0">
-                            <div className="text-[10px] font-bold text-slate-300 mb-2 uppercase tracking-wide">선택됨 ({selectedConnectors.length})</div>
+                            <div className="text-[10px] font-bold text-slate-300 mb-2 uppercase tracking-wide">선택됨 ({selectedConnectors.length + selectedPlugins.length})</div>
                             <div className="flex flex-wrap gap-1.5">
                                 {selectedConnectors.map(c => (
                                     <span key={c.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-lg text-[10px] font-bold border border-blue-200 animate-in">
                                         {c.name}
                                         <button onClick={(e) => { e.stopPropagation(); toggleConnector(c); }} className="hover:bg-blue-200 rounded-full p-0.5"><X size={10} strokeWidth={3}/></button>
+                                    </span>
+                                ))}
+                                {selectedPlugins.map(p => (
+                                    <span key={p.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-bold border border-emerald-200 animate-in">
+                                        {p.name}
+                                        <button onClick={(e) => { e.stopPropagation(); togglePlugin(p); }} className="hover:bg-emerald-200 rounded-full p-0.5"><X size={10} strokeWidth={3}/></button>
                                     </span>
                                 ))}
                             </div>
@@ -240,40 +337,49 @@ const AIStudio = () => {
                                 <stop offset="0%" stopColor="#93c5fd"/>
                                 <stop offset="100%" stopColor="#c4b5fd"/>
                             </linearGradient>
+                            <linearGradient id="pluginLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                                <stop offset="0%" stopColor="#6ee7b7"/>
+                                <stop offset="100%" stopColor="#a7f3d0"/>
+                            </linearGradient>
                         </defs>
                         {svgLines.map((line, i) => {
                             const midX = (line.sx + line.ex) / 2;
+                            const isPlugin = line.kind === 'plugin';
                             return (
                                 <g key={i}>
-                                    <path d={'M ' + line.sx + ' ' + line.sy + ' C ' + midX + ' ' + line.sy + ', ' + midX + ' ' + line.ey + ', ' + line.ex + ' ' + line.ey} stroke="url(#lineGrad)" strokeWidth="2.5" fill="none" opacity="0.5"/>
-                                    <circle cx={line.sx} cy={line.sy} r="3" fill="#93c5fd"/>
+                                    <path d={'M ' + line.sx + ' ' + line.sy + ' C ' + midX + ' ' + line.sy + ', ' + midX + ' ' + line.ey + ', ' + line.ex + ' ' + line.ey} stroke={isPlugin ? 'url(#pluginLineGrad)' : 'url(#lineGrad)'} strokeWidth="2.5" fill="none" opacity="0.5"/>
+                                    <circle cx={line.sx} cy={line.sy} r="3" fill={isPlugin ? '#6ee7b7' : '#93c5fd'}/>
                                 </g>
                             );
                         })}
                         {svgLines.length > 0 && <circle cx={svgLines[0].ex} cy={svgLines[0].ey} r="5" fill="#8b5cf6"/>}
                     </svg>
 
-                    {selectedConnectors.length === 0 ? (
+                    {canvasItems.length === 0 ? (
                         <div className="absolute inset-0 flex flex-col items-center justify-center" style={{zIndex: 10}}>
                             <div className="w-20 h-20 bg-white rounded-3xl border-2 border-dashed border-slate-300 flex items-center justify-center mb-4 shadow-sm">
                                 <Layers size={32} className="text-slate-300"/>
                             </div>
                             <p className="text-slate-400 font-bold text-lg">스킬을 조합하세요</p>
-                            <p className="text-sm text-slate-300 mt-2 text-center px-8 leading-relaxed">왼쪽에서 커넥터를 선택하면<br/>에이전트와의 연결이 시각화됩니다</p>
+                            <p className="text-sm text-slate-300 mt-2 text-center px-8 leading-relaxed">왼쪽에서 커넥터 또는 플러그인을 선택하면<br/>에이전트와의 연결이 시각화됩니다</p>
                         </div>
                     ) : (
                         <div className="absolute inset-0 flex items-center justify-center p-6 lg:p-8" style={{zIndex: 10}}>
-                            {/* Connector cards */}
+                            {/* Canvas cards (connectors + plugins) */}
                             <div className="flex flex-col gap-2.5 flex-shrink-0">
-                                {selectedConnectors.map((c, i) => {
-                                    const Icon = c.icon;
+                                {canvasItems.map((item) => {
+                                    const Icon = item.icon;
+                                    const isPlugin = item.kind === 'plugin';
                                     return (
-                                        <div key={c.id} ref={el => { connectorCardRefs.current[c.id] = el; }} className="bg-white px-4 py-3 rounded-xl border-2 border-blue-200 shadow-sm flex items-center gap-2.5 hover:border-blue-400 hover:shadow-md transition-all cursor-default">
-                                            <div className="p-1.5 rounded-lg bg-blue-50 text-blue-600 border border-blue-100"><Icon size={14} strokeWidth={2.5}/></div>
-                                            <div>
-                                                <div className="text-xs font-bold text-slate-700 leading-tight">{c.name}</div>
-                                                <div className="text-[9px] text-slate-400 font-mono">{c.endpt}</div>
+                                        <div key={item.id} ref={el => { cardRefs.current[item.id] = el; }} className={`bg-white px-4 py-3 rounded-xl border-2 shadow-sm flex items-center gap-2.5 hover:shadow-md transition-all cursor-default ${isPlugin ? 'border-emerald-200 hover:border-emerald-400' : 'border-blue-200 hover:border-blue-400'}`}>
+                                            <div className={`p-1.5 rounded-lg border ${isPlugin ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 'bg-blue-50 text-blue-600 border-blue-100'}`}>
+                                                <Icon size={14} strokeWidth={2.5}/>
                                             </div>
+                                            <div>
+                                                <div className="text-xs font-bold text-slate-700 leading-tight">{item.name}</div>
+                                                <div className="text-[9px] text-slate-400 font-mono">{isPlugin ? item.capability : item.endpt}</div>
+                                            </div>
+                                            {isPlugin && <span className="text-[7px] font-bold text-emerald-600 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 uppercase tracking-wider">Plugin</span>}
                                         </div>
                                     );
                                 })}
@@ -291,8 +397,8 @@ const AIStudio = () => {
                                     <div className="font-bold text-slate-900 text-sm">{agentName}</div>
                                     <div className="text-[10px] text-slate-400 font-bold mt-1">{currentModel?.emoji} {currentModel?.name}</div>
                                     <div className="mt-3 pt-3 border-t border-slate-100">
-                                        <div className="text-[9px] text-slate-300 uppercase tracking-wider font-bold">연결된 커넥터</div>
-                                        <div className="text-xl font-bold text-purple-600 mt-0.5">{selectedConnectors.length}</div>
+                                        <div className="text-[9px] text-slate-300 uppercase tracking-wider font-bold">연결된 스킬</div>
+                                        <div className="text-xl font-bold text-purple-600 mt-0.5">{canvasItems.length}</div>
                                     </div>
                                 </div>
                             </div>
@@ -356,6 +462,10 @@ const AIStudio = () => {
                         <div className="flex items-center justify-between text-xs">
                             <span className="text-slate-400">Connectors</span>
                             <span className="font-bold text-blue-400">{selectedConnectors.length}개</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400">Plugins</span>
+                            <span className="font-bold text-emerald-400">{selectedPlugins.length}개</span>
                         </div>
                         <div className="flex items-center justify-between text-xs">
                             <span className="text-slate-400">Status</span>
