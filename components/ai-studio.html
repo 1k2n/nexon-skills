@@ -297,7 +297,7 @@ const AIStudio = () => {
     };
 
     return (
-        <div className="space-y-5 animate-in">
+        <>
             {/* skill.md Preview Modal */}
             {showPreview && (
                 <ModalLayer onClose={() => setShowPreview(false)} maxWidth="max-w-2xl">
@@ -345,8 +345,9 @@ const AIStudio = () => {
                 </ModalLayer>
             )}
 
-            {/* Header */}
-            <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-sm gap-4">
+            <div className="space-y-5 animate-in">
+                {/* Header */}
+                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-sm gap-4">
                 <div className="flex flex-col gap-2">
                     <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
                         AI 실험실
@@ -683,8 +684,8 @@ const AIStudio = () => {
                 </div>
             </div>
 
-            {/* ============ Temperature + Guardrails ============ */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {/* ============ Temperature + Guardrails ============ */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 {/* Temperature */}
                 <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm">
                     <div className="text-xs font-bold uppercase text-slate-400 mb-4 tracking-wide flex items-center gap-2"><Thermometer size={14}/> Temperature</div>
@@ -716,8 +717,9 @@ const AIStudio = () => {
                         ))}
                     </div>
                 </div>
+                </div>
             </div>
-        </div>
+        </>
     );
 };
 
