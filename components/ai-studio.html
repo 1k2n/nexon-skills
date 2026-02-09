@@ -174,11 +174,11 @@ const AIStudio = () => {
                 </div>
             </div>
 
-            {/* Main 3-column layout – items-stretch so columns match canvas height */}
-            <div className="flex flex-col lg:flex-row lg:items-stretch gap-5">
+            {/* Main grid layout – Tetris-style tight placement */}
+            <div className="flex flex-col gap-5 lg:grid lg:gap-4" style={{gridTemplateColumns: '300px 1fr 340px', gridTemplateRows: '1fr auto'}}>
 
-                {/* Left: Connector Browser */}
-                <div className="w-full lg:w-[300px] bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm flex flex-col overflow-hidden order-2 lg:order-1">
+                {/* Left: Connector Browser – spans both rows */}
+                <div className="bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm flex flex-col overflow-hidden" style={{gridRow: '1 / -1'}}>
                     <div className="p-5 border-b-2 border-slate-100 bg-slate-50 flex-shrink-0">
                         <div className="text-xs font-bold uppercase text-slate-400 tracking-wide flex items-center gap-2 mb-3"><Database size={14}/> 커넥터 불러오기</div>
                         <div className="relative">
@@ -228,8 +228,8 @@ const AIStudio = () => {
                     )}
                 </div>
 
-                {/* Center: Composition Canvas */}
-                <div ref={canvasRef} className="flex-1 bg-slate-100 rounded-[2rem] border-2 border-slate-200 shadow-inner overflow-hidden relative h-[400px] lg:h-[500px] order-1 lg:order-2">
+                {/* Center: Canvas – row 1, col 2 */}
+                <div ref={canvasRef} className="bg-slate-100 rounded-[2rem] border-2 border-slate-200 shadow-inner overflow-hidden relative min-h-[380px]">
                     {/* Grid background */}
                     <div className="absolute inset-0 opacity-30 pointer-events-none" style={{backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
 
@@ -307,8 +307,8 @@ const AIStudio = () => {
                     </div>
                 </div>
 
-                {/* Right: Agent Configuration */}
-                <div className="w-full lg:w-[320px] xl:w-[340px] flex flex-col gap-4 order-3">
+                {/* Right top: Agent Name + LLM Model – row 1, col 3 */}
+                <div className="flex flex-col gap-4">
                     {/* Agent Name */}
                     <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm">
                         <div className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wide flex items-center gap-2"><Bot size={14}/> 에이전트 이름</div>
@@ -316,7 +316,7 @@ const AIStudio = () => {
                     </div>
 
                     {/* LLM Model Selector */}
-                    <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm">
+                    <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm flex-1">
                         <div className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wide flex items-center gap-2"><Cpu size={14}/> LLM 모델</div>
                         <div className="space-y-2">
                             {models.map(model => (
@@ -331,40 +331,40 @@ const AIStudio = () => {
                             ))}
                         </div>
                     </div>
+                </div>
 
-                    {/* Quick Summary Card */}
-                    <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2rem] border-2 border-slate-700 p-5 shadow-sm text-white">
-                        <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-3 flex items-center gap-2"><Code size={12}/> Skill Summary</div>
-                        <div className="space-y-2">
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-slate-400">Agent</span>
-                                <span className="font-bold text-white truncate ml-2 max-w-[160px]">{agentName}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-slate-400">Model</span>
-                                <span className="font-bold text-white">{currentModel?.name}</span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-slate-400">Connectors</span>
-                                <span className="font-bold text-blue-400">{selectedConnectors.length}개</span>
-                            </div>
-                            <div className="flex items-center justify-between text-xs">
-                                <span className="text-slate-400">Status</span>
-                                <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-amber-500/20 text-amber-400 rounded-full text-[10px] font-bold border border-amber-500/30">Draft</span>
-                            </div>
-                        </div>
-                        <button onClick={() => setShowPreview(true)} className="w-full mt-4 pt-3 border-t border-slate-700 text-xs font-bold text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-colors">
-                            <Eye size={14}/> skill.md 확인하기 <ChevronRight size={14}/>
-                        </button>
+                {/* Bottom-left: System Prompt – row 2, col 2 */}
+                <div className="bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[180px]">
+                    <div className="p-5 border-b-2 border-slate-100 flex items-center bg-slate-50 flex-shrink-0">
+                        <span className="text-xs font-bold uppercase text-slate-400 flex items-center gap-2 tracking-wide"><Settings size={14}/> 시스템 프롬프트</span>
                     </div>
+                    <textarea className="w-full flex-1 p-5 text-sm focus:outline-none resize-none leading-relaxed text-slate-600 font-medium" value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} placeholder="AI의 역할과 행동 지침을 정의하세요..."></textarea>
+                </div>
 
-                    {/* System Prompt - fills remaining vertical space */}
-                    <div className="bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm overflow-hidden flex flex-col flex-1 min-h-[140px]">
-                        <div className="p-5 border-b-2 border-slate-100 flex items-center bg-slate-50 flex-shrink-0">
-                            <span className="text-xs font-bold uppercase text-slate-400 flex items-center gap-2 tracking-wide"><Settings size={14}/> 시스템 프롬프트</span>
+                {/* Bottom-right: Skill Summary – row 2, col 3 */}
+                <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2rem] border-2 border-slate-700 p-5 shadow-sm text-white flex flex-col">
+                    <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-3 flex items-center gap-2"><Code size={12}/> Skill Summary</div>
+                    <div className="space-y-2 flex-1">
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400">Agent</span>
+                            <span className="font-bold text-white truncate ml-2 max-w-[160px]">{agentName}</span>
                         </div>
-                        <textarea className="w-full flex-1 p-5 text-sm focus:outline-none resize-none leading-relaxed text-slate-600 font-medium" value={systemPrompt} onChange={(e) => setSystemPrompt(e.target.value)} placeholder="AI의 역할과 행동 지침을 정의하세요..."></textarea>
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400">Model</span>
+                            <span className="font-bold text-white">{currentModel?.name}</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400">Connectors</span>
+                            <span className="font-bold text-blue-400">{selectedConnectors.length}개</span>
+                        </div>
+                        <div className="flex items-center justify-between text-xs">
+                            <span className="text-slate-400">Status</span>
+                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-amber-500/20 text-amber-400 rounded-full text-[10px] font-bold border border-amber-500/30">Draft</span>
+                        </div>
                     </div>
+                    <button onClick={() => setShowPreview(true)} className="w-full mt-4 pt-3 border-t border-slate-700 text-xs font-bold text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-colors">
+                        <Eye size={14}/> skill.md 확인하기 <ChevronRight size={14}/>
+                    </button>
                 </div>
             </div>
         </div>
