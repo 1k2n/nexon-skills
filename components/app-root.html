@@ -113,7 +113,7 @@ const App = () => {
                     case 'AI 워크플로우': return <AIWorkflow />;
                     case 'AI 실험실': return <AIStudio />;
                     case '즐겨찾기': return <FavoritesView setSelectedItem={setSelectedItem} />;
-                    default: return <HomePage selectedGame={selectedGame} setSelectedGame={setSelectedGame} gameList={GAME_LIST} showStickySearch={showStickySearch} setSelectedItem={setSelectedItem} isLoggedIn={isLoggedIn} setShowLoginScreen={setShowLoginScreen} />;
+                    default: return <HomePage selectedGame={selectedGame} setSelectedGame={setSelectedGame} gameList={GAME_LIST} showStickySearch={showStickySearch} setSelectedItem={setSelectedItem} />;
                 }
             };
 
