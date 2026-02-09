@@ -16,6 +16,7 @@ const AIStudio = () => {
     const [temperature, setTemperature] = useState(0.7);
     const [guardrails, setGuardrails] = useState([]);
     const [zoomLevel, setZoomLevel] = useState(1);
+    const [outputFormat, setOutputFormat] = useState('skillmd');
 
     const canvasRef = useRef(null);
     const cardRefs = useRef({});
@@ -206,8 +207,90 @@ const AIStudio = () => {
         '| Guardrails | ' + guardrails.length + '개 설정됨 |',
     ].join('\n');
 
+    const claudeSkillContent = [
+        '# Claude Skill Spec (YAML)',
+        'name: "' + agentName + '"',
+        'description: "' + agentInstructions + '"',
+        'model: "' + selectedModel + '"',
+        'tools:',
+        ...(selectedConnectors.length > 0
+            ? selectedConnectors.map(c => `  - name: ${c.id}\n    description: ${c.name} (${c.type}) - ${c.desc}\n    input_schema:\n      type: object\n      properties:\n        query:\n          type: string\n          description: ${c.endpt}`)
+            : ['  []']),
+        '',
+        '# Output Plugins (reference)',
+        ...(selectedPlugins.length > 0
+            ? selectedPlugins.map(p => `- ${p.name}: ${p.capability}`)
+            : ['- (출력 플러그인 없음)']),
+    ].join('\n');
+
+    const openAiToolContent = [
+        '# OpenAI Tool Schema (JSON)',
+        JSON.stringify({
+            name: agentName,
+            description: agentInstructions,
+            model: selectedModel,
+            tools: selectedConnectors.map(c => ({
+                type: 'function',
+                function: {
+                    name: c.id,
+                    description: `${c.name} (${c.type}) - ${c.desc}`,
+                    parameters: {
+                        type: 'object',
+                        properties: {
+                            query: {
+                                type: 'string',
+                                description: c.endpt,
+                            },
+                        },
+                        required: ['query'],
+                    },
+                },
+            })),
+            output_plugins: selectedPlugins.map(p => ({
+                name: p.name,
+                capability: p.capability,
+            })),
+            guardrails,
+        }, null, 2),
+    ].join('\n');
+
+    const geminiFunctionContent = [
+        '# Gemini Function Declarations (JSON)',
+        JSON.stringify({
+            agent: agentName,
+            model: selectedModel,
+            instructions: agentInstructions,
+            function_declarations: selectedConnectors.map(c => ({
+                name: c.id,
+                description: `${c.name} (${c.type}) - ${c.desc}`,
+                parameters: {
+                    type: 'object',
+                    properties: {
+                        query: {
+                            type: 'string',
+                            description: c.endpt,
+                        },
+                    },
+                    required: ['query'],
+                },
+            })),
+            output_plugins: selectedPlugins.map(p => ({
+                name: p.name,
+                capability: p.capability,
+            })),
+            guardrails,
+        }, null, 2),
+    ].join('\n');
+
+    const outputContent = () => {
+        if (outputFormat === 'claude') return claudeSkillContent;
+        if (outputFormat === 'openai') return openAiToolContent;
+        if (outputFormat === 'gemini') return geminiFunctionContent;
+        return skillMdContent;
+    };
+
     const handleCopy = () => {
-        navigator.clipboard.writeText(skillMdContent).catch(() => {});
+        navigator.clipboard.writeText(outputContent()).catch(() => {});
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
@@ -228,8 +311,30 @@ const AIStudio = () => {
                             </div>
                             <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-slate-200 rounded-xl transition-colors"><X size={20} className="text-slate-400" strokeWidth={3}/></button>
                         </div>
+                        <div className="px-6 pt-5">
+                            <div className="flex flex-wrap gap-2">
+                                {[
+                                    { id: 'skillmd', label: 'skill.md' },
+                                    { id: 'claude', label: 'Claude Skill' },
+                                    { id: 'openai', label: 'OpenAI Tool' },
+                                    { id: 'gemini', label: 'Gemini Function' },
+                                ].map(format => (
+                                    <button
+                                        key={format.id}
+                                        onClick={() => { setOutputFormat(format.id); setCopied(false); }}
+                                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${
+                                            outputFormat === format.id
+                                                ? 'bg-slate-900 text-white border-slate-900'
+                                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
+                                        }`}
+                                    >
+                                        {format.label}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
                         <div className="p-6 max-h-[60vh] overflow-y-auto">
-                            <pre className="bg-slate-900 text-slate-100 p-6 rounded-2xl text-sm font-mono leading-relaxed whitespace-pre-wrap border-2 border-slate-800">{skillMdContent}</pre>
+                            <pre className="bg-slate-900 text-slate-100 p-6 rounded-2xl text-sm font-mono leading-relaxed whitespace-pre-wrap border-2 border-slate-800">{outputContent()}</pre>
                         </div>
                         <div className="px-6 py-4 border-t-2 border-slate-100 bg-slate-50 flex justify-end gap-3">
                             <button onClick={handleCopy} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-xl transition-colors flex items-center gap-2 border border-slate-200">
