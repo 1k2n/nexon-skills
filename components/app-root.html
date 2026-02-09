@@ -41,14 +41,15 @@ const App = () => {
             const [footerLogoError, setFooterLogoError] = useState(false);
             const skipHistoryUpdate = useRef(false);
 
-            useEffect(() => { 
-                const handleScroll = () => { 
-                    if (window.scrollY > 300) { setShowStickySearch(true); } 
-                    else { setShowStickySearch(false); } 
-                }; 
-                window.addEventListener('scroll', handleScroll); 
-                return () => window.removeEventListener('scroll', handleScroll); 
-            }, []);
+            useEffect(() => {
+                const handleScroll = () => {
+                    if (currentTab === '홈' && window.scrollY > 300) { setShowStickySearch(true); }
+                    else { setShowStickySearch(false); }
+                };
+                window.addEventListener('scroll', handleScroll);
+                handleScroll();
+                return () => window.removeEventListener('scroll', handleScroll);
+            }, [currentTab]);
 
             useEffect(() => {
                 const handlePopState = () => {
