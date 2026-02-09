@@ -22,8 +22,22 @@ const WorkflowEditor = ({ onClose }) => {
             const [zoomLevel, setZoomLevel] = useState(1);
 
             const clampZoom = (value) => Math.min(1.6, Math.max(0.5, value));
-            const applyZoom = (delta) => setZoomLevel(current => clampZoom(current + delta));
-            const resetZoom = () => setZoomLevel(1);
+            const updateZoom = (nextZoom) => {
+                if (!canvasRef.current) {
+                    setZoomLevel(nextZoom);
+                    return;
+                }
+                const rect = canvasRef.current.getBoundingClientRect();
+                const centerX = rect.width / 2;
+                const centerY = rect.height / 2;
+                setPanOffset(current => ({
+                    x: centerX - (nextZoom / zoomLevel) * (centerX - current.x),
+                    y: centerY - (nextZoom / zoomLevel) * (centerY - current.y),
+                }));
+                setZoomLevel(nextZoom);
+            };
+            const applyZoom = (delta) => updateZoom(clampZoom(zoomLevel + delta));
+            const resetZoom = () => updateZoom(1);
             
             const IconMap = { Globe, Bell, Cpu, MessageSquare, Mail, Database, Clock, Split, Box, Bot, GitBranch };
             const toolCategories = { 'Trigger': [ { type: 'trigger', label: 'Webhook', iconName: 'Globe' }, { type: 'trigger', label: 'Schedule', iconName: 'Clock' } ], 'Action': [ { type: 'action', label: 'LLM Analysis', iconName: 'Cpu' }, { type: 'action', label: 'Slack Message', iconName: 'MessageSquare' }, { type: 'action', label: 'Send Email', iconName: 'Mail' }, { type: 'action', label: 'DB Insert', iconName: 'Database' } ], 'Logic': [ { type: 'logic', label: 'If/Else', iconName: 'Split' }, { type: 'helper', label: 'Formatter', iconName: 'Box' } ] };
@@ -50,7 +64,7 @@ const WorkflowEditor = ({ onClose }) => {
             const handleSidebarDragStart = (e, type, label, iconName) => { e.dataTransfer.setData('application/reactflow', JSON.stringify({ type, label, iconName })); e.dataTransfer.effectAllowed = 'move'; };
             const handleDrop = (e) => { e.preventDefault(); const typeData = e.dataTransfer.getData('application/reactflow'); if (typeData && canvasRef.current) { const { type, label, iconName } = JSON.parse(typeData); const rect = canvasRef.current.getBoundingClientRect(); const x = (e.clientX - rect.left - panOffset.x) / zoomLevel - 88; const y = (e.clientY - rect.top - panOffset.y) / zoomLevel - 40; const newNode = { id: Date.now(), type, label, x, y, iconName }; setNodes(nds => [...nds, newNode]); setSelectedNodeId(newNode.id); setSelectedEdgeId(null); } };
             const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
-            const handleCanvasWheel = (e) => { if (!e.ctrlKey && !e.metaKey) return; e.preventDefault(); const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1; setZoomLevel(current => clampZoom(current + zoomDelta)); };
+            const handleCanvasWheel = (e) => { if (!e.ctrlKey && !e.metaKey) return; e.preventDefault(); const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1; updateZoom(clampZoom(zoomLevel + zoomDelta)); };
             const handleCanvasMouseDown = (e) => { if (!canvasRef.current || e.button !== 0) return; if (e.target.closest('[data-no-pan="true"]')) return; e.preventDefault(); setIsPanning(true); setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y }); };
             const getPath = (sx, sy, tx, ty, edge) => {
                 const pivotX = (sx + tx) / 2 + ((edge && edge.offsetX) || 0);
