@@ -5,8 +5,8 @@ const { ModalLayer } = window.AppComponents;
 const AIStudio = () => {
     const [selectedConnectors, setSelectedConnectors] = useState([]);
     const [selectedPlugins, setSelectedPlugins] = useState([]);
-    const [agentName, setAgentName] = useState('My Custom Agent');
-    const [agentInstructions, setAgentInstructions] = useState('사용자 요청을 분석하고, 연결된 커넥터와 출력 플러그인을 활용하여 최적의 결과를 제공하는 AI 에이전트입니다.');
+    const [agentName, setAgentName] = useState('신규 업무 스케치 랩');
+    const [agentInstructions, setAgentInstructions] = useState('프롬프트 기반으로 멀티 에이전트 워크플로우를 설계하고, 기본 노드와 NEXON Skills 자산(커넥터·에이전트·워크플로우)을 조합해 신규 업무의 초도 스케치를 생성합니다.');
     const [selectedModel, setSelectedModel] = useState('gemini-3-pro');
     const [searchQuery, setSearchQuery] = useState('');
     const [activeFilter, setActiveFilter] = useState('전체');
@@ -17,7 +17,7 @@ const AIStudio = () => {
     const [temperature, setTemperature] = useState(0.7);
     const [guardrails, setGuardrails] = useState([]);
     const [zoomLevel, setZoomLevel] = useState(1);
-    const [outputFormat, setOutputFormat] = useState('skillmd');
+    const [outputFormat, setOutputFormat] = useState('promptmd');
 
     const canvasRef = useRef(null);
     const cardRefs = useRef({});
@@ -148,7 +148,7 @@ const AIStudio = () => {
         setZoomLevel(current => clampZoom(current + zoomDelta));
     };
 
-    /* ---- skill.md generation ---- */
+    /* ---- Prompt 기반 스펙 생성 ---- */
     const connectorYaml = selectedConnectors.map(c =>
         '  - name: "' + c.name + '"\n    type: ' + c.type + '\n    endpoint: "' + c.endpt + '"'
     ).join('\n');
@@ -162,7 +162,9 @@ const AIStudio = () => {
     const skillMdContent = [
         '---',
         'name: "' + agentName + '"',
-        'type: agent',
+        'type: skill-draft',
+        'runtime: dify-api',
+        'orchestration: multi-agent-workflow',
         'model: ' + selectedModel,
         'version: 1.0.0',
         'status: draft',
@@ -177,17 +179,17 @@ const AIStudio = () => {
         '',
         '# ' + agentName,
         '',
-        '## Agent Instructions',
+        '## Workflow Intent',
         '```',
         agentInstructions,
         '```',
         '',
-        '## Connected Skills (Connectors)',
+        '## Connected Skills Assets (Connectors)',
         ...(selectedConnectors.length > 0
             ? selectedConnectors.map(c => '- **' + c.name + '** (`' + c.type + '`) - `' + c.endpt + '`')
             : ['(커넥터 없음)']),
         '',
-        '## Output Plugins',
+        '## Built-in Nodes / Output Plugins',
         ...(selectedPlugins.length > 0
             ? selectedPlugins.map(p => '- **' + p.name + '** (`' + p.type + '`) - `' + p.capability + '`')
             : ['(출력 플러그인 없음)']),
@@ -284,7 +286,7 @@ const AIStudio = () => {
     ].join('\n');
 
     const outputContent = () => {
-        if (outputFormat === 'claude') return claudeSkillContent;
+        if (outputFormat === 'promptyaml') return claudeSkillContent;
         if (outputFormat === 'openai') return openAiToolContent;
         if (outputFormat === 'gemini') return geminiFunctionContent;
         return skillMdContent;
@@ -305,8 +307,8 @@ const AIStudio = () => {
                             <div className="flex items-center gap-3">
                                 <div className="p-2 bg-purple-100 text-purple-600 rounded-xl border border-purple-200"><Code size={18} strokeWidth={2.5}/></div>
                                 <div>
-                                    <h3 className="font-bold text-slate-900">skill.md</h3>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Generated Skill Definition</p>
+                                    <h3 className="font-bold text-slate-900">prompt spec</h3>
+                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Prompt-first Skill Draft</p>
                                 </div>
                             </div>
                             <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-slate-200 rounded-xl transition-colors"><X size={20} className="text-slate-400" strokeWidth={3}/></button>
@@ -314,8 +316,8 @@ const AIStudio = () => {
                         <div className="px-6 pt-5">
                             <div className="flex flex-wrap gap-2">
                                 {[
-                                    { id: 'skillmd', label: 'skill.md' },
-                                    { id: 'claude', label: 'Claude Skill' },
+                                    { id: 'promptmd', label: 'Prompt (MD)' },
+                                    { id: 'promptyaml', label: 'Prompt (YAML)' },
                                     { id: 'openai', label: 'OpenAI Tool' },
                                     { id: 'gemini', label: 'Gemini Function' },
                                 ].map(format => (
@@ -351,13 +353,13 @@ const AIStudio = () => {
                 <div className="flex flex-col gap-2">
                     <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
                         AI 실험실
-                        <span className="hidden sm:inline text-sm font-bold text-slate-400 px-3 border-l-2 border-slate-200 uppercase tracking-widest">Skill Experiment Lab</span>
+                        <span className="hidden sm:inline text-sm font-bold text-slate-400 px-3 border-l-2 border-slate-200 uppercase tracking-widest">Multi-Agent Prompt Lab</span>
                     </h2>
-                    <p className="text-sm text-slate-500 font-medium">커넥터(입·출력)와 출력 플러그인을 조합하고, LLM과 결합된 에이전트를 실험 제작합니다.</p>
+                    <p className="text-sm text-slate-500 font-medium">Dify API 기반 멀티 에이전트+워크플로우를 프롬프트(md/yaml)로 설계하고, 결과물을 하나의 스킬로 스케치합니다.</p>
                 </div>
                 <div className="flex gap-3 w-full lg:w-auto">
                     <button onClick={() => setShowPreview(true)} className="game-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-slate-800 transition-all shadow-[0px_4px_0px_#000] active:shadow-none active:translate-y-[4px]">
-                        <Eye size={18}/> skill.md 미리보기
+                        <Eye size={18}/> 프롬프트 스펙 미리보기
                     </button>
                     <button className="game-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-2xl text-sm font-bold hover:bg-blue-700 transition-all shadow-[0px_4px_0px_#1e40af] active:shadow-none active:translate-y-[4px]">
                         <Play size={18}/> 테스트 실행
