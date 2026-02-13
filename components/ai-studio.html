@@ -7,6 +7,7 @@ const AIStudio = () => {
     const [isRan, setIsRan] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
     const [isLogOpen, setIsLogOpen] = useState(false);
+    const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
 
     const workflowNodes = useMemo(() => ([
         { id: 'trigger_1', title: 'Daily Scheduler', skill: 'cron-scheduler', route: 'system://scheduler', output: 'run_context', x: 90, y: 220, stage: 'start' },
@@ -56,6 +57,10 @@ const AIStudio = () => {
             nodes: workflowNodes.filter((node) => node.stage === 'end'),
         },
     ]), [workflowNodes]);
+
+    const registeredSkills = useMemo(() => workflowNodes
+        .filter((node) => node.skill.startsWith('skills:'))
+        .map((node) => ({ id: node.id, title: node.title, skill: node.skill, route: node.route })), [workflowNodes]);
 
     const difyYamlPlan = useMemo(() => {
         const nodeBlock = workflowNodes.map((node) => [
@@ -177,8 +182,8 @@ const AIStudio = () => {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-14 xl:grid-rows-2 gap-5 xl:h-[calc(100vh-270px)]">
-                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm min-h-[320px] xl:min-h-0 xl:col-span-5 xl:row-span-1 flex flex-col">
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-5 xl:h-[calc(100vh-270px)]">
+                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm min-h-[320px] xl:min-h-0 flex flex-col">
                     <div className="flex items-center gap-2 text-slate-800 font-bold"><Sparkles size={18}/> 1) 입력 (Master Prompt)</div>
                     <textarea
                         value={masterPrompt}
@@ -197,7 +202,7 @@ const AIStudio = () => {
                     <p className="mt-3 text-xs text-slate-500">예시: 설맞이 일일 퀘스트 매출/동접 분석 후 매일 09:00 메일+슬랙 전송</p>
                 </div>
 
-                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm min-h-[340px] xl:min-h-0 xl:col-span-5 xl:row-span-1 flex flex-col">
+                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm min-h-[320px] xl:min-h-0 flex flex-col">
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-slate-800 font-bold"><Bot size={18}/> 2) Master Agent 결과 YAML (Dify)</div>
                         <button
@@ -212,24 +217,30 @@ const AIStudio = () => {
                     <pre className="mt-3 flex-1 bg-slate-900 text-slate-100 text-xs rounded-2xl p-4 overflow-auto whitespace-pre-wrap">{difyYamlPlan}</pre>
                 </div>
 
-                <div className="xl:col-span-9 xl:row-span-2 bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm h-full min-h-[460px] xl:min-h-0 flex flex-col">
+                <div className="xl:col-span-2 bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm h-full min-h-[460px] xl:min-h-0 flex flex-col">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-center gap-2 text-slate-800 font-bold"><Workflow size={18}/> 3) Router 실행 순서 (Dify Canvas View)</div>
-                        <div className="flex flex-col sm:flex-row gap-2">
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full md:w-auto">
                             <button
                                 onClick={() => {
                                     setIsAnalyzed(true);
                                     setIsRan(true);
                                 }}
-                                className="w-full md:w-auto game-btn bg-violet-600 text-white py-3 px-6 rounded-2xl font-bold hover:bg-violet-700 transition-colors flex items-center justify-center gap-2"
+                                className="w-full game-btn bg-violet-600 text-white py-3 px-5 rounded-2xl font-bold hover:bg-violet-700 transition-colors flex items-center justify-center gap-2"
                             >
                                 <PlayCircle size={18}/> 초안 실행
                             </button>
                             <button
                                 onClick={() => setIsLogOpen(true)}
-                                className="w-full md:w-auto game-btn bg-slate-100 text-slate-800 py-3 px-6 rounded-2xl font-bold hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 border border-slate-200"
+                                className="w-full game-btn bg-slate-100 text-slate-800 py-3 px-5 rounded-2xl font-bold hover:bg-slate-200 transition-colors flex items-center justify-center gap-2 border border-slate-200"
                             >
                                 <FileText size={18}/> 결과 확인
+                            </button>
+                            <button
+                                onClick={() => setIsSkillModalOpen(true)}
+                                className="w-full game-btn bg-emerald-50 text-emerald-800 py-3 px-5 rounded-2xl font-bold hover:bg-emerald-100 transition-colors flex items-center justify-center gap-2 border border-emerald-200"
+                            >
+                                <Bot size={18}/> 스킬 등록
                             </button>
                         </div>
                     </div>
@@ -269,6 +280,50 @@ const AIStudio = () => {
                     </div>
                 </div>
             </div>
+
+            {isSkillModalOpen && (
+                <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center px-4">
+                    <div className="w-full max-w-2xl bg-white border-2 border-slate-200 rounded-3xl shadow-xl">
+                        <div className="flex items-center justify-between p-5 border-b border-slate-200">
+                            <div>
+                                <h3 className="text-lg font-bold text-slate-900">스킬 등록 대상 확인</h3>
+                                <p className="text-xs text-slate-500 mt-1">워크플로우에 포함된 스킬 노드를 등록 큐에 올립니다.</p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => setIsSkillModalOpen(false)}
+                                className="w-9 h-9 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 flex items-center justify-center"
+                            >
+                                <X size={16}/>
+                            </button>
+                        </div>
+                        <div className="p-5 space-y-2 max-h-[360px] overflow-y-auto">
+                            {registeredSkills.map((item) => (
+                                <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
+                                    <div className="text-sm font-bold text-slate-800">{item.title}</div>
+                                    <div className="text-xs text-slate-500 mt-1">{item.skill} · {item.route}</div>
+                                </div>
+                            ))}
+                        </div>
+                        <div className="px-5 pb-5 flex justify-end gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setIsSkillModalOpen(false)}
+                                className="game-btn bg-slate-100 text-slate-800 py-2.5 px-5 rounded-2xl font-bold hover:bg-slate-200 transition-colors border border-slate-200"
+                            >
+                                취소
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => setIsSkillModalOpen(false)}
+                                className="game-btn bg-emerald-600 text-white py-2.5 px-5 rounded-2xl font-bold hover:bg-emerald-700 transition-colors"
+                            >
+                                등록 요청
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {isLogOpen && (
                 <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center px-4">
