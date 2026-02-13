@@ -101,47 +101,35 @@ const AIStudio = () => {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-5 gap-5">
-                <div className="xl:col-span-2 bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm space-y-4">
+            <div className="space-y-5">
+                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm space-y-4">
                     <div className="flex items-center gap-2 text-slate-800 font-bold"><Sparkles size={18}/> 1) 입력 (Master Prompt)</div>
                     <textarea
                         value={masterPrompt}
                         onChange={(e) => setMasterPrompt(e.target.value)}
                         className="w-full h-40 border-2 border-slate-200 rounded-2xl p-4 text-sm focus:outline-none focus:border-violet-500"
                     />
-                    <div className="grid grid-cols-2 gap-2">
-                        <button
-                            onClick={() => {
-                                setIsAnalyzed(true);
-                                setIsRan(false);
-                            }}
-                            className="w-full game-btn bg-slate-800 text-white py-3 rounded-2xl font-bold hover:bg-slate-900 transition-colors"
-                        >
-                            워크플로우 분석
-                        </button>
-                        <button
-                            onClick={() => {
-                                setIsAnalyzed(true);
-                                setIsRan(true);
-                            }}
-                            className="w-full game-btn bg-violet-600 text-white py-3 rounded-2xl font-bold hover:bg-violet-700 transition-colors flex items-center justify-center gap-2"
-                        >
-                            <PlayCircle size={18}/> 초안 실행
-                        </button>
-                    </div>
+                    <button
+                        onClick={() => {
+                            setIsAnalyzed(true);
+                            setIsRan(false);
+                        }}
+                        className="w-full game-btn bg-slate-800 text-white py-3 rounded-2xl font-bold hover:bg-slate-900 transition-colors"
+                    >
+                        워크플로우 분석
+                    </button>
                     <p className="text-xs text-slate-500">예시: "이번 주 게임 트렌드 분석해서 기획팀에 메일 보내줘."</p>
                 </div>
 
-                <div className="xl:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-5">
-                    <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm">
-                        <div className="flex items-center gap-2 text-slate-800 font-bold"><Bot size={18}/> 2) Master Agent 결과 YAML (Dify)</div>
-                        <pre className="mt-3 bg-slate-900 text-slate-100 text-xs rounded-2xl p-4 overflow-x-auto whitespace-pre-wrap">{difyYamlPlan}</pre>
-                    </div>
+                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm">
+                    <div className="flex items-center gap-2 text-slate-800 font-bold"><Bot size={18}/> 2) Master Agent 결과 YAML (Dify)</div>
+                    <pre className="mt-3 bg-slate-900 text-slate-100 text-xs rounded-2xl p-4 overflow-x-auto whitespace-pre-wrap">{difyYamlPlan}</pre>
+                </div>
 
-                    <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm">
-                        <div className="flex items-center gap-2 text-slate-800 font-bold"><Workflow size={18}/> 3) Router 실행 순서 (Dify Canvas View)</div>
-                        <div className="mt-3 p-4 border border-slate-200 rounded-2xl bg-slate-50 overflow-x-auto">
-                            <div className="min-w-[560px] flex items-center gap-3">
+                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm">
+                    <div className="flex items-center gap-2 text-slate-800 font-bold"><Workflow size={18}/> 3) Router 실행 순서 (Dify Canvas View)</div>
+                    <div className="mt-3 p-4 border border-slate-200 rounded-2xl bg-slate-50 overflow-x-auto">
+                        <div className="min-w-[560px] flex items-center gap-3">
                             {plannedSkills.map((item, idx) => (
                                 <div key={item.skill + idx} className="flex items-center gap-3">
                                     <div className="border-2 border-violet-200 rounded-xl p-3 bg-white min-w-[180px]">
@@ -155,9 +143,17 @@ const AIStudio = () => {
                                     {idx < plannedSkills.length - 1 && <div className="text-slate-400 text-xl font-black">→</div>}
                                 </div>
                             ))}
-                            </div>
                         </div>
                     </div>
+                    <button
+                        onClick={() => {
+                            setIsAnalyzed(true);
+                            setIsRan(true);
+                        }}
+                        className="mt-4 w-full game-btn bg-violet-600 text-white py-3 rounded-2xl font-bold hover:bg-violet-700 transition-colors flex items-center justify-center gap-2"
+                    >
+                        <PlayCircle size={18}/> 초안 실행
+                    </button>
                 </div>
             </div>
 
