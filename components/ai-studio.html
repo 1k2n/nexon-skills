@@ -175,8 +175,8 @@ const AIStudio = () => {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-2 xl:grid-rows-[2fr_3fr] gap-5 xl:h-[calc(100vh-270px)]">
-                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm min-h-[220px] xl:min-h-[210px] xl:max-h-[66%] flex flex-col">
+            <div className="grid grid-cols-1 xl:grid-cols-2 xl:grid-rows-[auto_minmax(0,1fr)] gap-5 xl:h-[calc(100vh-270px)]">
+                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm min-h-[220px] xl:min-h-[220px] flex flex-col">
                     <div className="flex items-center gap-2 text-slate-800 font-bold"><Sparkles size={18}/> 1) 입력 (Master Prompt)</div>
                     <textarea
                         value={masterPrompt}
@@ -192,7 +192,7 @@ const AIStudio = () => {
                     <p className="mt-3 text-xs text-slate-500">버튼 동작: 2) YAML + 3) 캔버스/로그가 현재 프롬프트 기준으로 갱신됩니다.</p>
                 </div>
 
-                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm min-h-[220px] xl:min-h-[210px] xl:max-h-[66%] flex flex-col">
+                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm min-h-[220px] xl:min-h-[220px] flex flex-col">
                     <div className="flex items-center justify-between gap-3">
                         <div className="flex items-center gap-2 text-slate-800 font-bold"><Bot size={18}/> 2) Master Agent 결과 YAML (Dify)</div>
                         <button
