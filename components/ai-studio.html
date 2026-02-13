@@ -167,7 +167,7 @@ const AIStudio = () => {
                     </div>
                 </div>
 
-                <div className="xl:col-span-3 bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm">
+                <div className="xl:col-span-3 bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm h-[740px] flex flex-col">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-center gap-2 text-slate-800 font-bold"><Workflow size={18}/> 3) Router 실행 순서 (Dify Canvas View)</div>
                         <div className="flex flex-col sm:flex-row gap-2">
@@ -188,10 +188,10 @@ const AIStudio = () => {
                             </button>
                         </div>
                     </div>
-                    <div className="mt-3 p-4 border border-slate-200 rounded-2xl bg-gradient-to-b from-slate-50 to-violet-50/40 overflow-x-auto">
-                        <div className="min-w-[700px]">
+                    <div className="mt-3 p-4 border border-slate-200 rounded-2xl bg-gradient-to-b from-slate-50 to-violet-50/40 overflow-x-auto flex-1 min-h-0">
+                        <div className="min-w-[700px] h-full flex flex-col">
                             <div className="text-[11px] font-bold text-slate-500 mb-4">Canvas Preview · Router Graph</div>
-                            <div className="flex items-center gap-4">
+                            <div className="flex-1 flex items-center gap-4">
                                 {plannedSkills.map((item, idx) => (
                                     <div key={item.skill + idx} className="flex items-center gap-4">
                                         <div className="relative border-2 border-violet-200 rounded-2xl p-4 bg-white min-w-[210px] shadow-sm">
