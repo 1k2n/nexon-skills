@@ -1,725 +1,171 @@
-const { useState, useRef, useEffect, useCallback } = window.React;
-const { Database, Box, MessageSquare, Check, Plus, Settings, X, Search, Bot, Cpu, Eye, Download, Play, Code, Layers, FileText, Globe, Terminal, Sparkles, ChevronRight, Copy, Table, BarChart, Image, FileDown, Monitor, Puzzle, Shield, Thermometer } = window.LucideReact;
-const { ModalLayer } = window.AppComponents;
+const { useMemo, useState } = window.React;
+const { FlaskConical, Sparkles, ArrowRight, Bot, Route, Code2, Mail, LineChart, CheckCircle2, Copy, Play } = window.LucideReact;
 
 const AIStudio = () => {
-    const [selectedConnectors, setSelectedConnectors] = useState([]);
-    const [selectedPlugins, setSelectedPlugins] = useState([]);
-    const [agentName, setAgentName] = useState('My Custom Agent');
-    const [agentInstructions, setAgentInstructions] = useState('사용자 요청을 분석하고, 연결된 커넥터와 출력 플러그인을 활용하여 최적의 결과를 제공하는 AI 에이전트입니다.');
-    const [selectedModel, setSelectedModel] = useState('gemini-3-pro');
-    const [searchQuery, setSearchQuery] = useState('');
-    const [activeFilter, setActiveFilter] = useState('전체');
-    const [activeTab, setActiveTab] = useState('connectors');
-    const [showPreview, setShowPreview] = useState(false);
+    const [userPrompt, setUserPrompt] = useState('이번 주 게임 트렌드 분석해서 기획팀에 메일 보내줘.');
     const [copied, setCopied] = useState(false);
-    const [svgLines, setSvgLines] = useState([]);
-    const [temperature, setTemperature] = useState(0.7);
-    const [guardrails, setGuardrails] = useState([]);
-    const [zoomLevel, setZoomLevel] = useState(1);
-    const [outputFormat, setOutputFormat] = useState('skillmd');
 
-    const canvasRef = useRef(null);
-    const cardRefs = useRef({});
-    const agentNodeRef = useRef(null);
+    const parsedCommands = useMemo(() => ([
+        { action: 'analyze_trend', target: 'game' },
+        { action: 'send_email', recipient: 'planning_team' },
+    ]), []);
 
-    /* ---- Data ---- */
-    const allConnectors = [
-        { id: 'c1', name: 'Nexon User API', type: 'Private API', icon: Database, endpt: '/api/v1/user', desc: '넥슨 사용자 정보 조회' },
-        { id: 'c2', name: 'Maple Inventory', type: 'Sandbox API', icon: Box, endpt: '/sandbox/maple/inv', desc: '메이플 인벤토리' },
-        { id: 'c3', name: 'Slack Notifier', type: 'MCP', icon: MessageSquare, endpt: 'mcp://slack-bot', desc: '슬랙 메시지 전송' },
-        { id: 'c4', name: 'Internal Wiki RAG', type: 'RAG', icon: FileText, endpt: 'vec://wiki-prod', desc: '사내 위키 검색' },
-        { id: 'c5', name: 'Global Weather', type: 'Public API', icon: Globe, endpt: 'api.weather.com', desc: '날씨 정보 조회' },
-        { id: 'c6', name: 'Server Restart', type: 'NXCommand', icon: Terminal, endpt: 'cmd://restart-server', desc: '서버 재시작' },
-    ];
+    const routerPlan = useMemo(() => ([
+        {
+            step: 1,
+            appName: 'Trend Analyzer 앱',
+            endpoint: 'POST /v1/apps/trend-analyzer/workflows/run',
+            payload: '{"action":"analyze_trend","target":"game"}',
+            note: '게임 트렌드 데이터를 수집·요약하고 핵심 인사이트를 추출',
+            icon: LineChart,
+        },
+        {
+            step: 2,
+            appName: 'Email Bot 앱',
+            endpoint: 'POST /v1/apps/email-bot/workflows/run',
+            payload: '{"action":"send_email","recipient":"planning_team"}',
+            note: '1단계 결과를 첨부해 기획팀에 메일 발송',
+            icon: Mail,
+        },
+    ]), []);
 
-    const outputPlugins = [
-        { id: 'p1', name: 'PDF 문서 생성', type: 'Document', icon: FileText, desc: 'PDF 파일 동적 생성 및 다운로드', capability: 'pdf-generation' },
-        { id: 'p2', name: 'XLSX 스프레드시트', type: 'Spreadsheet', icon: Table, desc: 'Excel 파일 생성·편집·내보내기', capability: 'xlsx-generation' },
-        { id: 'p3', name: 'PPTX 프레젠테이션', type: 'Presentation', icon: Monitor, desc: 'PowerPoint 슬라이드 자동 생성', capability: 'pptx-generation' },
-        { id: 'p4', name: 'CSV 데이터 변환', type: 'Data', icon: FileDown, desc: '구조화 데이터를 CSV로 변환·내보내기', capability: 'csv-export' },
-        { id: 'p5', name: '이미지 생성', type: 'Media', icon: Image, desc: 'AI 기반 이미지 생성 및 편집', capability: 'image-generation' },
-        { id: 'p6', name: '차트 시각화', type: 'Visualization', icon: BarChart, desc: '데이터 차트·그래프 자동 생성', capability: 'chart-visualization' },
-    ];
-
-    const models = [
-        { id: 'gemini-3-pro', name: 'Gemini 3 Pro', vendor: 'Google', emoji: '✨' },
-        { id: 'gpt-4o', name: 'GPT-4o', vendor: 'OpenAI', emoji: '🟢' },
-        { id: 'claude-3.6-opus', name: 'Claude 3.6 Opus', vendor: 'Anthropic', emoji: '🧠' },
-        { id: 'cortex-llama', name: 'Cortex Llama', vendor: 'Snowflake', emoji: '❄️' },
-    ];
-
-    const guardrailOptions = [
-        '개인정보 보호', '비속어 금지', '외부 URL 차단',
-        '민감정보 마스킹', '정치적 중립', '금융 조언 금지',
-    ];
-
-    const typeFilters = ['전체', 'Private API', 'Sandbox API', 'MCP', 'RAG', 'Public API', 'NXCommand'];
-    const currentModel = models.find(m => m.id === selectedModel);
-
-    const filteredConnectors = allConnectors.filter(c =>
-        (activeFilter === '전체' || c.type === activeFilter) &&
-        c.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-
-    /* ---- Handlers ---- */
-    const toggleConnector = (connector) => {
-        setSelectedConnectors(prev =>
-            prev.some(c => c.id === connector.id)
-                ? prev.filter(c => c.id !== connector.id)
-                : [...prev, connector]
-        );
-    };
-
-    const togglePlugin = (plugin) => {
-        setSelectedPlugins(prev =>
-            prev.some(p => p.id === plugin.id)
-                ? prev.filter(p => p.id !== plugin.id)
-                : [...prev, plugin]
-        );
-    };
-
-    const toggleGuardrail = (g) => {
-        setGuardrails(prev => prev.includes(g) ? prev.filter(x => x !== g) : [...prev, g]);
-    };
-
-    const hasItems = selectedConnectors.length > 0 || selectedPlugins.length > 0;
-    const clampZoom = (value) => Math.min(1.6, Math.max(0.5, value));
-    const applyZoom = (delta) => setZoomLevel(current => clampZoom(current + delta));
-    const resetZoom = () => setZoomLevel(1);
-
-    /* ---- SVG line calculation: Input→Agent→Output ---- */
-    const updateLines = useCallback(() => {
-        if (!canvasRef.current || !agentNodeRef.current || !hasItems) {
-            setSvgLines([]);
-            return;
-        }
-        const canvasRect = canvasRef.current.getBoundingClientRect();
-        const agentRect = agentNodeRef.current.getBoundingClientRect();
-        const agentCenterY = (agentRect.top + agentRect.height / 2 - canvasRect.top) / zoomLevel;
-
-        const newLines = [];
-
-        /* connector.right → agent.left */
-        selectedConnectors.forEach(c => {
-            const el = cardRefs.current[c.id];
-            if (!el) return;
-            const rect = el.getBoundingClientRect();
-            newLines.push({
-                sx: (rect.right - canvasRect.left) / zoomLevel,
-                sy: (rect.top + rect.height / 2 - canvasRect.top) / zoomLevel,
-                ex: (agentRect.left - canvasRect.left) / zoomLevel,
-                ey: agentCenterY,
-                kind: 'connector'
-            });
-        });
-
-        /* agent.right → plugin.left */
-        selectedPlugins.forEach(p => {
-            const el = cardRefs.current[p.id];
-            if (!el) return;
-            const rect = el.getBoundingClientRect();
-            newLines.push({
-                sx: (agentRect.right - canvasRect.left) / zoomLevel,
-                sy: agentCenterY,
-                ex: (rect.left - canvasRect.left) / zoomLevel,
-                ey: (rect.top + rect.height / 2 - canvasRect.top) / zoomLevel,
-                kind: 'plugin'
-            });
-        });
-
-        setSvgLines(newLines);
-    }, [selectedConnectors, selectedPlugins, hasItems, zoomLevel]);
-
-    useEffect(() => {
-        const frame = requestAnimationFrame(updateLines);
-        return () => cancelAnimationFrame(frame);
-    }, [updateLines, agentName, selectedModel]);
-
-    useEffect(() => {
-        window.addEventListener('resize', updateLines);
-        return () => window.removeEventListener('resize', updateLines);
-    }, [updateLines]);
-
-    const handleCanvasWheel = (e) => {
-        if (!e.ctrlKey && !e.metaKey) return;
-        e.preventDefault();
-        const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1;
-        setZoomLevel(current => clampZoom(current + zoomDelta));
-    };
-
-    /* ---- skill.md generation ---- */
-    const connectorYaml = selectedConnectors.map(c =>
-        '  - name: "' + c.name + '"\n    type: ' + c.type + '\n    endpoint: "' + c.endpt + '"'
-    ).join('\n');
-
-    const pluginYaml = selectedPlugins.map(p =>
-        '  - name: "' + p.name + '"\n    type: builtin\n    capability: ' + p.capability
-    ).join('\n');
-
-    const guardrailYaml = guardrails.map(g => '  - "' + g + '"').join('\n');
-
-    const skillMdContent = [
-        '---',
-        'name: "' + agentName + '"',
-        'type: agent',
-        'model: ' + selectedModel,
-        'version: 1.0.0',
-        'status: draft',
-        'temperature: ' + temperature,
-        'connectors:',
-        connectorYaml || '  []',
-        'output_plugins:',
-        pluginYaml || '  []',
-        'guardrails:',
-        guardrailYaml || '  []',
-        '---',
-        '',
-        '# ' + agentName,
-        '',
-        '## Agent Instructions',
-        '```',
-        agentInstructions,
-        '```',
-        '',
-        '## Connected Skills (Connectors)',
-        ...(selectedConnectors.length > 0
-            ? selectedConnectors.map(c => '- **' + c.name + '** (`' + c.type + '`) - `' + c.endpt + '`')
-            : ['(커넥터 없음)']),
-        '',
-        '## Output Plugins',
-        ...(selectedPlugins.length > 0
-            ? selectedPlugins.map(p => '- **' + p.name + '** (`' + p.type + '`) - `' + p.capability + '`')
-            : ['(출력 플러그인 없음)']),
-        '',
-        '## Guardrails',
-        ...(guardrails.length > 0
-            ? guardrails.map(g => '- ' + g)
-            : ['(가드레일 없음)']),
-        '',
-        '## Model Configuration',
-        '| Key | Value |',
-        '|-----|-------|',
-        '| Model | ' + (currentModel?.name || 'N/A') + ' |',
-        '| Vendor | ' + (currentModel?.vendor || 'N/A') + ' |',
-        '| Temperature | ' + temperature + ' |',
-        '| Connectors | ' + selectedConnectors.length + '개 연결됨 |',
-        '| Output Plugins | ' + selectedPlugins.length + '개 활성화 |',
-        '| Guardrails | ' + guardrails.length + '개 설정됨 |',
-    ].join('\n');
-
-    const claudeSkillContent = [
-        '# Claude Skill Spec (YAML)',
-        'name: "' + agentName + '"',
-        'description: "' + agentInstructions + '"',
-        'model: "' + selectedModel + '"',
-        'tools:',
-        ...(selectedConnectors.length > 0
-            ? selectedConnectors.map(c => `  - name: ${c.id}\n    description: ${c.name} (${c.type}) - ${c.desc}\n    input_schema:\n      type: object\n      properties:\n        query:\n          type: string\n          description: ${c.endpt}`)
-            : ['  []']),
-        '',
-        '# Output Plugins (reference)',
-        ...(selectedPlugins.length > 0
-            ? selectedPlugins.map(p => `- ${p.name}: ${p.capability}`)
-            : ['- (출력 플러그인 없음)']),
-    ].join('\n');
-
-    const openAiToolContent = [
-        '# OpenAI Tool Schema (JSON)',
-        JSON.stringify({
-            name: agentName,
-            description: agentInstructions,
-            model: selectedModel,
-            tools: selectedConnectors.map(c => ({
-                type: 'function',
-                function: {
-                    name: c.id,
-                    description: `${c.name} (${c.type}) - ${c.desc}`,
-                    parameters: {
-                        type: 'object',
-                        properties: {
-                            query: {
-                                type: 'string',
-                                description: c.endpt,
-                            },
-                        },
-                        required: ['query'],
-                    },
-                },
-            })),
-            output_plugins: selectedPlugins.map(p => ({
-                name: p.name,
-                capability: p.capability,
-            })),
-            guardrails,
-        }, null, 2),
-    ].join('\n');
-
-    const geminiFunctionContent = [
-        '# Gemini Function Declarations (JSON)',
-        JSON.stringify({
-            agent: agentName,
-            model: selectedModel,
-            instructions: agentInstructions,
-            function_declarations: selectedConnectors.map(c => ({
-                name: c.id,
-                description: `${c.name} (${c.type}) - ${c.desc}`,
-                parameters: {
-                    type: 'object',
-                    properties: {
-                        query: {
-                            type: 'string',
-                            description: c.endpt,
-                        },
-                    },
-                    required: ['query'],
-                },
-            })),
-            output_plugins: selectedPlugins.map(p => ({
-                name: p.name,
-                capability: p.capability,
-            })),
-            guardrails,
-        }, null, 2),
-    ].join('\n');
-
-    const outputContent = () => {
-        if (outputFormat === 'claude') return claudeSkillContent;
-        if (outputFormat === 'openai') return openAiToolContent;
-        if (outputFormat === 'gemini') return geminiFunctionContent;
-        return skillMdContent;
-    };
+    const masterPromptSpec = useMemo(() => {
+        return [
+            '# Master Prompt Orchestration Spec',
+            '',
+            '## User Input',
+            `- "${userPrompt}"`,
+            '',
+            '## Master Agent 역할',
+            '- 자연어 요청을 다단계 실행 가능한 JSON 명령 배열로 변환',
+            '- 실행 순서·의존성·수신 대상을 명시',
+            '',
+            '## Parsed Commands (JSON)',
+            '```json',
+            JSON.stringify(parsedCommands, null, 2),
+            '```',
+            '',
+            '## Router Execution Plan',
+            ...routerPlan.map(plan => `- Step ${plan.step}: ${plan.appName} 호출 (${plan.endpoint})`),
+            '',
+            '## Runtime',
+            '- Orchestrator: Master Agent (LLM)',
+            '- Worker Apps: Dify App APIs',
+            '- Pattern: Prompt -> JSON -> Router -> Chained Execution',
+            '',
+            '## Outcome',
+            '- 사용자는 워크플로우 상세를 몰라도 자연어 프롬프트 한 줄로 멀티 앱 연쇄 실행',
+        ].join('\n');
+    }, [userPrompt, parsedCommands, routerPlan]);
 
     const handleCopy = () => {
-        navigator.clipboard.writeText(outputContent()).catch(() => {});
+        navigator.clipboard.writeText(masterPromptSpec).catch(() => {});
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
     };
 
     return (
-        <>
-            {/* skill.md Preview Modal */}
-            {showPreview && (
-                <ModalLayer onClose={() => setShowPreview(false)} maxWidth="max-w-2xl">
-                        <div className="flex items-center justify-between px-6 py-4 border-b-2 border-slate-100 bg-slate-50">
-                            <div className="flex items-center gap-3">
-                                <div className="p-2 bg-purple-100 text-purple-600 rounded-xl border border-purple-200"><Code size={18} strokeWidth={2.5}/></div>
-                                <div>
-                                    <h3 className="font-bold text-slate-900">skill.md</h3>
-                                    <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wide">Generated Skill Definition</p>
-                                </div>
-                            </div>
-                            <button onClick={() => setShowPreview(false)} className="p-2 hover:bg-slate-200 rounded-xl transition-colors"><X size={20} className="text-slate-400" strokeWidth={3}/></button>
-                        </div>
-                        <div className="px-6 pt-5">
-                            <div className="flex flex-wrap gap-2">
-                                {[
-                                    { id: 'skillmd', label: 'skill.md' },
-                                    { id: 'claude', label: 'Claude Skill' },
-                                    { id: 'openai', label: 'OpenAI Tool' },
-                                    { id: 'gemini', label: 'Gemini Function' },
-                                ].map(format => (
-                                    <button
-                                        key={format.id}
-                                        onClick={() => { setOutputFormat(format.id); setCopied(false); }}
-                                        className={`px-3 py-1.5 rounded-full text-[11px] font-bold border transition-all ${
-                                            outputFormat === format.id
-                                                ? 'bg-slate-900 text-white border-slate-900'
-                                                : 'bg-white text-slate-500 border-slate-200 hover:border-slate-300'
-                                        }`}
-                                    >
-                                        {format.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div className="p-6 max-h-[60vh] overflow-y-auto">
-                            <pre className="bg-slate-900 text-slate-100 p-6 rounded-2xl text-sm font-mono leading-relaxed whitespace-pre-wrap border-2 border-slate-800">{outputContent()}</pre>
-                        </div>
-                        <div className="px-6 py-4 border-t-2 border-slate-100 bg-slate-50 flex justify-end gap-3">
-                            <button onClick={handleCopy} className="px-5 py-2.5 text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-200 rounded-xl transition-colors flex items-center gap-2 border border-slate-200">
-                                {copied ? <><Check size={16}/> 복사됨</> : <><Copy size={16}/> 복사하기</>}
-                            </button>
-                            <button className="px-5 py-2.5 text-sm font-bold text-white bg-blue-600 hover:bg-blue-700 rounded-xl transition-colors shadow-sm flex items-center gap-2"><Download size={16}/> 다운로드</button>
-                        </div>
-                </ModalLayer>
-            )}
-
-            <div className="space-y-5 animate-in">
-                {/* Header */}
-                <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between bg-white p-6 rounded-[2rem] border-2 border-slate-200 shadow-sm gap-4">
-                <div className="flex flex-col gap-2">
-                    <h2 className="text-2xl font-bold text-slate-900 flex items-center gap-3">
-                        AI 실험실
-                        <span className="hidden sm:inline text-sm font-bold text-slate-400 px-3 border-l-2 border-slate-200 uppercase tracking-widest">Skill Experiment Lab</span>
-                    </h2>
-                    <p className="text-sm text-slate-500 font-medium">커넥터(입·출력)와 출력 플러그인을 조합하고, LLM과 결합된 에이전트를 실험 제작합니다.</p>
+        <div className="space-y-8 animate-in">
+            <section className="bg-white border-2 border-slate-200 rounded-[2rem] p-7 md:p-9 shadow-sm">
+                <div className="flex items-start md:items-center justify-between gap-4 flex-col md:flex-row">
+                    <div>
+                        <h2 className="text-3xl font-bold text-slate-900 flex items-center gap-3">
+                            <FlaskConical className="text-purple-600" />
+                            AI 실험실
+                        </h2>
+                        <p className="mt-3 text-slate-600 font-medium leading-relaxed">
+                            Dify UI를 거치지 않고, 상위 레벨의 <span className="font-bold text-slate-900">Master Prompt</span>가 하위 Dify 앱을 연쇄 호출하는
+                            <span className="font-bold text-slate-900"> 멀티 에이전트 오케스트레이션</span> 실험 공간입니다.
+                        </p>
+                    </div>
+                    <div className="px-4 py-2 rounded-xl bg-purple-50 border border-purple-200 text-xs font-bold text-purple-700 uppercase tracking-wide">
+                        Prompt-first Orchestration
+                    </div>
                 </div>
-                <div className="flex gap-3 w-full lg:w-auto">
-                    <button onClick={() => setShowPreview(true)} className="game-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-slate-900 text-white rounded-2xl text-sm font-bold hover:bg-slate-800 transition-all shadow-[0px_4px_0px_#000] active:shadow-none active:translate-y-[4px]">
-                        <Eye size={18}/> skill.md 미리보기
-                    </button>
-                    <button className="game-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-2xl text-sm font-bold hover:bg-blue-700 transition-all shadow-[0px_4px_0px_#1e40af] active:shadow-none active:translate-y-[4px]">
-                        <Play size={18}/> 테스트 실행
+            </section>
+
+            <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
+                    <div className="flex items-center gap-2 text-slate-900 font-bold">
+                        <Sparkles size={18} className="text-blue-600" /> 사용자 입력
+                    </div>
+                    <p className="text-sm text-slate-500 mt-2">자연어로 업무를 요청하면 Master Agent가 실행 계획을 해석합니다.</p>
+                    <textarea
+                        className="mt-4 w-full min-h-[130px] rounded-2xl border-2 border-slate-200 p-4 text-sm font-medium text-slate-800 focus:outline-none focus:border-blue-500"
+                        value={userPrompt}
+                        onChange={(e) => setUserPrompt(e.target.value)}
+                    />
+                    <button className="mt-4 game-btn inline-flex items-center gap-2 px-5 py-3 rounded-xl bg-slate-900 text-white text-sm font-bold hover:bg-slate-800 transition-colors">
+                        <Play size={16} /> Master Prompt 실행 시뮬레이션
                     </button>
                 </div>
-            </div>
 
-            {/* Main grid layout */}
-            <div className="flex flex-col gap-5 lg:grid lg:gap-4" style={{gridTemplateColumns: '300px 1fr 340px', gridTemplateRows: '1fr auto'}}>
-
-                {/* Left: Skill Browser (Connectors + Output Plugins) – spans both rows */}
-                <div className="bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm flex flex-col overflow-hidden" style={{gridRow: '1 / -1'}}>
-                    {/* Tabs */}
-                    <div className="flex border-b-2 border-slate-100 flex-shrink-0">
-                        <button onClick={() => setActiveTab('connectors')} className={`flex-1 py-3.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-all border-b-2 -mb-[2px] ${activeTab === 'connectors' ? 'text-blue-600 border-blue-600 bg-blue-50/50' : 'text-slate-400 border-transparent hover:text-slate-600'}`}>
-                            <Database size={13}/>
-                            <span>커넥터</span>
-                            {selectedConnectors.length > 0 && <span className="bg-blue-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold min-w-[18px] text-center leading-none">{selectedConnectors.length}</span>}
-                        </button>
-                        <button onClick={() => setActiveTab('plugins')} className={`flex-1 py-3.5 text-xs font-bold flex items-center justify-center gap-1.5 transition-all border-b-2 -mb-[2px] ${activeTab === 'plugins' ? 'text-emerald-600 border-emerald-600 bg-emerald-50/50' : 'text-slate-400 border-transparent hover:text-slate-600'}`}>
-                            <Puzzle size={13}/>
-                            <span>출력 플러그인</span>
-                            {selectedPlugins.length > 0 && <span className="bg-emerald-500 text-white text-[9px] px-1.5 py-0.5 rounded-full font-bold min-w-[18px] text-center leading-none">{selectedPlugins.length}</span>}
-                        </button>
+                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
+                    <div className="flex items-center gap-2 text-slate-900 font-bold">
+                        <Code2 size={18} className="text-emerald-600" /> Master Agent 출력(JSON)
                     </div>
-
-                    {activeTab === 'connectors' ? (
-                        <>
-                            <div className="p-5 border-b-2 border-slate-100 bg-slate-50 flex-shrink-0">
-                                <div className="text-xs font-bold uppercase text-slate-400 tracking-wide flex items-center gap-2 mb-3"><Database size={14}/> 커넥터 불러오기 <span className="text-blue-400 normal-case tracking-normal">Input/Output</span></div>
-                                <div className="relative">
-                                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-300" size={16}/>
-                                    <input type="text" className="w-full pl-9 pr-3 py-2.5 border-2 border-slate-200 rounded-xl text-xs focus:outline-none focus:border-blue-500 font-medium transition-colors bg-white" placeholder="커넥터 검색..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)}/>
-                                </div>
-                            </div>
-                            <div className="px-4 pt-3 flex-shrink-0">
-                                <div className="flex flex-wrap gap-1.5 pb-2">
-                                    {typeFilters.map(f => (
-                                        <button key={f} onClick={() => setActiveFilter(f)} className={`px-2.5 py-1.5 rounded-lg text-[10px] font-bold whitespace-nowrap transition-all border ${activeFilter === f ? 'bg-slate-900 text-white border-slate-900' : 'bg-white text-slate-400 border-slate-200 hover:border-slate-300'}`}>{f}</button>
-                                    ))}
-                                </div>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
-                                {filteredConnectors.map(connector => {
-                                    const isSelected = selectedConnectors.some(c => c.id === connector.id);
-                                    const Icon = connector.icon;
-                                    return (
-                                        <div key={connector.id} onClick={() => toggleConnector(connector)} className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-3 group ${isSelected ? 'bg-blue-50 border-blue-500 shadow-md' : 'bg-white border-slate-100 hover:border-blue-300 hover:shadow-sm'}`}>
-                                            <div className={`p-2 rounded-xl border-2 flex-shrink-0 ${isSelected ? 'bg-blue-100 text-blue-600 border-blue-200' : 'bg-slate-50 text-slate-400 border-slate-100 group-hover:bg-blue-50 group-hover:text-blue-500 group-hover:border-blue-100'}`}>
-                                                <Icon size={16} strokeWidth={2.5}/>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className={`text-sm font-bold truncate ${isSelected ? 'text-blue-900' : 'text-slate-700'}`}>{connector.name}</div>
-                                                <div className="text-[10px] text-slate-400 font-bold">{connector.type}</div>
-                                            </div>
-                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all border-2 ${isSelected ? 'bg-blue-500 text-white border-blue-600' : 'bg-slate-100 text-slate-300 border-slate-200 group-hover:border-blue-300 group-hover:text-blue-400'}`}>
-                                                {isSelected ? <Check size={14} strokeWidth={4}/> : <Plus size={14} strokeWidth={4}/>}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </>
-                    ) : (
-                        <>
-                            <div className="p-5 border-b-2 border-slate-100 bg-emerald-50/50 flex-shrink-0">
-                                <div className="text-xs font-bold uppercase text-emerald-600 tracking-wide flex items-center gap-2 mb-1"><Puzzle size={14}/> 출력 플러그인 <span className="text-emerald-400 normal-case tracking-normal">Output</span></div>
-                                <p className="text-[11px] text-slate-400 leading-relaxed">에이전트가 결과를 생성할 때 사용하는 파일 출력 플러그인입니다.</p>
-                            </div>
-                            <div className="flex-1 overflow-y-auto p-4 space-y-2 no-scrollbar">
-                                {outputPlugins.map(plugin => {
-                                    const isSelected = selectedPlugins.some(p => p.id === plugin.id);
-                                    const Icon = plugin.icon;
-                                    return (
-                                        <div key={plugin.id} onClick={() => togglePlugin(plugin)} className={`p-3.5 rounded-2xl border-2 cursor-pointer transition-all flex items-center gap-3 group ${isSelected ? 'bg-emerald-50 border-emerald-500 shadow-md' : 'bg-white border-slate-100 hover:border-emerald-300 hover:shadow-sm'}`}>
-                                            <div className={`p-2 rounded-xl border-2 flex-shrink-0 ${isSelected ? 'bg-emerald-100 text-emerald-600 border-emerald-200' : 'bg-slate-50 text-slate-400 border-slate-100 group-hover:bg-emerald-50 group-hover:text-emerald-500 group-hover:border-emerald-100'}`}>
-                                                <Icon size={16} strokeWidth={2.5}/>
-                                            </div>
-                                            <div className="flex-1 min-w-0">
-                                                <div className={`text-sm font-bold truncate ${isSelected ? 'text-emerald-900' : 'text-slate-700'}`}>{plugin.name}</div>
-                                                <div className="text-[10px] text-slate-400 font-bold">{plugin.desc}</div>
-                                            </div>
-                                            <div className={`w-7 h-7 rounded-full flex items-center justify-center flex-shrink-0 transition-all border-2 ${isSelected ? 'bg-emerald-500 text-white border-emerald-600' : 'bg-slate-100 text-slate-300 border-slate-200 group-hover:border-emerald-300 group-hover:text-emerald-400'}`}>
-                                                {isSelected ? <Check size={14} strokeWidth={4}/> : <Plus size={14} strokeWidth={4}/>}
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </>
-                    )}
-
-                    {/* Selected items summary */}
-                    {hasItems && (
-                        <div className="p-4 border-t-2 border-slate-100 bg-slate-50 flex-shrink-0">
-                            <div className="text-[10px] font-bold text-slate-300 mb-2 uppercase tracking-wide">선택됨 ({selectedConnectors.length + selectedPlugins.length})</div>
-                            <div className="flex flex-wrap gap-1.5">
-                                {selectedConnectors.map(c => (
-                                    <span key={c.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-blue-100 text-blue-700 rounded-lg text-[10px] font-bold border border-blue-200 animate-in">
-                                        {c.name}
-                                        <button onClick={(e) => { e.stopPropagation(); toggleConnector(c); }} className="hover:bg-blue-200 rounded-full p-0.5"><X size={10} strokeWidth={3}/></button>
-                                    </span>
-                                ))}
-                                {selectedPlugins.map(p => (
-                                    <span key={p.id} className="inline-flex items-center gap-1 px-2.5 py-1 bg-emerald-100 text-emerald-700 rounded-lg text-[10px] font-bold border border-emerald-200 animate-in">
-                                        {p.name}
-                                        <button onClick={(e) => { e.stopPropagation(); togglePlugin(p); }} className="hover:bg-emerald-200 rounded-full p-0.5"><X size={10} strokeWidth={3}/></button>
-                                    </span>
-                                ))}
-                            </div>
-                        </div>
-                    )}
+                    <p className="text-sm text-slate-500 mt-2">자연어 요청을 표준 명령 JSON으로 변환합니다.</p>
+                    <pre className="mt-4 bg-slate-900 text-slate-100 p-4 rounded-2xl text-xs overflow-x-auto border-2 border-slate-800">{JSON.stringify(parsedCommands, null, 2)}</pre>
                 </div>
+            </section>
 
-                {/* Center: Canvas – Input → Agent → Output flow */}
-                <div ref={canvasRef} className="bg-slate-100 rounded-[2rem] border-2 border-slate-200 shadow-inner overflow-hidden relative min-h-[380px]" onWheel={handleCanvasWheel}>
-                    <div className="absolute inset-0 opacity-30 pointer-events-none" style={{backgroundImage: 'radial-gradient(#94a3b8 1px, transparent 1px)', backgroundSize: '20px 20px'}}></div>
-                    <div className="absolute right-4 top-4 z-30 flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 shadow-sm px-2 py-1 text-xs font-semibold text-slate-600">
-                        <button type="button" onClick={() => applyZoom(0.1)} className="w-7 h-7 rounded-full border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors">+</button>
-                        <span className="min-w-[52px] text-center">{Math.round(zoomLevel * 100)}%</span>
-                        <button type="button" onClick={() => applyZoom(-0.1)} className="w-7 h-7 rounded-full border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors">-</button>
-                        <button type="button" onClick={resetZoom} className="px-2 py-1 rounded-full border border-slate-200 text-[10px] uppercase tracking-wide text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors">Reset</button>
-                    </div>
-                    <div className="absolute inset-0" style={{ transform: `scale(${zoomLevel})`, transformOrigin: '50% 50%' }}>
-                        {/* SVG connection lines */}
-                        <svg className="absolute inset-0 w-full h-full pointer-events-none" style={{zIndex: 5}}>
-                            <defs>
-                                <linearGradient id="lineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stopColor="#93c5fd"/>
-                                    <stop offset="100%" stopColor="#c4b5fd"/>
-                                </linearGradient>
-                                <linearGradient id="pluginLineGrad" x1="0%" y1="0%" x2="100%" y2="0%">
-                                    <stop offset="0%" stopColor="#c4b5fd"/>
-                                    <stop offset="100%" stopColor="#6ee7b7"/>
-                                </linearGradient>
-                            </defs>
-                            {svgLines.map((line, i) => {
-                                const midX = (line.sx + line.ex) / 2;
-                                const isPlugin = line.kind === 'plugin';
-                                return (
-                                    <g key={i}>
-                                        <path d={'M ' + line.sx + ' ' + line.sy + ' C ' + midX + ' ' + line.sy + ', ' + midX + ' ' + line.ey + ', ' + line.ex + ' ' + line.ey} stroke={isPlugin ? 'url(#pluginLineGrad)' : 'url(#lineGrad)'} strokeWidth="2.5" fill="none" opacity="0.5"/>
-                                        <circle cx={isPlugin ? line.ex : line.sx} cy={isPlugin ? line.ey : line.sy} r="3" fill={isPlugin ? '#6ee7b7' : '#93c5fd'}/>
-                                    </g>
-                                );
-                            })}
-                        </svg>
+            <section className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 md:p-8 shadow-sm">
+                <div className="flex items-center gap-2 text-slate-900 font-bold text-lg">
+                    <Route size={20} className="text-indigo-600" /> Router 실행 흐름
+                </div>
+                <p className="text-sm text-slate-500 mt-2">
+                    Router는 JSON 명령을 읽고 Dify 앱 API를 순서대로 호출합니다. (예: Trend Analyzer 앱 → Email Bot 앱)
+                </p>
 
-                        {!hasItems ? (
-                            /* Empty state: flow diagram */
-                            <div className="absolute inset-0 flex flex-col items-center justify-center" style={{zIndex: 10}}>
-                                <div className="flex items-center gap-3 mb-6">
-                                    <div className="flex flex-col items-center gap-1.5">
-                                        <div className="w-14 h-14 bg-white rounded-2xl border-2 border-dashed border-blue-200 flex items-center justify-center shadow-sm">
-                                            <Database size={22} className="text-blue-300"/>
-                                        </div>
-                                        <span className="text-[9px] font-bold text-blue-400 uppercase tracking-wider">Connector</span>
-                                    </div>
-                                    <ChevronRight size={18} className="text-slate-300 mt-[-16px]"/>
-                                    <div className="flex flex-col items-center gap-1.5">
-                                        <div className="w-16 h-16 bg-white rounded-2xl border-2 border-dashed border-purple-200 flex items-center justify-center shadow-sm">
-                                            <Bot size={28} className="text-purple-300"/>
-                                        </div>
-                                        <span className="text-[9px] font-bold text-purple-400 uppercase tracking-wider">Agent</span>
-                                    </div>
-                                    <ChevronRight size={18} className="text-slate-300 mt-[-16px]"/>
-                                    <div className="flex flex-col items-center gap-1.5">
-                                        <div className="w-14 h-14 bg-white rounded-2xl border-2 border-dashed border-emerald-200 flex items-center justify-center shadow-sm">
-                                            <Puzzle size={22} className="text-emerald-300"/>
-                                        </div>
-                                        <span className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider">Output</span>
-                                    </div>
+                <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {routerPlan.map((plan, idx) => {
+                        const Icon = plan.icon;
+                        return (
+                            <div key={plan.step} className="relative border-2 border-slate-200 rounded-2xl p-5 bg-slate-50">
+                                <div className="flex items-center justify-between">
+                                    <span className="text-xs font-bold px-2 py-1 rounded-full bg-white border border-slate-200 text-slate-600">Step {plan.step}</span>
+                                    <Icon size={17} className="text-slate-500" />
                                 </div>
-                                <p className="text-slate-400 font-bold text-lg">스킬을 조합하세요</p>
-                                <p className="text-sm text-slate-300 mt-2 text-center px-8 leading-relaxed">왼쪽에서 커넥터(입·출력)와 출력 플러그인을 선택하면<br/>에이전트의 데이터 흐름이 시각화됩니다</p>
-                            </div>
-                        ) : (
-                            /* Active state: Input → Agent → Output */
-                            <div className="absolute inset-0 flex items-center justify-center p-4 lg:p-6" style={{zIndex: 10}}>
-                                {/* Left: Input connectors */}
-                                {selectedConnectors.length > 0 && (
-                                    <div className="flex flex-col gap-2 flex-shrink-0 items-end">
-                                        <div className="text-[9px] font-bold text-blue-400 uppercase tracking-wider text-center w-full mb-0.5">Connector</div>
-                                        {selectedConnectors.map((c) => {
-                                            const Icon = c.icon;
-                                            return (
-                                                <div key={c.id} ref={el => { cardRefs.current[c.id] = el; }} className="bg-white px-3 py-2.5 rounded-xl border-2 border-blue-200 shadow-sm flex items-center gap-2 hover:border-blue-400 hover:shadow-md transition-all cursor-default">
-                                                    <div className="p-1 rounded-lg bg-blue-50 text-blue-600 border border-blue-100"><Icon size={12} strokeWidth={2.5}/></div>
-                                                    <div>
-                                                        <div className="text-[11px] font-bold text-slate-700 leading-tight">{c.name}</div>
-                                                        <div className="text-[8px] text-slate-400 font-mono">{c.endpt}</div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
-                                    </div>
-                                )}
+                                <h3 className="mt-3 font-bold text-slate-900">{plan.appName}</h3>
+                                <p className="mt-1 text-xs text-slate-500 font-mono">{plan.endpoint}</p>
+                                <pre className="mt-3 bg-slate-900 text-slate-100 p-3 rounded-xl text-[11px] overflow-x-auto">{plan.payload}</pre>
+                                <p className="mt-3 text-sm text-slate-600">{plan.note}</p>
 
-                                {/* Spacer left */}
-                                {selectedConnectors.length > 0 && <div className="w-6 lg:w-16 flex-shrink-0"></div>}
-
-                                {/* Center: Agent Node */}
-                                <div ref={agentNodeRef} className="bg-white p-5 rounded-2xl border-2 border-purple-300 shadow-lg flex-shrink-0 min-w-[150px]">
-                                    <div className="text-center">
-                                        <div className="w-14 h-14 mx-auto bg-gradient-to-br from-purple-500 to-blue-600 rounded-2xl flex items-center justify-center text-white mb-3 shadow-md border-2 border-purple-600">
-                                            <Bot size={28}/>
-                                        </div>
-                                        <div className="font-bold text-slate-900 text-sm">{agentName}</div>
-                                        <div className="text-[10px] text-slate-400 font-bold mt-1">{currentModel?.emoji} {currentModel?.name}</div>
-                                        <div className="mt-3 pt-3 border-t border-slate-100 flex items-center justify-center gap-4">
-                                            <div className="text-center">
-                                                <div className="text-[8px] text-blue-400 uppercase tracking-wider font-bold">CONN</div>
-                                                <div className="text-sm font-bold text-blue-600">{selectedConnectors.length}</div>
-                                            </div>
-                                            <div className="w-px h-6 bg-slate-200"></div>
-                                            <div className="text-center">
-                                                <div className="text-[8px] text-emerald-400 uppercase tracking-wider font-bold">OUT</div>
-                                                <div className="text-sm font-bold text-emerald-600">{selectedPlugins.length}</div>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                {/* Spacer right */}
-                                {selectedPlugins.length > 0 && <div className="w-6 lg:w-16 flex-shrink-0"></div>}
-
-                                {/* Right: Output plugins */}
-                                {selectedPlugins.length > 0 && (
-                                    <div className="flex flex-col gap-2 flex-shrink-0 items-start">
-                                        <div className="text-[9px] font-bold text-emerald-400 uppercase tracking-wider text-center w-full mb-0.5">Output</div>
-                                        {selectedPlugins.map((p) => {
-                                            const Icon = p.icon;
-                                            return (
-                                                <div key={p.id} ref={el => { cardRefs.current[p.id] = el; }} className="bg-white px-3 py-2.5 rounded-xl border-2 border-emerald-200 shadow-sm flex items-center gap-2 hover:border-emerald-400 hover:shadow-md transition-all cursor-default">
-                                                    <div className="p-1 rounded-lg bg-emerald-50 text-emerald-600 border border-emerald-100"><Icon size={12} strokeWidth={2.5}/></div>
-                                                    <div>
-                                                        <div className="text-[11px] font-bold text-slate-700 leading-tight">{p.name}</div>
-                                                        <div className="text-[8px] text-slate-400 font-mono">{p.capability}</div>
-                                                    </div>
-                                                </div>
-                                            );
-                                        })}
+                                {idx < routerPlan.length - 1 && (
+                                    <div className="hidden md:flex absolute -right-[18px] top-1/2 -translate-y-1/2 bg-white border-2 border-slate-200 rounded-full w-9 h-9 items-center justify-center text-slate-500">
+                                        <ArrowRight size={16} />
                                     </div>
                                 )}
                             </div>
-                        )}
-                    </div>
-
-                    {/* Canvas footer label */}
-                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2" style={{zIndex: 10}}>
-                        <div className="bg-white/80 backdrop-blur-sm px-4 py-2 rounded-full border border-slate-200 shadow-sm text-[10px] font-bold text-slate-400 uppercase tracking-wide flex items-center gap-2">
-                            <Sparkles size={12}/> Skill Composition Canvas
-                        </div>
-                    </div>
+                        );
+                    })}
                 </div>
+            </section>
 
-                {/* Right top: Agent Name + LLM Model */}
-                <div className="flex flex-col gap-4">
-                    <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm">
-                        <div className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wide flex items-center gap-2"><Bot size={14}/> 에이전트 이름</div>
-                        <input type="text" value={agentName} onChange={(e) => setAgentName(e.target.value)} className="w-full px-4 py-3 border-2 border-slate-200 rounded-xl text-sm font-bold focus:outline-none focus:border-purple-500 transition-colors" placeholder="에이전트 이름을 입력하세요..."/>
+            <section className="grid grid-cols-1 xl:grid-cols-5 gap-6">
+                <div className="xl:col-span-3 bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
+                    <div className="flex items-center justify-between gap-3">
+                        <h3 className="font-bold text-slate-900 flex items-center gap-2"><Bot size={18} className="text-blue-600"/> Master Prompt 스펙</h3>
+                        <button
+                            onClick={handleCopy}
+                            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-slate-200 text-sm font-bold text-slate-600 hover:text-slate-900 hover:bg-slate-50"
+                        >
+                            <Copy size={15} /> {copied ? '복사됨' : '스펙 복사'}
+                        </button>
                     </div>
-                    <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm flex-1">
-                        <div className="text-xs font-bold uppercase text-slate-400 mb-3 tracking-wide flex items-center gap-2"><Cpu size={14}/> LLM 모델</div>
-                        <div className="space-y-2">
-                            {models.map(model => (
-                                <button key={model.id} onClick={() => setSelectedModel(model.id)} className={`w-full p-3 rounded-xl border-2 text-left flex items-center gap-3 transition-all ${selectedModel === model.id ? 'bg-purple-50 border-purple-500 shadow-sm' : 'bg-white border-slate-100 hover:border-purple-300'}`}>
-                                    <span className="text-lg">{model.emoji}</span>
-                                    <div className="flex-1">
-                                        <div className={`text-sm font-bold ${selectedModel === model.id ? 'text-purple-900' : 'text-slate-700'}`}>{model.name}</div>
-                                        <div className="text-[10px] text-slate-400">{model.vendor}</div>
-                                    </div>
-                                    {selectedModel === model.id && <Check size={16} className="text-purple-500" strokeWidth={3}/>}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
+                    <pre className="mt-4 bg-slate-900 text-slate-100 p-5 rounded-2xl text-xs overflow-x-auto border-2 border-slate-800 whitespace-pre-wrap">{masterPromptSpec}</pre>
                 </div>
 
-                {/* Bottom-center: Agent Instructions */}
-                <div className="bg-white rounded-[2rem] border-2 border-slate-200 shadow-sm overflow-hidden flex flex-col min-h-[180px]">
-                    <div className="p-5 border-b-2 border-slate-100 flex items-center bg-slate-50 flex-shrink-0">
-                        <span className="text-xs font-bold uppercase text-slate-400 flex items-center gap-2 tracking-wide"><Settings size={14}/> 에이전트 지침 <span className="text-slate-300 normal-case tracking-normal">Agent Instructions</span></span>
-                    </div>
-                    <textarea className="w-full flex-1 p-5 text-sm focus:outline-none resize-none leading-relaxed text-slate-600 font-medium" value={agentInstructions} onChange={(e) => setAgentInstructions(e.target.value)} placeholder="에이전트의 역할과 행동 지침을 정의하세요..."></textarea>
+                <div className="xl:col-span-2 bg-slate-900 text-slate-100 rounded-[2rem] p-6 shadow-sm border-2 border-slate-900">
+                    <h3 className="font-bold text-lg">이 방식의 의의</h3>
+                    <ul className="mt-4 space-y-3 text-sm text-slate-300 leading-relaxed">
+                        <li className="flex gap-2"><CheckCircle2 size={16} className="text-emerald-400 mt-0.5"/> 사용자 입장에서는 워크플로우 상세 설계 지식 없이도 자연어 한 줄로 실행 가능</li>
+                        <li className="flex gap-2"><CheckCircle2 size={16} className="text-emerald-400 mt-0.5"/> Master Agent가 업무 의도를 구조화(JSON)하므로 재사용성과 감사 가능성 향상</li>
+                        <li className="flex gap-2"><CheckCircle2 size={16} className="text-emerald-400 mt-0.5"/> Router 계층에서 Dify 앱 체인을 유연하게 확장(분석, 보고, 메일, 티켓, 알림 등)</li>
+                    </ul>
                 </div>
-
-                {/* Bottom-right: Skill Summary */}
-                <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-[2rem] border-2 border-slate-700 p-5 shadow-sm text-white flex flex-col">
-                    <div className="text-[10px] font-bold uppercase tracking-wide text-slate-400 mb-3 flex items-center gap-2"><Code size={12}/> Skill Summary</div>
-                    <div className="space-y-2 flex-1">
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Agent</span>
-                            <span className="font-bold text-white truncate ml-2 max-w-[160px]">{agentName}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Model</span>
-                            <span className="font-bold text-white">{currentModel?.name}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Temperature</span>
-                            <span className="font-bold text-orange-400">{temperature}</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Connectors</span>
-                            <span className="font-bold text-blue-400">{selectedConnectors.length}개</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Output (Plugins)</span>
-                            <span className="font-bold text-emerald-400">{selectedPlugins.length}개</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Guardrails</span>
-                            <span className="font-bold text-rose-400">{guardrails.length}개</span>
-                        </div>
-                        <div className="flex items-center justify-between text-xs">
-                            <span className="text-slate-400">Status</span>
-                            <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 bg-amber-500/20 text-amber-400 rounded-full text-[10px] font-bold border border-amber-500/30">Draft</span>
-                        </div>
-                    </div>
-                    <button onClick={() => setShowPreview(true)} className="w-full mt-4 pt-3 border-t border-slate-700 text-xs font-bold text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-colors">
-                        <Eye size={14}/> skill.md 확인하기 <ChevronRight size={14}/>
-                    </button>
-                </div>
-            </div>
-
-                {/* ============ Temperature + Guardrails ============ */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {/* Temperature */}
-                <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm">
-                    <div className="text-xs font-bold uppercase text-slate-400 mb-4 tracking-wide flex items-center gap-2"><Thermometer size={14}/> Temperature</div>
-                    <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                            <span className="text-[10px] text-slate-400 font-bold">정확한</span>
-                            <span className="text-lg font-bold text-slate-900 bg-slate-100 px-3 py-0.5 rounded-lg border border-slate-200">{temperature}</span>
-                            <span className="text-[10px] text-slate-400 font-bold">창의적</span>
-                        </div>
-                        <input type="range" min="0" max="1" step="0.1" value={temperature} onChange={(e) => setTemperature(parseFloat(e.target.value))} className="w-full h-2 bg-slate-200 rounded-full appearance-none cursor-pointer accent-orange-500"/>
-                        <div className="flex justify-between text-[9px] text-slate-300 font-bold px-0.5">
-                            <span>0</span>
-                            <span>0.5</span>
-                            <span>1.0</span>
-                        </div>
-                    </div>
-                </div>
-
-                {/* 가드레일 (Guardrails) */}
-                <div className="bg-white rounded-[2rem] border-2 border-slate-200 p-5 shadow-sm">
-                    <div className="text-xs font-bold uppercase text-slate-400 mb-1 tracking-wide flex items-center gap-2"><Shield size={14}/> 가드레일 <span className="text-slate-300 normal-case tracking-normal">Guardrails</span></div>
-                    <p className="text-[10px] text-slate-300 mb-4">에이전트가 지켜야 할 제한 사항을 설정합니다.</p>
-                    <div className="flex flex-wrap gap-2">
-                        {guardrailOptions.map(g => (
-                            <button key={g} onClick={() => toggleGuardrail(g)} className={`px-3 py-2 rounded-xl text-xs font-bold border-2 transition-all flex items-center gap-1 ${guardrails.includes(g) ? 'bg-rose-50 text-rose-700 border-rose-400 shadow-sm' : 'bg-white text-slate-400 border-slate-200 hover:border-rose-300 hover:text-slate-600'}`}>
-                                {guardrails.includes(g) && <Check size={12} strokeWidth={3}/>}
-                                {g}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-                </div>
-            </div>
-        </>
+            </section>
+        </div>
     );
 };
 
