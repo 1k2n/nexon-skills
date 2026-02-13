@@ -177,44 +177,42 @@ const AIStudio = () => {
                 </p>
             </div>
 
-            <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 xl:h-[calc(100vh-270px)]">
-                <div className="xl:col-span-4 space-y-5 h-full flex flex-col min-h-0">
-                    <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm min-h-[320px] xl:flex-1 flex flex-col">
-                        <div className="flex items-center gap-2 text-slate-800 font-bold"><Sparkles size={18}/> 1) 입력 (Master Prompt)</div>
-                        <textarea
-                            value={masterPrompt}
-                            onChange={(e) => setMasterPrompt(e.target.value)}
-                            className="mt-3 flex-1 w-full border-2 border-slate-200 rounded-2xl p-4 text-sm focus:outline-none focus:border-violet-500"
-                        />
-                        <button
-                            onClick={() => {
-                                setIsAnalyzed(true);
-                                setIsRan(false);
-                            }}
-                            className="mt-3 w-full game-btn bg-slate-800 text-white py-3 rounded-2xl font-bold hover:bg-slate-900 transition-colors"
-                        >
-                            워크플로우 분석
-                        </button>
-                        <p className="mt-3 text-xs text-slate-500">예시: 설맞이 일일 퀘스트 매출/동접 분석 후 매일 09:00 메일+슬랙 전송</p>
-                    </div>
-
-                    <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm min-h-[320px] xl:flex-1 flex flex-col">
-                        <div className="flex items-center justify-between gap-3">
-                            <div className="flex items-center gap-2 text-slate-800 font-bold"><Bot size={18}/> 2) Master Agent 결과 YAML (Dify)</div>
-                            <button
-                                type="button"
-                                onClick={handleCopyYaml}
-                                className="px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:border-violet-300 hover:text-violet-700 transition-colors inline-flex items-center gap-2"
-                            >
-                                <Clipboard size={14}/>
-                                {isCopied ? '복사됨' : '클립보드 복사'}
-                            </button>
-                        </div>
-                        <pre className="mt-3 flex-1 bg-slate-900 text-slate-100 text-xs rounded-2xl p-4 overflow-x-auto whitespace-pre-wrap">{difyYamlPlan}</pre>
-                    </div>
+            <div className="grid grid-cols-1 xl:grid-cols-14 xl:grid-rows-2 gap-5 xl:h-[calc(100vh-270px)]">
+                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm min-h-[320px] xl:min-h-0 xl:col-span-5 xl:row-span-1 flex flex-col">
+                    <div className="flex items-center gap-2 text-slate-800 font-bold"><Sparkles size={18}/> 1) 입력 (Master Prompt)</div>
+                    <textarea
+                        value={masterPrompt}
+                        onChange={(e) => setMasterPrompt(e.target.value)}
+                        className="mt-3 flex-1 w-full border-2 border-slate-200 rounded-2xl p-4 text-sm focus:outline-none focus:border-violet-500"
+                    />
+                    <button
+                        onClick={() => {
+                            setIsAnalyzed(true);
+                            setIsRan(false);
+                        }}
+                        className="mt-3 w-full game-btn bg-slate-800 text-white py-3 rounded-2xl font-bold hover:bg-slate-900 transition-colors"
+                    >
+                        워크플로우 분석
+                    </button>
+                    <p className="mt-3 text-xs text-slate-500">예시: 설맞이 일일 퀘스트 매출/동접 분석 후 매일 09:00 메일+슬랙 전송</p>
                 </div>
 
-                <div className="xl:col-span-8 bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm h-full min-h-[420px] flex flex-col">
+                <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm min-h-[340px] xl:min-h-0 xl:col-span-5 xl:row-span-1 flex flex-col">
+                    <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-slate-800 font-bold"><Bot size={18}/> 2) Master Agent 결과 YAML (Dify)</div>
+                        <button
+                            type="button"
+                            onClick={handleCopyYaml}
+                            className="px-3 py-2 text-xs font-bold rounded-xl border border-slate-200 text-slate-700 hover:border-violet-300 hover:text-violet-700 transition-colors inline-flex items-center gap-2"
+                        >
+                            <Clipboard size={14}/>
+                            {isCopied ? '복사됨' : '클립보드 복사'}
+                        </button>
+                    </div>
+                    <pre className="mt-3 flex-1 bg-slate-900 text-slate-100 text-xs rounded-2xl p-4 overflow-auto whitespace-pre-wrap">{difyYamlPlan}</pre>
+                </div>
+
+                <div className="xl:col-span-9 xl:row-span-2 bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm h-full min-h-[460px] xl:min-h-0 flex flex-col">
                     <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
                         <div className="flex items-center gap-2 text-slate-800 font-bold"><Workflow size={18}/> 3) Router 실행 순서 (Dify Canvas View)</div>
                         <div className="flex flex-col sm:flex-row gap-2">
