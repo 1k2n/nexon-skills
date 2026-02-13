@@ -1,4 +1,4 @@
-const { useState, useRef, useEffect, useCallback } = window.React;
+const { useState, useRef, useEffect, useCallback, useMemo } = window.React;
 const { Database, Box, MessageSquare, Check, Plus, Settings, X, Search, Bot, Cpu, Eye, Download, Play, Code, Layers, FileText, Globe, Terminal, Sparkles, ChevronRight, Copy, Table, BarChart, Image, FileDown, Monitor, Puzzle, Shield, Thermometer } = window.LucideReact;
 const { ModalLayer } = window.AppComponents;
 
@@ -18,6 +18,7 @@ const AIStudio = () => {
     const [guardrails, setGuardrails] = useState([]);
     const [zoomLevel, setZoomLevel] = useState(1);
     const [outputFormat, setOutputFormat] = useState('promptmd');
+    const [masterPrompt, setMasterPrompt] = useState('이번 주 게임 트렌드 분석해서 기획팀에 메일 보내줘.');
 
     const canvasRef = useRef(null);
     const cardRefs = useRef({});
@@ -159,6 +160,49 @@ const AIStudio = () => {
 
     const guardrailYaml = guardrails.map(g => '  - "' + g + '"').join('\n');
 
+    const orchestrationSteps = useMemo(() => {
+        const prompt = masterPrompt.toLowerCase();
+        const steps = [];
+
+        if (prompt.includes('트렌드') || prompt.includes('trend')) {
+            steps.push({ action: 'analyze_trend', target: 'game' });
+        }
+        if (prompt.includes('메일') || prompt.includes('email') || prompt.includes('mail')) {
+            const recipient = prompt.includes('기획') ? 'planning_team' : 'default_team';
+            steps.push({ action: 'send_email', recipient });
+        }
+
+        if (steps.length === 0) {
+            steps.push({ action: 'understand_request', prompt: masterPrompt });
+        }
+        return steps;
+    }, [masterPrompt]);
+
+    const routerPlan = orchestrationSteps.map((step, idx) => {
+        if (step.action === 'analyze_trend') {
+            return {
+                step: idx + 1,
+                app: 'Trend Analyzer 앱',
+                endpoint: '/v1/apps/trend-analyzer/run',
+                payload: step,
+            };
+        }
+        if (step.action === 'send_email') {
+            return {
+                step: idx + 1,
+                app: 'Email Bot 앱',
+                endpoint: '/v1/apps/email-bot/run',
+                payload: step,
+            };
+        }
+        return {
+            step: idx + 1,
+            app: 'Master Router Fallback',
+            endpoint: '/v1/apps/master-router/run',
+            payload: step,
+        };
+    });
+
     const skillMdContent = [
         '---',
         'name: "' + agentName + '"',
@@ -169,6 +213,8 @@ const AIStudio = () => {
         'version: 1.0.0',
         'status: draft',
         'temperature: ' + temperature,
+        'master_prompt: |',
+        '  ' + masterPrompt,
         'connectors:',
         connectorYaml || '  []',
         'output_plugins:',
@@ -178,6 +224,11 @@ const AIStudio = () => {
         '---',
         '',
         '# ' + agentName,
+        '',
+        '## Master Prompt',
+        '```',
+        masterPrompt,
+        '```',
         '',
         '## Workflow Intent',
         '```',
@@ -198,6 +249,9 @@ const AIStudio = () => {
         ...(guardrails.length > 0
             ? guardrails.map(g => '- ' + g)
             : ['(가드레일 없음)']),
+        '',
+        '## Router Execution Plan',
+        ...routerPlan.map(step => `- Step ${step.step}: **${step.app}** 호출 (${step.endpoint}) with ` + '`' + `${JSON.stringify(step.payload)}` + '`'),
         '',
         '## Model Configuration',
         '| Key | Value |',
@@ -364,6 +418,44 @@ const AIStudio = () => {
                     <button className="game-btn flex-1 lg:flex-none flex items-center justify-center gap-2 px-5 py-3 bg-blue-600 text-white rounded-2xl text-sm font-bold hover:bg-blue-700 transition-all shadow-[0px_4px_0px_#1e40af] active:shadow-none active:translate-y-[4px]">
                         <Play size={18}/> 테스트 실행
                     </button>
+                </div>
+            </div>
+
+
+            <div className="bg-slate-900 rounded-[2rem] border-2 border-slate-800 p-6 md:p-8 text-white shadow-2xl">
+                <div className="flex items-start justify-between gap-4 flex-wrap">
+                    <div>
+                        <h3 className="text-2xl font-bold flex items-center gap-2"><Sparkles size={20}/> Master Prompt Orchestration</h3>
+                        <p className="text-slate-300 text-sm mt-2">Dify UI를 직접 거치지 않고, 상위 Master Agent가 자연어를 JSON 액션으로 분해한 뒤 Router가 Dify 앱 API를 순차 호출합니다.</p>
+                    </div>
+                    <span className="text-[11px] px-3 py-1 rounded-full border border-indigo-300/30 bg-indigo-400/20 text-indigo-100 font-bold">Prompt → JSON → Router → Dify Apps</span>
+                </div>
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 mt-5">
+                    <div className="bg-white/5 rounded-2xl border border-white/10 p-4 space-y-3">
+                        <div className="text-xs font-bold text-slate-300 uppercase">입력 (Natural Language)</div>
+                        <textarea
+                            value={masterPrompt}
+                            onChange={(e) => setMasterPrompt(e.target.value)}
+                            className="w-full h-28 rounded-xl bg-slate-950/70 border border-slate-700 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-blue-400"
+                        />
+                        <div className="text-[11px] text-slate-400">예시: 이번 주 게임 트렌드 분석해서 기획팀에 메일 보내줘.</div>
+                    </div>
+                    <div className="bg-white/5 rounded-2xl border border-white/10 p-4">
+                        <div className="text-xs font-bold text-slate-300 uppercase mb-2">Master Agent 출력 (JSON)</div>
+                        <pre className="text-xs bg-slate-950/70 rounded-xl p-3 border border-slate-700 whitespace-pre-wrap">{JSON.stringify(orchestrationSteps, null, 2)}</pre>
+                    </div>
+                    <div className="bg-white/5 rounded-2xl border border-white/10 p-4">
+                        <div className="text-xs font-bold text-slate-300 uppercase mb-2">Router 실행 순서</div>
+                        <div className="space-y-2">
+                            {routerPlan.map((step) => (
+                                <div key={step.step} className="bg-slate-950/60 border border-slate-700 rounded-xl p-3">
+                                    <div className="text-xs font-bold text-blue-300">{step.step}. {step.app}</div>
+                                    <div className="text-[11px] text-slate-300 mt-1">POST {step.endpoint}</div>
+                                    <code className="text-[11px] text-emerald-300 block mt-1">{JSON.stringify(step.payload)}</code>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
                 </div>
             </div>
 
@@ -681,7 +773,7 @@ const AIStudio = () => {
                         </div>
                     </div>
                     <button onClick={() => setShowPreview(true)} className="w-full mt-4 pt-3 border-t border-slate-700 text-xs font-bold text-slate-400 hover:text-white flex items-center justify-center gap-2 transition-colors">
-                        <Eye size={14}/> skill.md 확인하기 <ChevronRight size={14}/>
+                        <Eye size={14}/> 프롬프트 스펙 확인하기 <ChevronRight size={14}/>
                     </button>
                 </div>
             </div>
