@@ -1,69 +1,71 @@
 const { useMemo, useState } = window.React;
 const { Sparkles, Bot, Workflow, Braces, Check, PlayCircle, Clipboard, X, FileText } = window.LucideReact;
 
+const defaultPrompt = '오늘 시작한 "설맞이 일일 퀘스트" 의 매출 효과를 일별로 분석하고, 그 기간동안의 동접 변화를 추적하고, 전날 결과를 취합해서 매일 아침 9시에 기획팀 메일과 슬랙 채널에 쏴줘.';
+
+const buildWorkflowFromPrompt = (promptText) => {
+    const prompt = promptText || defaultPrompt;
+    const campaignMatch = prompt.match(/"([^"]+)"/);
+    const campaignName = campaignMatch ? campaignMatch[1] : '일일 라이브 이벤트';
+    const includesSlack = /슬랙|slack/i.test(prompt);
+    const includesMail = /메일|이메일|email/i.test(prompt);
+    const includesCcu = /동접|ccu|접속/i.test(prompt);
+    const schedule = /9시|09:00/.test(prompt) ? '0 9 * * *' : '0 10 * * *';
+
+    const nodes = [
+        { id: 'trigger_1', title: `Daily Scheduler (${schedule})`, skill: 'cron-scheduler', route: 'system://scheduler', output: 'run_context', stage: 'start', x: 90, y: 220 },
+        { id: 'node_1', title: 'AI 서치 에이전트', skill: 'skills:ai-search-agent', route: 'skills://ai-search-agent', output: 'daily_revenue_by_date', stage: 'parallel-a', x: 350, y: 130 },
+        { id: 'node_2', title: 'NEMO RT 에이전트', skill: 'skills:nemort-agent', route: 'skills://nemort-agent', output: includesCcu ? 'daily_ccu_change' : 'daily_engagement_change', stage: 'parallel-a', x: 350, y: 310 },
+        { id: 'node_5', title: 'Daily Metrics Joiner', skill: 'metrics-joiner', route: 'skills://metrics-joiner', output: 'yesterday_summary_payload', stage: 'merge', x: 640, y: 220 },
+    ];
+
+    if (includesMail) {
+        nodes.push({ id: 'node_3', title: 'Email Summary', skill: 'skills:email-summary', route: 'skills://email-summary', output: 'email_delivery_status', stage: 'parallel-b', x: 920, y: 130 });
+    }
+    if (includesSlack) {
+        nodes.push({ id: 'node_4', title: 'Slack Notifier', skill: 'skills:slack-notifier', route: 'skills://slack-notifier', output: 'slack_delivery_status', stage: 'parallel-b', x: 920, y: 310 });
+    }
+
+    nodes.push({ id: 'node_6', title: 'Run Audit Logger', skill: 'audit-logger', route: 'system://ops-audit', output: 'run_audit_record', stage: 'end', x: 1180, y: 220 });
+
+    const edges = [
+        { id: 'edge_trigger_node1', source: 'trigger_1', target: 'node_1' },
+        { id: 'edge_trigger_node2', source: 'trigger_1', target: 'node_2' },
+        { id: 'edge_node1_node5', source: 'node_1', target: 'node_5' },
+        { id: 'edge_node2_node5', source: 'node_2', target: 'node_5' },
+    ];
+
+    if (includesMail) edges.push({ id: 'edge_node5_node3', source: 'node_5', target: 'node_3' });
+    if (includesSlack) edges.push({ id: 'edge_node5_node4', source: 'node_5', target: 'node_4' });
+    if (includesMail) edges.push({ id: 'edge_node3_node6', source: 'node_3', target: 'node_6' });
+    if (includesSlack) edges.push({ id: 'edge_node4_node6', source: 'node_4', target: 'node_6' });
+    if (!includesMail && !includesSlack) edges.push({ id: 'edge_node5_node6', source: 'node_5', target: 'node_6' });
+
+    return { campaignName, schedule, includesMail, includesSlack, nodes, edges };
+};
+
 const AIStudio = () => {
-    const [masterPrompt, setMasterPrompt] = useState('오늘 시작한 "설맞이 일일 퀘스트" 의 매출 효과를 일별로 분석하고, 그 기간동안의 동접 변화를 추적하고, 전날 결과를 취합해서 매일 아침 9시에 기획팀 메일과 슬랙 채널에 쏴줘.');
+    const [masterPrompt, setMasterPrompt] = useState(defaultPrompt);
+    const [analyzedPrompt, setAnalyzedPrompt] = useState(defaultPrompt);
     const [isAnalyzed, setIsAnalyzed] = useState(false);
     const [isRan, setIsRan] = useState(false);
     const [isCopied, setIsCopied] = useState(false);
     const [isLogOpen, setIsLogOpen] = useState(false);
     const [isSkillModalOpen, setIsSkillModalOpen] = useState(false);
+    const [registeredSkillBundles, setRegisteredSkillBundles] = useState([]);
 
-    const workflowNodes = useMemo(() => ([
-        { id: 'trigger_1', title: 'Daily Scheduler', skill: 'cron-scheduler', route: 'system://scheduler', output: 'run_context', x: 90, y: 220, stage: 'start' },
-        { id: 'node_1', title: 'AI 서치 에이전트', skill: 'skills:ai-search-agent', route: 'skills://ai-search-agent', output: 'daily_revenue_by_date', x: 350, y: 130, stage: 'parallel-a' },
-        { id: 'node_2', title: 'NEMO RT 에이전트', skill: 'skills:nemort-agent', route: 'skills://nemort-agent', output: 'daily_ccu_change', x: 350, y: 310, stage: 'parallel-a' },
-        { id: 'node_5', title: 'Daily Metrics Joiner', skill: 'metrics-joiner', route: 'skills://metrics-joiner', output: 'yesterday_summary_payload', x: 640, y: 220, stage: 'merge' },
-        { id: 'node_3', title: 'Email Summary', skill: 'skills:email-summary', route: 'skills://email-summary', output: 'email_delivery_status', x: 920, y: 130, stage: 'parallel-b' },
-        { id: 'node_4', title: 'Slack Notifier', skill: 'skills:slack-notifier', route: 'skills://slack-notifier', output: 'slack_delivery_status', x: 920, y: 310, stage: 'parallel-b' },
-        { id: 'node_6', title: 'Run Audit Logger', skill: 'audit-logger', route: 'system://ops-audit', output: 'run_audit_record', x: 1190, y: 220, stage: 'end' },
-    ]), []);
-
-    const workflowEdges = useMemo(() => ([
-        { id: 'edge_trigger_node1', source: 'trigger_1', target: 'node_1' },
-        { id: 'edge_trigger_node2', source: 'trigger_1', target: 'node_2' },
-        { id: 'edge_node1_node5', source: 'node_1', target: 'node_5' },
-        { id: 'edge_node2_node5', source: 'node_2', target: 'node_5' },
-        { id: 'edge_node5_node3', source: 'node_5', target: 'node_3' },
-        { id: 'edge_node5_node4', source: 'node_5', target: 'node_4' },
-        { id: 'edge_node3_node6', source: 'node_3', target: 'node_6' },
-        { id: 'edge_node4_node6', source: 'node_4', target: 'node_6' },
-    ]), []);
+    const workflow = useMemo(() => buildWorkflowFromPrompt(analyzedPrompt), [analyzedPrompt]);
 
     const stageGroups = useMemo(() => ([
-        {
-            label: 'Stage 0 · 트리거',
-            parallel: false,
-            nodes: workflowNodes.filter((node) => node.stage === 'start'),
-        },
-        {
-            label: 'Stage 1 · 병렬 실행 (노드1 + 노드2)',
-            parallel: true,
-            nodes: workflowNodes.filter((node) => node.stage === 'parallel-a'),
-        },
-        {
-            label: 'Stage 2 · 결과 병합',
-            parallel: false,
-            nodes: workflowNodes.filter((node) => node.stage === 'merge'),
-        },
-        {
-            label: 'Stage 3 · 병렬 전송 (노드3 + 노드4)',
-            parallel: true,
-            nodes: workflowNodes.filter((node) => node.stage === 'parallel-b'),
-        },
-        {
-            label: 'Stage 4 · 감사 로그',
-            parallel: false,
-            nodes: workflowNodes.filter((node) => node.stage === 'end'),
-        },
-    ]), [workflowNodes]);
-
-    const registeredSkills = useMemo(() => workflowNodes
-        .filter((node) => node.skill.startsWith('skills:'))
-        .map((node) => ({ id: node.id, title: node.title, skill: node.skill, route: node.route })), [workflowNodes]);
+        { label: 'Stage 0 · 트리거', parallel: false, nodes: workflow.nodes.filter((node) => node.stage === 'start') },
+        { label: 'Stage 1 · 병렬 실행 (노드1 + 노드2)', parallel: true, nodes: workflow.nodes.filter((node) => node.stage === 'parallel-a') },
+        { label: 'Stage 2 · 결과 병합', parallel: false, nodes: workflow.nodes.filter((node) => node.stage === 'merge') },
+        { label: 'Stage 3 · 병렬 전송', parallel: true, nodes: workflow.nodes.filter((node) => node.stage === 'parallel-b') },
+        { label: 'Stage 4 · 감사 로그', parallel: false, nodes: workflow.nodes.filter((node) => node.stage === 'end') },
+    ]), [workflow.nodes]);
 
     const difyYamlPlan = useMemo(() => {
-        const nodeBlock = workflowNodes.map((node) => [
+        const nodeBlock = workflow.nodes.map((node) => [
             `  - id: ${node.id}`,
             '    data:',
             '      type: custom',
@@ -77,7 +79,7 @@ const AIStudio = () => {
             `      y: ${node.y}`,
         ].join('\n')).join('\n');
 
-        const edgeBlock = workflowEdges.map((edge) => [
+        const edgeBlock = workflow.edges.map((edge) => [
             `  - id: ${edge.id}`,
             `    source: ${edge.source}`,
             `    target: ${edge.target}`,
@@ -90,68 +92,46 @@ const AIStudio = () => {
         return [
             'app:',
             '  mode: workflow',
-            '  name: 설맞이 일일 퀘스트 성과 브리핑 자동화',
+            `  name: ${workflow.campaignName} 성과 브리핑 자동화`,
             'kind: app',
             'version: 0.1.0',
             'workflow:',
             '  conversation_variables:',
-            '    - name: planning_team_email',
-            '      value: planning-team@nexon.com',
-            '    - name: slack_channel',
-            '      value: #game-planning-daily',
             '    - name: schedule',
-            '      value: "0 9 * * *"',
+            `      value: "${workflow.schedule}"`,
+            '    - name: target_campaign',
+            `      value: "${workflow.campaignName}"`,
             '  environment_variables: []',
             '  graph:',
             '    nodes:',
             nodeBlock,
             '    edges:',
             edgeBlock,
-            'run_result_example:',
-            '  run_date: 2026-02-13',
-            '  quest_period: 2026-02-10~2026-02-13',
-            '  revenue_effect:',
-            '    - date: 2026-02-10',
-            '      sales_krw: 328000000',
-            '      uplift_vs_baseline_pct: 11.4',
-            '    - date: 2026-02-11',
-            '      sales_krw: 347000000',
-            '      uplift_vs_baseline_pct: 17.9',
-            '    - date: 2026-02-12',
-            '      sales_krw: 361000000',
-            '      uplift_vs_baseline_pct: 21.6',
-            '  ccu_tracking:',
-            '    - date: 2026-02-10',
-            '      avg_ccu: 189120',
-            '      delta_vs_prev_day_pct: 2.8',
-            '    - date: 2026-02-11',
-            '      avg_ccu: 196450',
-            '      delta_vs_prev_day_pct: 3.9',
-            '    - date: 2026-02-12',
-            '      avg_ccu: 203910',
-            '      delta_vs_prev_day_pct: 3.8',
-            '  delivery:',
-            '    email: sent(09:00:08)',
-            '    slack: sent(09:00:11)',
         ].join('\n');
-    }, [workflowEdges, workflowNodes]);
+    }, [workflow]);
 
     const executionLogs = useMemo(() => {
         const startedAt = new Date().toLocaleString('ko-KR');
+        const channelSummary = [workflow.includesMail ? 'email' : null, workflow.includesSlack ? 'slack' : null].filter(Boolean).join('+') || 'ops-dashboard';
         return [
             `[${startedAt}] Router 실행 요청 수신`,
-            '[scheduler] cron=0 9 * * * 트리거 실행 (KST)',
-            '[parallel-group:A] node_1(AI 서치 에이전트), node_2(NEMO RT 에이전트) 동시 시작',
-            '[node_1] 2026-02-10~2026-02-12 일별 매출 집계 완료: 328M → 347M → 361M KRW',
-            '[node_2] 2026-02-10~2026-02-12 평균 동접 추적 완료: 189,120 → 196,450 → 203,910',
-            '[node_5] 전날 기준(2026-02-12) 성과 요약 payload 생성 완료',
-            '[parallel-group:B] node_3(Email Summary), node_4(Slack Notifier) 동시 시작',
-            '[node_3] planning-team@nexon.com 메일 발송 완료 (messageId=mail-20260213-090008)',
-            '[node_4] #game-planning-daily 슬랙 알림 전송 완료 (ts=1739404811.120900)',
-            '[node_6] 감사 로그 적재 완료 (runId=quest-daily-20260213-090000)',
+            `[orchestrator] Prompt 분석 완료: ${workflow.campaignName}`,
+            `[scheduler] cron=${workflow.schedule} 트리거 적용`,
+            '[parallel-group:A] node_1, node_2 동시 실행',
+            '[node_1] 일별 매출/전환 지표 집계 완료',
+            '[node_2] 동접/참여 지표 추적 완료',
+            '[node_5] 전날 요약 payload 생성 완료',
+            '[parallel-group:B] 후속 발송 노드 실행',
+            `[delivery] 채널 전송 완료 -> ${channelSummary}`,
             '[router] 전체 그래프 실행 종료 (status: success)',
         ];
-    }, [isRan]);
+    }, [workflow]);
+
+    const handleAnalyze = () => {
+        setAnalyzedPrompt(masterPrompt);
+        setIsAnalyzed(true);
+        setIsRan(false);
+    };
 
     const handleCopyYaml = async () => {
         try {
@@ -168,6 +148,19 @@ const AIStudio = () => {
             setIsCopied(true);
             setTimeout(() => setIsCopied(false), 1800);
         }
+    };
+
+    const handleRegisterSkill = () => {
+        const newSkill = {
+            id: `skill-bundle-${Date.now()}`,
+            name: `${workflow.campaignName} 자동화 번들`,
+            prompt: analyzedPrompt,
+            nodes: workflow.nodes.length,
+            createdAt: new Date().toLocaleString('ko-KR'),
+            includesRun: isRan,
+        };
+        setRegisteredSkillBundles((prev) => [newSkill, ...prev]);
+        setIsSkillModalOpen(false);
     };
 
     return (
@@ -191,15 +184,12 @@ const AIStudio = () => {
                         className="mt-3 flex-1 w-full border-2 border-slate-200 rounded-2xl p-4 text-sm focus:outline-none focus:border-violet-500"
                     />
                     <button
-                        onClick={() => {
-                            setIsAnalyzed(true);
-                            setIsRan(false);
-                        }}
+                        onClick={handleAnalyze}
                         className="mt-3 w-full game-btn bg-slate-800 text-white py-3 rounded-2xl font-bold hover:bg-slate-900 transition-colors"
                     >
                         워크플로우 분석
                     </button>
-                    <p className="mt-3 text-xs text-slate-500">예시: 설맞이 일일 퀘스트 매출/동접 분석 후 매일 09:00 메일+슬랙 전송</p>
+                    <p className="mt-3 text-xs text-slate-500">버튼 동작: 2) YAML + 3) 캔버스/로그가 현재 프롬프트 기준으로 갱신됩니다.</p>
                 </div>
 
                 <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm min-h-[320px] xl:min-h-0 flex flex-col">
@@ -274,9 +264,10 @@ const AIStudio = () => {
                             ))}
                         </div>
                     </div>
-                    <div className="mt-4">
-                        {isAnalyzed && !isRan && <div className="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 inline-flex items-center gap-2"><Check size={14}/> 워크플로우 분석이 완료되었습니다.</div>}
+                    <div className="mt-4 flex flex-wrap gap-2">
+                        {isAnalyzed && <div className="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 inline-flex items-center gap-2"><Check size={14}/> 워크플로우 분석 반영 완료</div>}
                         {isRan && <div className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 inline-flex items-center gap-2"><Check size={14}/> 초안 실행 결과가 갱신되었습니다.</div>}
+                        {registeredSkillBundles.length > 0 && <div className="text-xs font-bold text-violet-700 bg-violet-50 border border-violet-200 rounded-xl px-3 py-2 inline-flex items-center gap-2"><Check size={14}/> 신규 스킬 {registeredSkillBundles.length}건 등록 완료</div>}
                     </div>
                 </div>
             </div>
@@ -286,8 +277,8 @@ const AIStudio = () => {
                     <div className="w-full max-w-2xl bg-white border-2 border-slate-200 rounded-3xl shadow-xl">
                         <div className="flex items-center justify-between p-5 border-b border-slate-200">
                             <div>
-                                <h3 className="text-lg font-bold text-slate-900">스킬 등록 대상 확인</h3>
-                                <p className="text-xs text-slate-500 mt-1">워크플로우에 포함된 스킬 노드를 등록 큐에 올립니다.</p>
+                                <h3 className="text-lg font-bold text-slate-900">스킬 등록</h3>
+                                <p className="text-xs text-slate-500 mt-1">1) 프롬프트, 2) YAML, 3) 실행 흐름을 하나의 스킬 번들로 등록합니다.</p>
                             </div>
                             <button
                                 type="button"
@@ -297,13 +288,18 @@ const AIStudio = () => {
                                 <X size={16}/>
                             </button>
                         </div>
-                        <div className="p-5 space-y-2 max-h-[360px] overflow-y-auto">
-                            {registeredSkills.map((item) => (
-                                <div key={item.id} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2">
-                                    <div className="text-sm font-bold text-slate-800">{item.title}</div>
-                                    <div className="text-xs text-slate-500 mt-1">{item.skill} · {item.route}</div>
-                                </div>
-                            ))}
+                        <div className="p-5 space-y-3">
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                <div className="text-xs text-slate-500">스킬명</div>
+                                <div className="text-sm font-bold text-slate-800 mt-1">{workflow.campaignName} 자동화 번들</div>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+                                <div className="text-xs text-slate-500">포함 노드</div>
+                                <div className="text-sm font-bold text-slate-800 mt-1">{workflow.nodes.length}개 (프롬프트 기반 자동 구성)</div>
+                            </div>
+                            <div className="rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-600">
+                                {isRan ? '실행 결과까지 포함하여 등록됩니다.' : '실행 전 상태입니다. 등록은 가능하지만 실행 로그는 제외됩니다.'}
+                            </div>
                         </div>
                         <div className="px-5 pb-5 flex justify-end gap-2">
                             <button
@@ -315,7 +311,7 @@ const AIStudio = () => {
                             </button>
                             <button
                                 type="button"
-                                onClick={() => setIsSkillModalOpen(false)}
+                                onClick={handleRegisterSkill}
                                 className="game-btn bg-emerald-600 text-white py-2.5 px-5 rounded-2xl font-bold hover:bg-emerald-700 transition-colors"
                             >
                                 등록 요청
