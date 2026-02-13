@@ -1,12 +1,10 @@
 const { useMemo, useState } = window.React;
-const { Sparkles, Bot, Workflow, Send, ArrowRight, Braces, Code, Check, PlayCircle, Copy } = window.LucideReact;
+const { Sparkles, Bot, Workflow, Check, PlayCircle } = window.LucideReact;
 
 const AIStudio = () => {
     const [masterPrompt, setMasterPrompt] = useState('이번 주 게임 트렌드 분석해서 기획팀에 메일 보내줘.');
     const [isAnalyzed, setIsAnalyzed] = useState(false);
     const [isRan, setIsRan] = useState(false);
-    const [copied, setCopied] = useState(false);
-
     const plannedSkills = useMemo(() => {
         const includesTrend = /트렌드|분석/.test(masterPrompt);
         const includesMail = /메일|이메일|보내/.test(masterPrompt);
@@ -45,65 +43,46 @@ const AIStudio = () => {
         return skills;
     }, [masterPrompt]);
 
-    const jsonPlan = useMemo(() => JSON.stringify(plannedSkills.map(({ skill, target, recipient }) => ({
-        skill,
-        ...(target ? { target } : {}),
-        ...(recipient ? { recipient } : {}),
-    })), null, 2), [plannedSkills]);
+    const difyPlanYaml = useMemo(() => {
+        const nodeLines = plannedSkills
+            .map((item, idx) => [
+                `  - id: node_${idx + 1}`,
+                '    type: tool',
+                `    title: ${item.skillName}`,
+                '    tool: skill_api',
+                `    skill: ${item.skill}`,
+                item.target ? `    target: ${item.target}` : null,
+                item.recipient ? `    recipient: ${item.recipient}` : null,
+                `    route: ${item.route}`,
+            ].filter(Boolean).join('\n'))
+            .join('\n');
 
-    const promptSpec = useMemo(() => {
-        const routeLines = plannedSkills
-            .map((item, idx) => `  ${idx + 1}. ${item.skill} -> ${item.skillName} (${item.route})`)
+        const edgeLines = plannedSkills
+            .map((_, idx) => {
+                const from = idx === 0 ? 'start' : `node_${idx}`;
+                const to = `node_${idx + 1}`;
+                return [
+                    `  - id: edge_${idx + 1}`,
+                    `    source: ${from}`,
+                    `    target: ${to}`,
+                ].join('\n');
+            })
             .join('\n');
 
         return [
-            '# AI 실험실: Master Prompt Orchestration Draft',
-            '',
-            '## User Input',
-            masterPrompt,
-            '',
-            '## Master Agent (LLM) Output JSON',
-            '```json',
-            jsonPlan,
-            '```',
-            '',
-            '## Router Execution Plan',
-            routeLines,
-            '',
-            '## Runtime Notes',
-            '- 상위 Master Prompt가 하위 스킬 API를 연쇄 호출합니다.',
-            '- 사용자는 세부 워크플로우를 몰라도 자연어 명령 하나로 복합 작업을 실행합니다.',
-            '- 결과물은 에이전트/워크플로우/기타 형태여도 모두 "스킬" 초안으로 취급합니다.',
+            'app:',
+            '  mode: workflow',
+            '  name: ai_studio_master_agent_flow',
+            'workflow:',
+            '  graph:',
+            '    nodes:',
+            nodeLines,
+            '    edges:',
+            edgeLines,
         ].join('\n');
-    }, [masterPrompt, jsonPlan, plannedSkills]);
+    }, [plannedSkills]);
 
-    const yamlSpec = useMemo(() => {
-        const skillsYaml = plannedSkills.map((item) => [
-            '  - skill: ' + item.skill,
-            item.target ? '    target: ' + item.target : null,
-            item.recipient ? '    recipient: ' + item.recipient : null,
-            '    route: ' + item.route,
-            '    item: "' + item.skillName + '"',
-        ].filter(Boolean).join('\n')).join('\n');
 
-        return [
-            'version: 1',
-            'skill_type: orchestration-draft',
-            'runtime: master-router-api',
-            'controller: master-agent',
-            'user_input: |',
-            '  ' + masterPrompt,
-            'skills:',
-            skillsYaml,
-            'goal: "자연어 프롬프트 하나로 멀티 스킬 연쇄 실행"',
-        ].join('\n');
-    }, [masterPrompt, plannedSkills]);
-
-    const copySpec = () => {
-        navigator.clipboard.writeText(promptSpec).catch(() => {});
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
-    };
 
     return (
         <div className="space-y-6 animate-in">
@@ -113,7 +92,7 @@ const AIStudio = () => {
                     <span className="text-xs px-3 py-1 rounded-full bg-violet-50 text-violet-700 border border-violet-200 font-bold">Master Prompt Runtime</span>
                 </h2>
                 <p className="mt-3 text-slate-600 leading-relaxed">
-                    상위 Master Agent가 자연어를 JSON 스킬 계획으로 변환한 뒤 Router가 하위 스킬 API를 순차 호출하는 오케스트레이션 초안을 설계합니다.
+                    상위 Master Agent가 자연어를 Dify YAML 스킬 계획으로 변환한 뒤 Router가 하위 스킬 API를 순차 호출하는 오케스트레이션 초안을 설계합니다.
                 </p>
             </div>
 
@@ -150,53 +129,35 @@ const AIStudio = () => {
 
                 <div className="xl:col-span-3 grid grid-cols-1 md:grid-cols-2 gap-5">
                     <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm">
-                        <div className="flex items-center gap-2 text-slate-800 font-bold"><Bot size={18}/> 2) Master Agent 결과 JSON</div>
-                        <pre className="mt-3 bg-slate-900 text-slate-100 text-xs rounded-2xl p-4 overflow-x-auto whitespace-pre-wrap">{jsonPlan}</pre>
+                        <div className="flex items-center gap-2 text-slate-800 font-bold"><Bot size={18}/> 2) Master Agent 결과 YAML (Dify)</div>
+                        <pre className="mt-3 bg-slate-900 text-slate-100 text-xs rounded-2xl p-4 overflow-x-auto whitespace-pre-wrap">{difyPlanYaml}</pre>
                     </div>
 
                     <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-5 shadow-sm">
                         <div className="flex items-center gap-2 text-slate-800 font-bold"><Workflow size={18}/> 3) Router 실행 순서</div>
-                        <div className="mt-3 space-y-3">
-                            {plannedSkills.map((item, idx) => (
-                                <div key={item.skill + idx} className="border border-slate-200 rounded-xl p-3 bg-slate-50">
-                                    <div className="text-xs font-bold text-slate-400">STEP {idx + 1}</div>
-                                    <div className="font-semibold text-slate-800 mt-1">{item.skillName}</div>
-                                    <div className="text-xs text-slate-500 mt-1">{item.route}</div>
-                                    <div className="mt-2 inline-flex items-center gap-1 text-[11px] font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-1 rounded-lg">
-                                        <Braces size={12}/> {item.skill}
+                        <div className="mt-3 rounded-2xl border border-slate-200 bg-slate-50 p-4">
+                            <div className="text-[11px] font-bold text-slate-500 mb-3">Dify UI Canvas (읽기 전용)</div>
+                            <div className="space-y-2">
+                                <div className="inline-flex items-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-bold text-emerald-700">Start</div>
+                                {plannedSkills.map((item, idx) => (
+                                    <div key={item.skill + idx}>
+                                        <div className="ml-4 text-slate-400 text-sm">↓</div>
+                                        <div className="ml-6 rounded-xl border border-violet-200 bg-violet-50 p-3">
+                                            <div className="text-[11px] font-bold text-violet-600">NODE {idx + 1}</div>
+                                            <div className="font-semibold text-slate-800 mt-1">{item.skillName}</div>
+                                            <div className="text-xs text-slate-500 mt-1">{item.skill} · {item.route}</div>
+                                        </div>
                                     </div>
-                                </div>
-                            ))}
+                                ))}
+                            </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <div className="bg-slate-900 border-2 border-slate-800 rounded-[2rem] p-6 text-white shadow-sm">
-                <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
-                    <h3 className="text-lg font-bold flex items-center gap-2"><Code size={18}/> Prompt-first Skill Draft</h3>
-                    <button
-                        onClick={copySpec}
-                        className="px-4 py-2 rounded-xl bg-slate-800 border border-slate-700 text-xs font-bold hover:bg-slate-700 transition-colors inline-flex items-center gap-2"
-                    >
-                        {copied ? <><Check size={14}/> 복사됨</> : <><Copy size={14}/> MD 스펙 복사</>}
-                    </button>
-                </div>
-                <div className="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                    <pre className="bg-black/30 rounded-2xl p-4 text-xs whitespace-pre-wrap overflow-x-auto">{promptSpec}</pre>
-                    <pre className="bg-black/30 rounded-2xl p-4 text-xs whitespace-pre-wrap overflow-x-auto">{yamlSpec}</pre>
-                </div>
-            </div>
-
             <div className="bg-white border-2 border-slate-200 rounded-[2rem] p-6 shadow-sm">
-                <h4 className="font-bold text-slate-900 flex items-center gap-2"><Send size={17}/> 의의</h4>
-                <ul className="mt-3 text-sm text-slate-600 space-y-2">
-                    <li className="flex items-start gap-2"><ArrowRight size={14} className="mt-1 text-violet-500"/>사용자는 내부 워크플로우를 몰라도 자연어 명령 하나로 여러 스킬을 연쇄 실행할 수 있습니다.</li>
-                    <li className="flex items-start gap-2"><ArrowRight size={14} className="mt-1 text-violet-500"/>AI 워크플로우가 "기존 업무 자동화"라면, AI 실험실은 "신규 업무 스케치" 역할에 집중합니다.</li>
-                    <li className="flex items-start gap-2"><ArrowRight size={14} className="mt-1 text-violet-500"/>최종 산출물이 에이전트/워크플로우/기타 형태여도 모두 스킬 초안으로 관리 가능합니다.</li>
-                </ul>
-                {isAnalyzed && !isRan && <div className="mt-4 text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 inline-flex items-center gap-2"><Check size={14}/> 워크플로우 분석이 완료되었습니다.</div>}
-                {isRan && <div className="mt-4 text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 inline-flex items-center gap-2"><Check size={14}/> 초안 실행 결과가 갱신되었습니다.</div>}
+                {isAnalyzed && !isRan && <div className="text-xs font-bold text-blue-700 bg-blue-50 border border-blue-200 rounded-xl px-3 py-2 inline-flex items-center gap-2"><Check size={14}/> 워크플로우 분석이 완료되었습니다.</div>}
+                {isRan && <div className="text-xs font-bold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2 inline-flex items-center gap-2"><Check size={14}/> 초안 실행 결과가 갱신되었습니다.</div>}
             </div>
         </div>
     );
