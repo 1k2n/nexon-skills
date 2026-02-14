@@ -279,6 +279,7 @@ const AIStudio = () => {
 
     /* ═══════════════════════ RENDER ═══════════════════════ */
     return (
+        <>
         <div className="space-y-5 animate-in">
 
             {/* ── Header ── */}
@@ -633,6 +634,8 @@ const AIStudio = () => {
             )}
 
 
+        </div>
+
             {/* ═══ Execution Log — Full-screen ═══ */}
             {showLogs && (
                 <div className="fixed inset-0 z-50 flex flex-col h-screen w-screen bg-[#F4F6F9] animate-in">
@@ -857,7 +860,7 @@ const AIStudio = () => {
                     </div>
                 );
             })()}
-        </div>
+        </>
     );
 };
 
