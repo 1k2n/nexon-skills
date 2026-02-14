@@ -1,221 +1,527 @@
 const { useState, useRef } = window.React;
-const { Globe, Bell, Cpu, MessageSquare, Mail, Database, Clock, Split, Box, Bot, GitBranch, Settings, Play, ArrowLeft, Plus, X, Move } = window.LucideReact;
+const {
+    Globe, Bell, Cpu, MessageSquare, Mail, Database, Clock, Split, Box, Bot,
+    GitBranch, Settings, Play, ArrowLeft, Plus, X, Minus, Maximize2,
+} = window.LucideReact;
 
 const WorkflowEditor = ({ onClose }) => {
-            const [nodes, setNodes] = useState([ { id: 1, type: 'trigger', label: 'Webhook (Start)', x: 100, y: 150, iconName: 'Globe' }, { id: 2, type: 'action', label: 'Analyze Text (LLM)', x: 400, y: 150, iconName: 'Cpu' }, { id: 3, type: 'action', label: 'Send to Slack', x: 700, y: 150, iconName: 'MessageSquare' } ]);
-            const [edges, setEdges] = useState([ { id: 'e1-2', source: 1, target: 2, label: '', offsetX: 0, offsetY: 0 }, { id: 'e2-3', source: 2, target: 3, label: 'JSON Data', offsetX: 0, offsetY: 0 } ]);
-            const [draggingNodeId, setDraggingNodeId] = useState(null);
-            const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
-            const [connectingSource, setConnectingSource] = useState(null); 
-            const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-            const [selectedNodeId, setSelectedNodeId] = useState(null); 
-            const [selectedEdgeId, setSelectedEdgeId] = useState(null);
-            const [panelPosition, setPanelPosition] = useState({ x: 300, y: 120 }); 
-            const [isPanelDragging, setIsPanelDragging] = useState(false);
-            const [panelDragOffset, setPanelDragOffset] = useState({ x: 0, y: 0 });
-            const [edgeDrag, setEdgeDrag] = useState(null);
-            const [isPanning, setIsPanning] = useState(false);
-            const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
-            const [panStart, setPanStart] = useState({ x: 0, y: 0 });
-            const canvasRef = useRef(null);
-            const [activeSidebarTab, setActiveSidebarTab] = useState('nodes');
-            const [zoomLevel, setZoomLevel] = useState(1);
+    /* ═══════════ constants ═══════════ */
+    const NODE_W = 220;
+    const NODE_H = 64;
 
-            const clampZoom = (value) => Math.min(1.6, Math.max(0.5, value));
-            const updateZoom = (nextZoom) => {
-                if (!canvasRef.current) {
-                    setZoomLevel(nextZoom);
-                    return;
-                }
-                const rect = canvasRef.current.getBoundingClientRect();
-                const centerX = rect.width / 2;
-                const centerY = rect.height / 2;
-                setPanOffset(current => ({
-                    x: centerX - (nextZoom / zoomLevel) * (centerX - current.x),
-                    y: centerY - (nextZoom / zoomLevel) * (centerY - current.y),
-                }));
-                setZoomLevel(nextZoom);
-            };
-            const applyZoom = (delta) => updateZoom(clampZoom(zoomLevel + delta));
-            const resetZoom = () => updateZoom(1);
-            
-            const IconMap = { Globe, Bell, Cpu, MessageSquare, Mail, Database, Clock, Split, Box, Bot, GitBranch };
-            const toolCategories = { 'Trigger': [ { type: 'trigger', label: 'Webhook', iconName: 'Globe' }, { type: 'trigger', label: 'Schedule', iconName: 'Clock' } ], 'Action': [ { type: 'action', label: 'LLM Analysis', iconName: 'Cpu' }, { type: 'action', label: 'Slack Message', iconName: 'MessageSquare' }, { type: 'action', label: 'Send Email', iconName: 'Mail' }, { type: 'action', label: 'DB Insert', iconName: 'Database' } ], 'Logic': [ { type: 'logic', label: 'If/Else', iconName: 'Split' }, { type: 'helper', label: 'Formatter', iconName: 'Box' } ] };
-            const libraryItems = { '내 커넥터': [ { id: 'c1', label: 'Nexon User API', type: 'connector', iconName: 'Database' }, { id: 'c2', label: 'Slack Notifier', type: 'connector', iconName: 'MessageSquare' } ], '내 에이전트': [ { id: 'a1', label: 'CS Responder', type: 'agent', iconName: 'Bot' }, { id: 'a2', label: 'Data Analyst', type: 'agent', iconName: 'Bot' } ], '내 워크플로우': [ { id: 'w1', label: 'Email Summary', type: 'workflow', iconName: 'GitBranch' } ] };
+    /* ═══════════ state ═══════════ */
+    const [nodes, setNodes] = useState([
+        { id: 1, type: 'trigger', label: 'Webhook (Start)', x: 80, y: 180, iconName: 'Globe' },
+        { id: 2, type: 'action', label: 'Analyze Text (LLM)', x: 420, y: 180, iconName: 'Cpu' },
+        { id: 3, type: 'action', label: 'Send to Slack', x: 760, y: 180, iconName: 'MessageSquare' },
+    ]);
+    const [edges, setEdges] = useState([
+        { id: 'e1-2', source: 1, target: 2, label: '' },
+        { id: 'e2-3', source: 2, target: 3, label: 'JSON Data' },
+    ]);
+    const [draggingNodeId, setDraggingNodeId] = useState(null);
+    const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+    const [connectingSource, setConnectingSource] = useState(null);
+    const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
+    const [selectedNodeId, setSelectedNodeId] = useState(null);
+    const [selectedEdgeId, setSelectedEdgeId] = useState(null);
+    const [isPanning, setIsPanning] = useState(false);
+    const [panOffset, setPanOffset] = useState({ x: 0, y: 0 });
+    const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+    const canvasRef = useRef(null);
+    const [activeSidebarTab, setActiveSidebarTab] = useState('nodes');
+    const [zoomLevel, setZoomLevel] = useState(1);
 
-            const handleNodeLabelChange = (newLabel) => setNodes(nds => nds.map(n => n.id === selectedNodeId ? { ...n, label: newLabel } : n));
-            const handleEdgeLabelChange = (newLabel) => setEdges(eds => eds.map(e => e.id === selectedEdgeId ? { ...e, label: newLabel } : e));
-            const handleEdgeOffsetChange = (axis, value) => {
-                if (!selectedEdgeId) return;
-                const numericValue = Number.isNaN(Number(value)) ? 0 : Number(value);
-                setEdges(eds => eds.map(e => e.id === selectedEdgeId ? { ...e, [axis]: numericValue } : e));
-            };
-            const handleEdgeDelete = () => { setEdges(eds => eds.filter(e => e.id !== selectedEdgeId)); setSelectedEdgeId(null); };
-            const handlePanelMouseDown = (e) => { e.stopPropagation(); setIsPanelDragging(true); setPanelDragOffset({ x: e.clientX - panelPosition.x, y: e.clientY - panelPosition.y }); };
-            const handleNodeMouseDown = (e, nodeId) => { e.stopPropagation(); const node = nodes.find(n => n.id === nodeId); const rect = e.currentTarget.getBoundingClientRect(); setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top }); setDraggingNodeId(nodeId); };
-            const handleNodeSettingsClick = (e, nodeId) => { e.stopPropagation(); setSelectedNodeId(nodeId); setSelectedEdgeId(null); };
-            const handleEdgeClick = (e, edgeId) => { e.stopPropagation(); setSelectedEdgeId(edgeId); setSelectedNodeId(null); };
-            const handleCanvasClick = () => { setSelectedNodeId(null); setSelectedEdgeId(null); };
-            const handleNodeDelete = (e, nodeId) => { e.stopPropagation(); if (selectedNodeId === nodeId) setSelectedNodeId(null); setNodes(nds => nds.filter(n => n.id !== nodeId)); setEdges(eds => eds.filter(edge => edge.source !== nodeId && edge.target !== nodeId)); };
-            const handlePortMouseDown = (e, nodeId, portType) => { e.stopPropagation(); e.preventDefault(); if (portType === 'source') { const rect = e.currentTarget.getBoundingClientRect(); const canvasRect = canvasRef.current.getBoundingClientRect(); setConnectingSource({ nodeId, x: (rect.left + rect.width / 2 - canvasRect.left - panOffset.x) / zoomLevel, y: (rect.top + rect.height / 2 - canvasRect.top - panOffset.y) / zoomLevel }); } };
-            const handlePortMouseUp = (e, nodeId, portType) => { e.stopPropagation(); if (connectingSource && portType === 'target') { if (connectingSource.nodeId !== nodeId) { const newEdge = { id: `e${connectingSource.nodeId}-${nodeId}-${Date.now()}`, source: connectingSource.nodeId, target: nodeId, label: '', offsetX: 0, offsetY: 0 }; if (!edges.some(edge => edge.source === newEdge.source && edge.target === newEdge.target)) setEdges(eds => [...eds, newEdge]); } } setConnectingSource(null); };
-            const handleMouseMove = (e) => { if (isPanelDragging) { setPanelPosition({ x: e.clientX - panelDragOffset.x, y: e.clientY - panelDragOffset.y }); return; } if (isPanning) { setPanOffset({ x: e.clientX - panStart.x, y: e.clientY - panStart.y }); return; } if (!canvasRef.current) return; const canvasRect = canvasRef.current.getBoundingClientRect(); const x = (e.clientX - canvasRect.left - panOffset.x) / zoomLevel; const y = (e.clientY - canvasRect.top - panOffset.y) / zoomLevel; setMousePos({ x, y }); if (edgeDrag) { if (edgeDrag.axis === 'offsetX') { const delta = x - edgeDrag.startMouseX; setEdges(eds => eds.map(edge => edge.id === edgeDrag.edgeId ? { ...edge, offsetX: edgeDrag.startOffset + delta } : edge)); } else if (edgeDrag.axis === 'offsetY') { const delta = y - edgeDrag.startMouseY; setEdges(eds => eds.map(edge => edge.id === edgeDrag.edgeId ? { ...edge, offsetY: edgeDrag.startOffset + delta } : edge)); } return; } if (draggingNodeId) { const nodeX = x - dragOffset.x; const nodeY = y - dragOffset.y; setNodes(nds => nds.map(n => n.id === draggingNodeId ? { ...n, x: nodeX, y: nodeY } : n)); } };
-            const handleMouseUp = () => { setDraggingNodeId(null); setIsPanelDragging(false); setConnectingSource(null); setEdgeDrag(null); setIsPanning(false); };
-            const handleSidebarDragStart = (e, type, label, iconName) => { e.dataTransfer.setData('application/reactflow', JSON.stringify({ type, label, iconName })); e.dataTransfer.effectAllowed = 'move'; };
-            const handleDrop = (e) => { e.preventDefault(); const typeData = e.dataTransfer.getData('application/reactflow'); if (typeData && canvasRef.current) { const { type, label, iconName } = JSON.parse(typeData); const rect = canvasRef.current.getBoundingClientRect(); const x = (e.clientX - rect.left - panOffset.x) / zoomLevel - 88; const y = (e.clientY - rect.top - panOffset.y) / zoomLevel - 40; const newNode = { id: Date.now(), type, label, x, y, iconName }; setNodes(nds => [...nds, newNode]); setSelectedNodeId(newNode.id); setSelectedEdgeId(null); } };
-            const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
-            const handleCanvasWheel = (e) => { if (!e.ctrlKey && !e.metaKey) return; e.preventDefault(); const zoomDelta = e.deltaY > 0 ? -0.1 : 0.1; updateZoom(clampZoom(zoomLevel + zoomDelta)); };
-            const handleCanvasMouseDown = (e) => { if (!canvasRef.current || e.button !== 0) return; if (e.target.closest('[data-no-pan="true"]')) return; e.preventDefault(); setIsPanning(true); setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y }); };
-            const getPath = (sx, sy, tx, ty, edge) => {
-                const pivotX = (sx + tx) / 2 + ((edge && edge.offsetX) || 0);
-                const pivotY = (sy + ty) / 2 + ((edge && edge.offsetY) || 0);
-                const points = [
-                    { x: sx, y: sy },
-                    { x: pivotX, y: sy },
-                    { x: pivotX, y: pivotY },
-                    { x: tx, y: pivotY },
-                    { x: tx, y: ty }
-                ];
+    /* ═══════════ zoom helpers ═══════════ */
+    const clampZoom = (v) => Math.min(1.6, Math.max(0.4, v));
+    const updateZoom = (next) => {
+        if (!canvasRef.current) { setZoomLevel(next); return; }
+        const r = canvasRef.current.getBoundingClientRect();
+        const cx = r.width / 2, cy = r.height / 2;
+        setPanOffset(cur => ({
+            x: cx - (next / zoomLevel) * (cx - cur.x),
+            y: cy - (next / zoomLevel) * (cy - cur.y),
+        }));
+        setZoomLevel(next);
+    };
+    const applyZoom = (d) => updateZoom(clampZoom(zoomLevel + d));
+    const resetZoom = () => updateZoom(1);
 
-                const radiusBase = 12;
-                const segments = [`M ${points[0].x} ${points[0].y}`];
+    /* ═══════════ icon / color maps ═══════════ */
+    const IconMap = { Globe, Bell, Cpu, MessageSquare, Mail, Database, Clock, Split, Box, Bot, GitBranch };
 
-                for (let i = 1; i < points.length; i++) {
-                    const prev = points[i - 1];
-                    const current = points[i];
-                    const next = points[i + 1];
+    const nodeColors = {
+        trigger:   { bg: 'bg-[#ff6d5a]', hex: '#ff6d5a', text: 'text-[#ff6d5a]', light: 'bg-orange-50',  border: 'border-orange-200' },
+        action:    { bg: 'bg-[#4e80ee]', hex: '#4e80ee', text: 'text-[#4e80ee]', light: 'bg-blue-50',    border: 'border-blue-200' },
+        logic:     { bg: 'bg-[#6b7280]', hex: '#6b7280', text: 'text-slate-500',  light: 'bg-slate-50',   border: 'border-slate-200' },
+        helper:    { bg: 'bg-[#94a3b8]', hex: '#94a3b8', text: 'text-slate-400',  light: 'bg-slate-50',   border: 'border-slate-200' },
+        connector: { bg: 'bg-[#8b5cf6]', hex: '#8b5cf6', text: 'text-violet-500', light: 'bg-violet-50',  border: 'border-violet-200' },
+        agent:     { bg: 'bg-[#10b981]', hex: '#10b981', text: 'text-emerald-500', light: 'bg-emerald-50', border: 'border-emerald-200' },
+        workflow:  { bg: 'bg-[#f59e0b]', hex: '#f59e0b', text: 'text-amber-500',  light: 'bg-amber-50',   border: 'border-amber-200' },
+    };
 
-                    if (!next) {
-                        segments.push(`L ${current.x} ${current.y}`);
-                        continue;
-                    }
+    const typeLabels = { trigger: 'Trigger', action: 'Action', logic: 'Logic', helper: 'Helper', connector: 'Connector', agent: 'Agent', workflow: 'Workflow' };
 
-                    const prevDx = current.x - prev.x;
-                    const prevDy = current.y - prev.y;
-                    const nextDx = next.x - current.x;
-                    const nextDy = next.y - current.y;
-                    const prevLen = Math.hypot(prevDx, prevDy) || 1;
-                    const nextLen = Math.hypot(nextDx, nextDy) || 1;
-                    const radius = Math.min(radiusBase, prevLen / 2, nextLen / 2);
-                    const prevUnitX = prevDx / prevLen;
-                    const prevUnitY = prevDy / prevLen;
-                    const nextUnitX = nextDx / nextLen;
-                    const nextUnitY = nextDy / nextLen;
-                    const beforeX = current.x - prevUnitX * radius;
-                    const beforeY = current.y - prevUnitY * radius;
-                    const afterX = current.x + nextUnitX * radius;
-                    const afterY = current.y + nextUnitY * radius;
+    const toolCategories = {
+        'Trigger': [
+            { type: 'trigger', label: 'Webhook', iconName: 'Globe' },
+            { type: 'trigger', label: 'Schedule', iconName: 'Clock' },
+        ],
+        'Action': [
+            { type: 'action', label: 'LLM Analysis', iconName: 'Cpu' },
+            { type: 'action', label: 'Slack Message', iconName: 'MessageSquare' },
+            { type: 'action', label: 'Send Email', iconName: 'Mail' },
+            { type: 'action', label: 'DB Insert', iconName: 'Database' },
+        ],
+        'Logic': [
+            { type: 'logic', label: 'If/Else', iconName: 'Split' },
+            { type: 'helper', label: 'Formatter', iconName: 'Box' },
+        ],
+    };
 
-                    segments.push(`L ${beforeX} ${beforeY}`);
-                    segments.push(`Q ${current.x} ${current.y} ${afterX} ${afterY}`);
-                }
+    const libraryItems = {
+        '내 커넥터': [
+            { id: 'c1', label: 'Nexon User API', type: 'connector', iconName: 'Database' },
+            { id: 'c2', label: 'Slack Notifier', type: 'connector', iconName: 'MessageSquare' },
+        ],
+        '내 에이전트': [
+            { id: 'a1', label: 'CS Responder', type: 'agent', iconName: 'Bot' },
+            { id: 'a2', label: 'Data Analyst', type: 'agent', iconName: 'Bot' },
+        ],
+        '내 워크플로우': [
+            { id: 'w1', label: 'Email Summary', type: 'workflow', iconName: 'GitBranch' },
+        ],
+    };
 
-                return segments.join(' ');
-            };
-            const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
-            const selectedEdge = selectedEdgeId ? edges.find(e => e.id === selectedEdgeId) : null;
-            const isPropertyPanelVisible = selectedNode || selectedEdge;
+    /* ═══════════ handlers ═══════════ */
+    const handleNodeLabelChange = (v) => setNodes(nds => nds.map(n => n.id === selectedNodeId ? { ...n, label: v } : n));
+    const handleEdgeLabelChange = (v) => setEdges(eds => eds.map(e => e.id === selectedEdgeId ? { ...e, label: v } : e));
+    const handleEdgeDelete = () => { setEdges(eds => eds.filter(e => e.id !== selectedEdgeId)); setSelectedEdgeId(null); };
 
-            return (
-                <div className="fixed inset-0 z-50 flex flex-col h-screen w-screen bg-[#F4F6F9] animate-in" onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onMouseMove={handleMouseMove}>
-                    <div className="bg-white border-b border-slate-200 px-6 py-3 flex flex-col sm:flex-row justify-between items-start sm:items-center z-20 gap-3">
-                        <div className="flex items-center gap-4">
-                            <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-md text-slate-500 transition-colors"><ArrowLeft size={20} strokeWidth={2.5} /></button>
-                            <div>
-                                <div className="text-[11px] text-slate-400 font-medium">AI 워크플로우 / 편집</div>
-                                <h3 className="font-semibold text-lg text-slate-900 flex items-center gap-2">새 워크플로우 1 <span className="text-[10px] font-semibold text-amber-600 border border-amber-200 px-2 py-0.5 rounded-md bg-amber-50">Draft</span></h3>
-                            </div>
-                        </div>
-                        <div className="flex gap-2 w-full sm:w-auto">
-                            <button className="flex-1 sm:flex-none justify-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-md text-sm font-semibold border border-slate-200 flex items-center gap-2 shadow-sm"><Play size={16} strokeWidth={2.5} /> 실행 테스트</button>
-                            <button className="flex-1 sm:flex-none justify-center px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-md text-sm font-semibold shadow-sm">저장</button>
-                        </div>
+    const handleNodeMouseDown = (e, nodeId) => {
+        e.stopPropagation();
+        const rect = e.currentTarget.getBoundingClientRect();
+        setDragOffset({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+        setDraggingNodeId(nodeId);
+    };
+    const handleNodeSettingsClick = (e, nodeId) => { e.stopPropagation(); setSelectedNodeId(nodeId); setSelectedEdgeId(null); };
+    const handleEdgeClick = (e, edgeId) => { e.stopPropagation(); setSelectedEdgeId(edgeId); setSelectedNodeId(null); };
+    const handleCanvasClick = () => { setSelectedNodeId(null); setSelectedEdgeId(null); };
+    const handleNodeDelete = (e, nodeId) => {
+        e.stopPropagation();
+        if (selectedNodeId === nodeId) setSelectedNodeId(null);
+        setNodes(nds => nds.filter(n => n.id !== nodeId));
+        setEdges(eds => eds.filter(edge => edge.source !== nodeId && edge.target !== nodeId));
+    };
+
+    const handlePortMouseDown = (e, nodeId) => {
+        e.stopPropagation(); e.preventDefault();
+        if (!canvasRef.current) return;
+        const rect = e.currentTarget.getBoundingClientRect();
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        setConnectingSource({
+            nodeId,
+            x: (rect.left + rect.width / 2 - canvasRect.left - panOffset.x) / zoomLevel,
+            y: (rect.top + rect.height / 2 - canvasRect.top - panOffset.y) / zoomLevel,
+        });
+    };
+    const handlePortMouseUp = (e, nodeId) => {
+        e.stopPropagation();
+        if (connectingSource && connectingSource.nodeId !== nodeId) {
+            const newEdge = { id: `e${connectingSource.nodeId}-${nodeId}-${Date.now()}`, source: connectingSource.nodeId, target: nodeId, label: '' };
+            if (!edges.some(edge => edge.source === newEdge.source && edge.target === newEdge.target))
+                setEdges(eds => [...eds, newEdge]);
+        }
+        setConnectingSource(null);
+    };
+
+    const handleMouseMove = (e) => {
+        if (isPanning) { setPanOffset({ x: e.clientX - panStart.x, y: e.clientY - panStart.y }); return; }
+        if (!canvasRef.current) return;
+        const canvasRect = canvasRef.current.getBoundingClientRect();
+        const x = (e.clientX - canvasRect.left - panOffset.x) / zoomLevel;
+        const y = (e.clientY - canvasRect.top - panOffset.y) / zoomLevel;
+        setMousePos({ x, y });
+        if (draggingNodeId) {
+            setNodes(nds => nds.map(n => n.id === draggingNodeId ? { ...n, x: x - dragOffset.x, y: y - dragOffset.y } : n));
+        }
+    };
+    const handleMouseUp = () => { setDraggingNodeId(null); setConnectingSource(null); setIsPanning(false); };
+
+    const handleSidebarDragStart = (e, type, label, iconName) => {
+        e.dataTransfer.setData('application/reactflow', JSON.stringify({ type, label, iconName }));
+        e.dataTransfer.effectAllowed = 'move';
+    };
+    const handleDrop = (e) => {
+        e.preventDefault();
+        const typeData = e.dataTransfer.getData('application/reactflow');
+        if (typeData && canvasRef.current) {
+            const { type, label, iconName } = JSON.parse(typeData);
+            const rect = canvasRef.current.getBoundingClientRect();
+            const x = (e.clientX - rect.left - panOffset.x) / zoomLevel - NODE_W / 2;
+            const y = (e.clientY - rect.top - panOffset.y) / zoomLevel - NODE_H / 2;
+            const newNode = { id: Date.now(), type, label, x, y, iconName };
+            setNodes(nds => [...nds, newNode]);
+            setSelectedNodeId(newNode.id);
+            setSelectedEdgeId(null);
+        }
+    };
+    const handleDragOver = (e) => { e.preventDefault(); e.dataTransfer.dropEffect = 'move'; };
+    const handleCanvasWheel = (e) => {
+        if (!e.ctrlKey && !e.metaKey) return;
+        e.preventDefault();
+        updateZoom(clampZoom(zoomLevel + (e.deltaY > 0 ? -0.1 : 0.1)));
+    };
+    const handleCanvasMouseDown = (e) => {
+        if (!canvasRef.current || e.button !== 0) return;
+        if (e.target.closest('[data-no-pan="true"]')) return;
+        e.preventDefault();
+        setIsPanning(true);
+        setPanStart({ x: e.clientX - panOffset.x, y: e.clientY - panOffset.y });
+    };
+
+    /* ═══════════ bezier path (n8n style smooth curves) ═══════════ */
+    const getBezierPath = (sx, sy, tx, ty) => {
+        const dx = Math.abs(tx - sx);
+        const cp = Math.max(dx * 0.4, 80);
+        return `M ${sx} ${sy} C ${sx + cp} ${sy}, ${tx - cp} ${ty}, ${tx} ${ty}`;
+    };
+
+    /* ═══════════ derived ═══════════ */
+    const selectedNode = selectedNodeId ? nodes.find(n => n.id === selectedNodeId) : null;
+    const selectedEdge = selectedEdgeId ? edges.find(e => e.id === selectedEdgeId) : null;
+    const isPropertyPanelVisible = selectedNode || selectedEdge;
+
+    /* ═══════════════════════ RENDER ═══════════════════════ */
+    return (
+        <div className="fixed inset-0 z-50 flex flex-col h-screen w-screen bg-[#f5f5f5] animate-in"
+            onMouseUp={handleMouseUp} onMouseLeave={handleMouseUp} onMouseMove={handleMouseMove}>
+
+            {/* ─── Top Toolbar ─── */}
+            <div className="bg-white border-b border-[#e0e0e0] px-5 py-2.5 flex flex-col sm:flex-row justify-between items-start sm:items-center z-20 gap-3">
+                <div className="flex items-center gap-3">
+                    <button onClick={onClose} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 transition-colors">
+                        <ArrowLeft size={18} strokeWidth={2.5} />
+                    </button>
+                    <div className="w-px h-7 bg-slate-200" />
+                    <h3 className="font-semibold text-[15px] text-slate-900 flex items-center gap-2">
+                        새 워크플로우 1
+                        <span className="text-[10px] font-semibold text-amber-600 border border-amber-200 px-2 py-0.5 rounded bg-amber-50">Draft</span>
+                    </h3>
+                </div>
+                <div className="flex gap-2 w-full sm:w-auto">
+                    <button className="flex-1 sm:flex-none justify-center px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-sm font-medium border border-slate-200 flex items-center gap-2">
+                        <Play size={14} strokeWidth={2.5} /> 테스트 실행
+                    </button>
+                    <button className="flex-1 sm:flex-none justify-center px-5 py-2 bg-[#ff6d5a] hover:bg-[#e8604f] text-white rounded-lg text-sm font-semibold shadow-sm">
+                        저장
+                    </button>
+                </div>
+            </div>
+
+            {/* ─── Body: sidebar + canvas + property panel ─── */}
+            <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+
+                {/* ─── Left Sidebar (node palette) ─── */}
+                <div className="w-full md:w-60 bg-white border-b md:border-b-0 md:border-r border-[#e0e0e0] flex flex-col z-20 h-44 md:h-auto">
+                    <div className="flex border-b border-slate-100 p-1 gap-1">
+                        <button onClick={() => setActiveSidebarTab('nodes')}
+                            className={`flex-1 py-1.5 text-[11px] font-semibold rounded transition-all ${activeSidebarTab === 'nodes' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>
+                            노드
+                        </button>
+                        <button onClick={() => setActiveSidebarTab('library')}
+                            className={`flex-1 py-1.5 text-[11px] font-semibold rounded transition-all ${activeSidebarTab === 'library' ? 'bg-slate-100 text-slate-800' : 'text-slate-400 hover:text-slate-600'}`}>
+                            라이브러리
+                        </button>
                     </div>
-                    <div className="flex-1 flex flex-col md:flex-row relative overflow-hidden">
-                        <div className="w-full md:w-80 bg-white border-b md:border-b-0 md:border-r border-slate-200 flex flex-col z-20 h-52 md:h-auto">
-                            <div className="flex border-b border-slate-200 p-1 bg-slate-50 gap-1">
-                                <button onClick={() => setActiveSidebarTab('nodes')} className={`flex-1 py-2 text-[11px] font-semibold uppercase tracking-wider rounded-md transition-all ${activeSidebarTab === 'nodes' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>기본 노드</button>
-                                <button onClick={() => setActiveSidebarTab('library')} className={`flex-1 py-2 text-[11px] font-semibold uppercase tracking-wider rounded-md transition-all ${activeSidebarTab === 'library' ? 'bg-white text-blue-600 shadow-sm' : 'text-slate-400 hover:text-slate-600'}`}>스킬 불러오기</button>
-                            </div>
-                            <div className="px-4 pt-4">
-                                <div className="flex items-center gap-2 bg-slate-100 rounded-md px-3 py-2 text-xs text-slate-500">
-                                    <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-                                    <span>노드 검색 (Ctrl+K)</span>
-                                </div>
-                            </div>
-                            <div className="p-4 space-y-6 overflow-y-auto flex-1 bg-white">
-                                {activeSidebarTab === 'nodes' ? Object.entries(toolCategories).map(([cat, tools]) => (<div key={cat}><div className="text-[10px] font-semibold text-slate-400 mb-3 px-1 uppercase tracking-widest">{cat}</div><div className="space-y-2">{tools.map((tool, i) => { const ToolIcon = IconMap[tool.iconName] || Box; return (<div key={i} className="group px-3 py-2.5 bg-white hover:border-blue-300 border border-slate-200 rounded-lg cursor-grab active:cursor-grabbing flex items-center gap-3 transition-all shadow-sm hover:shadow-md" draggable onDragStart={(e) => handleSidebarDragStart(e, tool.type, tool.label, tool.iconName)}><div className={`p-1.5 rounded-md border ${tool.type === 'trigger' ? 'bg-orange-50 text-orange-600 border-orange-100' : tool.type === 'action' ? 'bg-blue-50 text-blue-600 border-blue-100' : 'bg-slate-100 text-slate-600 border-slate-200'}`}><ToolIcon size={16} strokeWidth={2.5} /></div><span className="text-sm font-semibold text-slate-700">{tool.label}</span><Plus size={16} className="ml-auto text-slate-300 opacity-0 group-hover:opacity-100" strokeWidth={2.5}/></div>) })}</div></div>)) : Object.entries(libraryItems).map(([category, items]) => (<div key={category}><div className="text-[10px] font-semibold text-slate-400 mb-3 px-1 uppercase tracking-widest">{category}</div><div className="space-y-2">{items.map((item, i) => { const ToolIcon = IconMap[item.iconName] || Box; return (<div key={item.id} className="group px-3 py-2.5 bg-white border border-slate-200 hover:border-indigo-300 hover:shadow-md rounded-lg cursor-grab active:cursor-grabbing flex items-center gap-3 transition-all" draggable onDragStart={(e) => handleSidebarDragStart(e, item.type, item.label, item.iconName)}><div className="p-1.5 rounded-md bg-indigo-50 text-indigo-600 border border-indigo-100"><ToolIcon size={16} strokeWidth={2.5} /></div><span className="text-sm font-semibold text-slate-700 truncate">{item.label}</span><Plus size={16} className="ml-auto text-slate-300 opacity-0 group-hover:opacity-100" strokeWidth={2.5}/></div>) })}</div></div>))}
-                            </div>
-                        </div>
-                        <div className="flex-1 bg-[#F3F5F9] relative overflow-hidden cursor-default min-h-[400px] bg-grid-pattern" ref={canvasRef} onDrop={handleDrop} onDragOver={handleDragOver} onClick={handleCanvasClick} onWheel={handleCanvasWheel} onMouseDown={handleCanvasMouseDown}>
-                            <div className="absolute right-4 top-4 z-30 flex items-center gap-2 rounded-full border border-slate-200 bg-white/90 shadow-sm px-2 py-1 text-xs font-semibold text-slate-600" data-no-pan="true">
-                                <button type="button" onClick={() => applyZoom(0.1)} className="w-7 h-7 rounded-full border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors">+</button>
-                                <span className="min-w-[52px] text-center">{Math.round(zoomLevel * 100)}%</span>
-                                <button type="button" onClick={() => applyZoom(-0.1)} className="w-7 h-7 rounded-full border border-slate-200 text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors">-</button>
-                                <button type="button" onClick={resetZoom} className="px-2 py-1 rounded-full border border-slate-200 text-[10px] uppercase tracking-wide text-slate-500 hover:text-blue-600 hover:border-blue-200 transition-colors">Reset</button>
-                            </div>
-                            <div className="absolute inset-0" style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel})`, transformOrigin: '0 0' }}>
-                                <svg className="absolute inset-0 w-full h-full z-0 overflow-visible">
-                                    {edges.map(edge => { const sourceNode = nodes.find(n => n.id === edge.source); const targetNode = nodes.find(n => n.id === edge.target); if (!sourceNode || !targetNode) return null; const sx = sourceNode.x + 176; const sy = sourceNode.y + 44; const tx = targetNode.x; const ty = targetNode.y + 44; const path = getPath(sx, sy, tx, ty, edge); const isSelected = selectedEdgeId === edge.id; const pivotX = (sx + tx) / 2 + (edge.offsetX || 0); const pivotY = (sy + ty) / 2 + (edge.offsetY || 0); return (<g key={edge.id} data-no-pan="true" onClick={(e) => handleEdgeClick(e, edge.id)} className="group cursor-pointer"><path d={path} stroke="transparent" strokeWidth="16" fill="none" /><path d={path} stroke={isSelected ? "#34d399" : "#cbd5f5"} strokeWidth={isSelected ? "4" : "3"} fill="none" className={`transition-colors ${!isSelected && 'group-hover:stroke-emerald-300'}`} strokeLinecap="round" />{edge.label && (<g transform={`translate(${(sx + tx) / 2}, ${(sy + ty) / 2})`}><rect x="-50" y="-14" width="100" height="28" rx="8" fill="white" stroke={isSelected ? "#34d399" : "#e2e8f0"} strokeWidth="1.5" className="shadow-sm"/><text x="0" y="5" textAnchor="middle" className={`text-[11px] font-semibold ${isSelected ? 'fill-emerald-600' : 'fill-slate-500'}`}>{edge.label}</text></g>)}{isSelected && (<g className="edge-handles"><circle cx={pivotX} cy={(sy + pivotY) / 2} r="6" fill="#ffffff" stroke="#34d399" strokeWidth="2" className="cursor-ew-resize" onMouseDown={(e) => { e.stopPropagation(); if (!canvasRef.current) return; const canvasRect = canvasRef.current.getBoundingClientRect(); setEdgeDrag({ edgeId: edge.id, axis: 'offsetX', startOffset: edge.offsetX || 0, startMouseX: (e.clientX - canvasRect.left - panOffset.x) / zoomLevel }); }} /><circle cx={(pivotX + tx) / 2} cy={pivotY} r="6" fill="#ffffff" stroke="#34d399" strokeWidth="2" className="cursor-ns-resize" onMouseDown={(e) => { e.stopPropagation(); if (!canvasRef.current) return; const canvasRect = canvasRef.current.getBoundingClientRect(); setEdgeDrag({ edgeId: edge.id, axis: 'offsetY', startOffset: edge.offsetY || 0, startMouseY: (e.clientY - canvasRect.top - panOffset.y) / zoomLevel }); }} /><text x={pivotX} y={(sy + pivotY) / 2 - 10} textAnchor="middle" className="text-[10px] font-semibold fill-emerald-500">가로</text><text x={(pivotX + tx) / 2} y={pivotY - 10} textAnchor="middle" className="text-[10px] font-semibold fill-emerald-500">세로</text></g>)}</g>); })}
-                                    {connectingSource && (<path d={getPath(connectingSource.x, connectingSource.y, mousePos.x, mousePos.y, {})} stroke="#34d399" strokeWidth="3" fill="none" strokeDasharray="6,6" className="pointer-events-none" strokeLinecap="round" />)}
-                                </svg>
-                                {nodes.map(node => { const NodeIcon = IconMap[node.iconName] || Box; const isDragging = draggingNodeId === node.id; const isSelected = selectedNodeId === node.id; const isLibraryItem = ['connector', 'agent', 'workflow'].includes(node.type); const accentColor = node.type === 'trigger' ? 'border-orange-500' : node.type === 'action' ? 'border-blue-500' : isLibraryItem ? 'border-indigo-500' : 'border-slate-500'; return (<div key={node.id} data-no-pan="true" onMouseDown={(e) => handleNodeMouseDown(e, node.id)} className={`absolute w-44 h-[88px] bg-white border-l-4 ${accentColor} border border-slate-200 rounded-lg shadow-sm p-0 flex flex-col group transition-all cursor-grab active:cursor-grabbing z-10 ${isDragging || isSelected ? 'shadow-lg border-blue-400 z-50 ring-2 ring-blue-500/20' : 'hover:border-blue-300'}`} style={{ left: node.x, top: node.y }}><div className="p-3 flex items-center gap-3 border-b border-slate-100 rounded-t-lg select-none relative bg-white"><div className={`w-8 h-8 rounded-md flex items-center justify-center text-white shadow-sm ${node.type === 'trigger' ? 'bg-orange-500' : isLibraryItem ? 'bg-indigo-600' : node.type === 'action' ? 'bg-blue-600' : 'bg-slate-500'}`}><NodeIcon size={16} strokeWidth={2.5} /></div><div className="text-xs font-semibold text-slate-700 truncate flex-1">{node.label}</div><button onClick={(e) => handleNodeSettingsClick(e, node.id)} className="bg-slate-50 rounded-md p-1.5 border border-slate-200 text-slate-400 hover:text-blue-500 hover:border-blue-200 transition-colors"><Settings size={14} /></button><button onClick={(e) => handleNodeDelete(e, node.id)} className="absolute -top-2.5 -right-2.5 bg-white rounded-full p-1 shadow-md border border-slate-200 text-slate-400 hover:text-white hover:bg-red-500 hover:border-red-500 opacity-0 group-hover:opacity-100 transition-all z-20 scale-75 hover:scale-100"><X size={12} strokeWidth={2.5} /></button></div><div className="p-2 bg-slate-50 rounded-b-lg select-none"><div className="text-[10px] text-slate-400 flex justify-between px-2 font-semibold uppercase tracking-wide"><span>Input</span><span>Output</span></div></div><div onMouseUp={(e) => handlePortMouseUp(e, node.id, 'target')} className="absolute -left-2 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-[2.5px] border-slate-300 rounded-full hover:border-blue-500 transition-transform hover:scale-125 cursor-crosshair z-20 shadow-sm" title="Input"></div><div onMouseDown={(e) => handlePortMouseDown(e, node.id, 'source')} className="absolute -right-2 top-1/2 -translate-y-1/2 w-3 h-3 bg-white border-[2.5px] border-slate-300 rounded-full hover:border-blue-500 transition-transform hover:scale-125 cursor-crosshair z-20 shadow-sm" title="Output"></div></div>); })}
-                            </div>
-                        </div>
-                        {isPropertyPanelVisible && (
-                            <div className="absolute w-80 bg-white rounded-2xl shadow-xl border border-slate-200 overflow-hidden z-50 flex flex-col animate-in" style={{ left: panelPosition.x, top: panelPosition.y, cursor: isPanelDragging ? 'grabbing' : 'default' }}>
-                                <div onMouseDown={handlePanelMouseDown} className="bg-slate-50 border-b border-slate-200 px-4 py-3 flex items-center justify-between cursor-grab active:cursor-grabbing"><h4 className="font-semibold text-slate-700 text-sm flex items-center gap-2"><Settings size={16}/> {selectedNode ? '노드 속성' : '연결선 속성'}</h4><div className="flex items-center gap-2"><Move size={16} className="text-slate-400"/><button onClick={() => { setSelectedNodeId(null); setSelectedEdgeId(null); }} className="text-slate-400 hover:text-red-500"><X size={16} strokeWidth={2.5}/></button></div></div>
-                                <div className="p-5 space-y-4 bg-white">
-                                    {selectedNode ? (
-                                        <>
-                                            <div className="space-y-1">
-                                                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Node Name</label>
-                                                <input type="text" value={selectedNode.label} onChange={(e) => handleNodeLabelChange(e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 transition-all font-semibold"/>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Type</label>
-                                                <div className="px-3 py-2 bg-slate-100 rounded-lg text-xs text-slate-600 border border-slate-200 font-mono font-semibold">{selectedNode.type}</div>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide mb-1">Configuration</div>
-                                                <div className="h-24 bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-400 font-medium">{selectedNode.type === 'trigger' ? 'Webhook URL settings...' : selectedNode.type === 'action' ? 'API Endpoint configuration...' : 'Logic parameters...'}</div>
-                                            </div>
-                                        </>
-                                    ) : (
-                                        <>
-                                            <div className="space-y-1">
-                                                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Edge ID</label>
-                                                <div className="px-3 py-2 bg-slate-100 rounded-lg text-xs text-slate-400 border border-slate-200 font-mono truncate font-semibold">{selectedEdge.id}</div>
-                                            </div>
-                                            <div className="space-y-2">
-                                                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Edge Offset</label>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    <div className="space-y-1">
-                                                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">가로</span>
-                                                        <input type="number" value={selectedEdge.offsetX || 0} onChange={(e) => handleEdgeOffsetChange('offsetX', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-emerald-400 transition-all font-semibold"/>
+                    <div className="p-3 space-y-4 overflow-y-auto flex-1">
+                        {activeSidebarTab === 'nodes'
+                            ? Object.entries(toolCategories).map(([cat, tools]) => (
+                                <div key={cat}>
+                                    <div className="text-[10px] font-semibold text-slate-400 mb-2 px-1 uppercase tracking-widest">{cat}</div>
+                                    <div className="space-y-0.5">
+                                        {tools.map((tool, i) => {
+                                            const ToolIcon = IconMap[tool.iconName] || Box;
+                                            const colors = nodeColors[tool.type] || nodeColors.action;
+                                            return (
+                                                <div key={i}
+                                                    className="group px-2 py-2 hover:bg-slate-50 rounded-lg cursor-grab active:cursor-grabbing flex items-center gap-2.5 transition-all"
+                                                    draggable onDragStart={(e) => handleSidebarDragStart(e, tool.type, tool.label, tool.iconName)}>
+                                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 ${colors.bg}`}>
+                                                        <ToolIcon size={14} strokeWidth={2.5} />
                                                     </div>
-                                                    <div className="space-y-1">
-                                                        <span className="text-[10px] font-semibold text-slate-400 uppercase tracking-wide">세로</span>
-                                                        <input type="number" value={selectedEdge.offsetY || 0} onChange={(e) => handleEdgeOffsetChange('offsetY', e.target.value)} className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-xs text-slate-700 focus:outline-none focus:border-emerald-400 transition-all font-semibold"/>
-                                                    </div>
+                                                    <span className="text-[13px] font-medium text-slate-700">{tool.label}</span>
+                                                    <Plus size={14} className="ml-auto text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={2} />
                                                 </div>
-                                                <p className="text-[11px] text-slate-400">캔버스에서 녹색 핸들을 드래그해서도 위치를 조정할 수 있어요.</p>
-                                            </div>
-                                            <div className="space-y-1">
-                                                <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Label (Optional)</label>
-                                                <input type="text" value={selectedEdge.label || ''} onChange={(e) => handleEdgeLabelChange(e.target.value)} placeholder="연결선 이름 입력..." className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-blue-500 transition-all font-semibold"/>
-                                            </div>
-                                            <div className="pt-3 border-t border-slate-100 mt-2">
-                                                <button onClick={handleEdgeDelete} className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-50 hover:bg-red-100 text-red-600 rounded-lg text-xs font-semibold transition-colors border border-red-100 shadow-sm"><X size={14} strokeWidth={2.5}/> 연결 삭제</button>
-                                            </div>
-                                        </>
-                                    )}
+                                            );
+                                        })}
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            ))
+                            : Object.entries(libraryItems).map(([category, items]) => (
+                                <div key={category}>
+                                    <div className="text-[10px] font-semibold text-slate-400 mb-2 px-1 uppercase tracking-widest">{category}</div>
+                                    <div className="space-y-0.5">
+                                        {items.map((item) => {
+                                            const ToolIcon = IconMap[item.iconName] || Box;
+                                            const colors = nodeColors[item.type] || nodeColors.action;
+                                            return (
+                                                <div key={item.id}
+                                                    className="group px-2 py-2 hover:bg-slate-50 rounded-lg cursor-grab active:cursor-grabbing flex items-center gap-2.5 transition-all"
+                                                    draggable onDragStart={(e) => handleSidebarDragStart(e, item.type, item.label, item.iconName)}>
+                                                    <div className={`w-7 h-7 rounded-lg flex items-center justify-center text-white shrink-0 ${colors.bg}`}>
+                                                        <ToolIcon size={14} strokeWidth={2.5} />
+                                                    </div>
+                                                    <span className="text-[13px] font-medium text-slate-700 truncate">{item.label}</span>
+                                                    <Plus size={14} className="ml-auto text-slate-300 opacity-0 group-hover:opacity-100 transition-opacity" strokeWidth={2} />
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            ))
+                        }
                     </div>
                 </div>
-            );
-        };
+
+                {/* ─── Canvas ─── */}
+                <div className="flex-1 relative overflow-hidden cursor-default min-h-[400px]"
+                    ref={canvasRef} onDrop={handleDrop} onDragOver={handleDragOver}
+                    onClick={handleCanvasClick} onWheel={handleCanvasWheel} onMouseDown={handleCanvasMouseDown}
+                    style={{ background: '#fafafa' }}>
+
+                    {/* n8n dot-grid background */}
+                    <div className="absolute inset-0 pointer-events-none" style={{
+                        backgroundImage: 'radial-gradient(circle, #cacaca 1px, transparent 1px)',
+                        backgroundSize: '20px 20px',
+                    }} />
+
+                    {/* Zoom controls — bottom center, n8n style */}
+                    <div className="absolute bottom-4 left-1/2 -translate-x-1/2 z-30 flex items-center gap-0.5 rounded-lg border border-slate-200 bg-white shadow-sm px-1 py-0.5" data-no-pan="true">
+                        <button type="button" onClick={() => applyZoom(-0.1)} className="w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
+                            <Minus size={14} strokeWidth={2.5} />
+                        </button>
+                        <span className="min-w-[42px] text-center text-[11px] font-semibold text-slate-500 select-none">{Math.round(zoomLevel * 100)}%</span>
+                        <button type="button" onClick={() => applyZoom(0.1)} className="w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors">
+                            <Plus size={14} strokeWidth={2.5} />
+                        </button>
+                        <div className="w-px h-4 bg-slate-200 mx-0.5" />
+                        <button type="button" onClick={resetZoom} className="w-7 h-7 rounded-md hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors" title="화면 맞춤">
+                            <Maximize2 size={13} strokeWidth={2.5} />
+                        </button>
+                    </div>
+
+                    {/* Transformed canvas layer */}
+                    <div className="absolute inset-0" style={{ transform: `translate(${panOffset.x}px, ${panOffset.y}px) scale(${zoomLevel})`, transformOrigin: '0 0' }}>
+
+                        {/* ── Edges (SVG) ── */}
+                        <svg className="absolute inset-0 w-full h-full z-0 overflow-visible">
+                            <defs>
+                                <marker id="n8n-arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                    <path d="M 0 0 L 10 5 L 0 10 Z" fill="#b1b1b7" />
+                                </marker>
+                                <marker id="n8n-arrow-active" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
+                                    <path d="M 0 0 L 10 5 L 0 10 Z" fill="#ff6d5a" />
+                                </marker>
+                            </defs>
+                            {edges.map(edge => {
+                                const sourceNode = nodes.find(n => n.id === edge.source);
+                                const targetNode = nodes.find(n => n.id === edge.target);
+                                if (!sourceNode || !targetNode) return null;
+
+                                const sx = sourceNode.x + NODE_W;
+                                const sy = sourceNode.y + NODE_H / 2;
+                                const tx = targetNode.x;
+                                const ty = targetNode.y + NODE_H / 2;
+                                const path = getBezierPath(sx, sy, tx, ty);
+                                const isSelected = selectedEdgeId === edge.id;
+                                const midX = (sx + tx) / 2;
+                                const midY = (sy + ty) / 2;
+
+                                return (
+                                    <g key={edge.id} data-no-pan="true" onClick={(e) => handleEdgeClick(e, edge.id)} className="group cursor-pointer">
+                                        {/* Hit area */}
+                                        <path d={path} stroke="transparent" strokeWidth="20" fill="none" />
+                                        {/* Visible line */}
+                                        <path d={path}
+                                            stroke={isSelected ? '#ff6d5a' : '#b1b1b7'}
+                                            strokeWidth={isSelected ? 2.5 : 2}
+                                            fill="none"
+                                            className={`transition-colors ${!isSelected ? 'group-hover:[stroke:#ff6d5a80]' : ''}`}
+                                            strokeLinecap="round"
+                                            markerEnd={isSelected ? 'url(#n8n-arrow-active)' : 'url(#n8n-arrow)'}
+                                        />
+                                        {/* Animated flow dot */}
+                                        <circle r={isSelected ? 3.5 : 2.5} fill={isSelected ? '#ff6d5a' : '#b1b1b7'} opacity={isSelected ? 1 : 0.6}>
+                                            <animateMotion dur={isSelected ? '1.5s' : '3s'} repeatCount="indefinite" path={path} />
+                                        </circle>
+                                        {/* Edge label pill */}
+                                        {edge.label && (
+                                            <g transform={`translate(${midX}, ${midY})`}>
+                                                <rect x={-(edge.label.length * 3.5 + 10)} y="-10" width={(edge.label.length * 3.5 + 10) * 2} height="20" rx="5"
+                                                    fill="white" stroke={isSelected ? '#ff6d5a' : '#e0e0e0'} strokeWidth="1" />
+                                                <text x="0" y="3.5" textAnchor="middle" fontSize="10" fontWeight="500"
+                                                    fill={isSelected ? '#ff6d5a' : '#888'}>
+                                                    {edge.label}
+                                                </text>
+                                            </g>
+                                        )}
+                                    </g>
+                                );
+                            })}
+
+                            {/* Connecting line (drag-to-connect) */}
+                            {connectingSource && (
+                                <path d={getBezierPath(connectingSource.x, connectingSource.y, mousePos.x, mousePos.y)}
+                                    stroke="#ff6d5a" strokeWidth="2" fill="none" strokeDasharray="6,4"
+                                    className="pointer-events-none" strokeLinecap="round" />
+                            )}
+                        </svg>
+
+                        {/* ── Nodes ── */}
+                        {nodes.map(node => {
+                            const NodeIcon = IconMap[node.iconName] || Box;
+                            const isDragging = draggingNodeId === node.id;
+                            const isSelected = selectedNodeId === node.id;
+                            const colors = nodeColors[node.type] || nodeColors.action;
+
+                            return (
+                                <div key={node.id} data-no-pan="true"
+                                    onMouseDown={(e) => handleNodeMouseDown(e, node.id)}
+                                    className="absolute group cursor-grab active:cursor-grabbing z-10"
+                                    style={{ left: node.x, top: node.y, width: NODE_W, height: NODE_H }}>
+
+                                    {/* Visual card */}
+                                    <div className={`w-full h-full flex overflow-hidden rounded-xl border-2 transition-all duration-150 ${
+                                        isDragging || isSelected
+                                            ? 'border-[#ff6d5a] shadow-lg ring-2 ring-[#ff6d5a]/20 z-50'
+                                            : 'border-[#e0e0e0] shadow-[0_1px_3px_rgba(0,0,0,0.08)] hover:shadow-md hover:border-[#ccc]'
+                                    }`}>
+                                        {/* Left icon strip — n8n signature */}
+                                        <div className={`w-12 shrink-0 flex items-center justify-center ${colors.bg}`}>
+                                            <NodeIcon size={20} className="text-white" strokeWidth={2} />
+                                        </div>
+                                        {/* Content */}
+                                        <div className="flex-1 bg-white flex flex-col justify-center px-3 min-w-0 relative">
+                                            <div className="text-[13px] font-semibold text-[#333] truncate pr-5">{node.label}</div>
+                                            <div className={`text-[10px] mt-0.5 font-medium ${colors.text}`}>{typeLabels[node.type] || node.type}</div>
+                                            {/* Settings — hover only */}
+                                            <button onClick={(e) => handleNodeSettingsClick(e, node.id)}
+                                                className="absolute top-1.5 right-1.5 p-1 rounded text-slate-300 hover:text-slate-600 opacity-0 group-hover:opacity-100 transition-all">
+                                                <Settings size={12} />
+                                            </button>
+                                        </div>
+                                    </div>
+
+                                    {/* Delete button */}
+                                    <button onClick={(e) => handleNodeDelete(e, node.id)}
+                                        className="absolute -top-2 -right-2 bg-white rounded-full p-0.5 shadow-md border border-slate-200 text-slate-400 hover:text-white hover:bg-red-500 hover:border-red-500 opacity-0 group-hover:opacity-100 transition-all z-30 scale-75 hover:scale-100">
+                                        <X size={11} strokeWidth={3} />
+                                    </button>
+
+                                    {/* Input port (left) */}
+                                    <div onMouseUp={(e) => handlePortMouseUp(e, node.id)}
+                                        className="absolute -left-[7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white border-[2.5px] border-[#b1b1b7] rounded-full hover:border-[#ff6d5a] hover:scale-[1.6] hover:bg-[#ff6d5a]/10 transition-all cursor-crosshair z-20"
+                                        title="Input" />
+
+                                    {/* Output port (right) */}
+                                    <div onMouseDown={(e) => handlePortMouseDown(e, node.id)}
+                                        className="absolute -right-[7px] top-1/2 -translate-y-1/2 w-3.5 h-3.5 bg-white border-[2.5px] border-[#b1b1b7] rounded-full hover:border-[#ff6d5a] hover:scale-[1.6] hover:bg-[#ff6d5a]/10 transition-all cursor-crosshair z-20"
+                                        title="Output" />
+                                </div>
+                            );
+                        })}
+                    </div>
+                </div>
+
+                {/* ─── Right Property Panel (n8n style slide-in sidebar) ─── */}
+                {isPropertyPanelVisible && (
+                    <div className="hidden md:flex w-80 bg-white border-l border-[#e0e0e0] flex-col z-20 animate-in">
+                        {/* Panel header */}
+                        <div className="border-b border-slate-100 px-5 py-3.5 flex items-center justify-between shrink-0">
+                            <h4 className="font-semibold text-slate-800 text-sm">
+                                {selectedNode ? '노드 속성' : '연결선 속성'}
+                            </h4>
+                            <button onClick={() => { setSelectedNodeId(null); setSelectedEdgeId(null); }}
+                                className="p-1.5 rounded-md text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors">
+                                <X size={16} strokeWidth={2.5} />
+                            </button>
+                        </div>
+
+                        {/* Panel body */}
+                        <div className="flex-1 overflow-y-auto p-5 space-y-5">
+                            {selectedNode ? (
+                                <>
+                                    {/* Node identity header */}
+                                    <div className="flex items-center gap-3 pb-4 border-b border-slate-100">
+                                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm ${(nodeColors[selectedNode.type] || nodeColors.action).bg}`}>
+                                            {(() => { const NIcon = IconMap[selectedNode.iconName] || Box; return <NIcon size={18} strokeWidth={2} />; })()}
+                                        </div>
+                                        <div className="min-w-0">
+                                            <div className="font-semibold text-slate-800 text-sm truncate">{selectedNode.label}</div>
+                                            <div className={`text-[11px] font-medium ${(nodeColors[selectedNode.type] || nodeColors.action).text}`}>
+                                                {typeLabels[selectedNode.type]}
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Name</label>
+                                        <input type="text" value={selectedNode.label}
+                                            onChange={(e) => handleNodeLabelChange(e.target.value)}
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-[#ff6d5a] focus:ring-1 focus:ring-[#ff6d5a]/20 transition-all font-medium" />
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Type</label>
+                                        <div className={`px-3 py-2 rounded-lg text-xs font-semibold border ${(nodeColors[selectedNode.type] || nodeColors.action).light} ${(nodeColors[selectedNode.type] || nodeColors.action).border} ${(nodeColors[selectedNode.type] || nodeColors.action).text}`}>
+                                            {typeLabels[selectedNode.type]}
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Configuration</label>
+                                        <div className="bg-slate-50 border border-slate-200 rounded-lg p-3 text-xs text-slate-400 min-h-[80px]">
+                                            {selectedNode.type === 'trigger' ? 'Webhook URL, 인증, 헤더 설정...'
+                                                : selectedNode.type === 'action' ? 'API 엔드포인트, 입력 파라미터...'
+                                                : '조건식, 분기 로직 설정...'}
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-3 border-t border-slate-100">
+                                        <button onClick={(e) => handleNodeDelete(e, selectedNode.id)}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg text-xs font-semibold transition-colors border border-red-100">
+                                            <X size={13} strokeWidth={2.5} /> 노드 삭제
+                                        </button>
+                                    </div>
+                                </>
+                            ) : selectedEdge && (
+                                <>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Edge ID</label>
+                                        <div className="px-3 py-2 bg-slate-50 rounded-lg text-xs text-slate-400 border border-slate-200 font-mono truncate">{selectedEdge.id}</div>
+                                    </div>
+                                    <div className="space-y-1.5">
+                                        <label className="text-[11px] font-semibold text-slate-400 uppercase tracking-wide">Label</label>
+                                        <input type="text" value={selectedEdge.label || ''}
+                                            onChange={(e) => handleEdgeLabelChange(e.target.value)}
+                                            placeholder="라벨 입력..."
+                                            className="w-full bg-slate-50 border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 focus:outline-none focus:border-[#ff6d5a] focus:ring-1 focus:ring-[#ff6d5a]/20 transition-all font-medium" />
+                                    </div>
+                                    <div className="pt-3 border-t border-slate-100">
+                                        <button onClick={handleEdgeDelete}
+                                            className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-50 hover:bg-red-100 text-red-500 rounded-lg text-xs font-semibold transition-colors border border-red-100">
+                                            <X size={13} strokeWidth={2.5} /> 연결 삭제
+                                        </button>
+                                    </div>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                )}
+            </div>
+        </div>
+    );
+};
 
 window.AppComponents.WorkflowEditor = WorkflowEditor;
