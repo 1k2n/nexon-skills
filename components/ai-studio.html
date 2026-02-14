@@ -3,7 +3,7 @@ const {
     Sparkles, Bot, Workflow, Braces, Check, PlayCircle, Clipboard, X, FileText,
     ChevronRight, Cpu, Layers, Code, Package, Zap, Activity, GitBranch, Terminal,
     FlaskConical, Loader2, CheckCircle2, Database, Mail, MessageSquare, Play,
-    ExternalLink, Search, Eye, RotateCcw, ArrowRight, Settings2, Hash
+    ExternalLink, Search, Eye, RotateCcw, ArrowRight, ArrowLeft, Settings2, Hash
 } = window.LucideReact;
 
 const AIStudio = () => {
@@ -633,97 +633,230 @@ const AIStudio = () => {
             )}
 
 
-            {/* ═══ Execution Log Modal ═══ */}
+            {/* ═══ Execution Log — Full-screen ═══ */}
             {showLogs && (
-                <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center px-4" onClick={() => setShowLogs(false)}>
-                    <div className="w-full max-w-3xl bg-white border-2 border-slate-200 rounded-3xl shadow-xl" onClick={(e) => e.stopPropagation()}>
-                        <div className="flex items-center justify-between p-5 border-b border-slate-200">
-                            <div>
-                                <h3 className="text-lg font-bold text-slate-900 flex items-center gap-2">
-                                    <Terminal size={20} className="text-violet-600"/>
-                                    오케스트레이터 실행 로그
-                                </h3>
-                                <p className="text-xs text-slate-500 mt-1">Phase 1 → 2 전체 파이프라인 로그입니다.</p>
-                            </div>
-                            <button type="button" onClick={() => setShowLogs(false)} className="w-9 h-9 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 flex items-center justify-center">
-                                <X size={16}/>
+                <div className="fixed inset-0 z-50 flex flex-col h-screen w-screen bg-[#F4F6F9] animate-in">
+                    {/* Toolbar */}
+                    <div className="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center z-20">
+                        <div className="flex items-center gap-4">
+                            <button onClick={() => setShowLogs(false)} className="p-2 hover:bg-slate-100 rounded-md text-slate-500 transition-colors">
+                                <ArrowLeft size={20} strokeWidth={2.5}/>
                             </button>
+                            <div>
+                                <div className="text-[11px] text-slate-400 font-medium">AI 실험실 / 실행 로그</div>
+                                <h3 className="font-semibold text-lg text-slate-900 flex items-center gap-2">
+                                    <Terminal size={18} className="text-violet-600"/>
+                                    오케스트레이터 실행 로그
+                                    <span className="text-[10px] font-semibold text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-md bg-emerald-50">SUCCESS</span>
+                                </h3>
+                            </div>
                         </div>
-                        <div className="p-5 space-y-2 max-h-[420px] overflow-y-auto">
-                            {executionLogs.map((log, idx) => (
-                                <div key={idx} className="flex items-start gap-2 text-xs">
-                                    <span className={`shrink-0 px-2 py-0.5 rounded-md border font-bold font-mono ${tagColor(log.tag)}`}>
-                                        {log.tag}
-                                    </span>
-                                    <span className="text-slate-700 font-mono leading-relaxed">{log.msg}</span>
-                                </div>
-                            ))}
-                        </div>
-                        <div className="px-5 pb-5 flex justify-end">
-                            <button type="button" onClick={() => setShowLogs(false)} className="game-btn bg-slate-800 text-white py-2.5 px-5 rounded-2xl font-bold hover:bg-slate-900 transition-colors">
+                        <div className="flex gap-2">
+                            <button onClick={handleCopyYaml} className="px-4 py-2 bg-white hover:bg-slate-50 text-slate-600 rounded-md text-sm font-semibold border border-slate-200 flex items-center gap-2 shadow-sm">
+                                <Clipboard size={16} strokeWidth={2.5}/> YAML 복사
+                            </button>
+                            <button onClick={() => setShowLogs(false)} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-md text-sm font-semibold shadow-sm">
                                 닫기
                             </button>
                         </div>
                     </div>
-                </div>
-            )}
 
-
-            {/* ═══ Node Detail Modal ═══ */}
-            {selectedNode && (
-                <div className="fixed inset-0 bg-slate-900/80 backdrop-blur-sm z-[100] flex items-center justify-center p-4" onClick={() => setSelectedNode(null)}>
-                    <div className="bg-white rounded-[32px] shadow-2xl w-full max-w-2xl overflow-hidden relative border-4 border-slate-900" onClick={(e) => e.stopPropagation()}>
-
-                        {/* Header */}
-                        <div className="flex items-start justify-between p-6 border-b border-slate-200 bg-slate-50">
-                            <div>
-                                <div className="flex items-center gap-2">
-                                    <span className="text-xs font-bold text-violet-700">{selectedNode.id}</span>
-                                    <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase border ${typeColors[selectedNode.skillType]}`}>
-                                        {selectedNode.skillType}
-                                    </span>
-                                    {selectedNode.catalogId ? (
-                                        <span className="text-[10px] font-bold text-violet-600 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                            <Package size={10}/> {selectedNode.catalogId}
+                    {/* Body */}
+                    <div className="flex-1 flex flex-col md:flex-row overflow-hidden">
+                        {/* Log list */}
+                        <div className="flex-1 overflow-y-auto p-6">
+                            <div className="max-w-4xl mx-auto space-y-2">
+                                <div className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-4 px-1">Phase 1 → 2 전체 파이프라인 로그</div>
+                                {executionLogs.map((log, idx) => (
+                                    <div key={idx} className="flex items-start gap-3 bg-white rounded-xl border border-slate-200 px-4 py-3 shadow-sm hover:shadow-md transition-shadow">
+                                        <span className="text-[10px] font-mono text-slate-300 pt-0.5 shrink-0 w-6 text-right">{String(idx + 1).padStart(2, '0')}</span>
+                                        <span className={`shrink-0 px-2.5 py-0.5 rounded-md border text-xs font-bold font-mono ${tagColor(log.tag)}`}>
+                                            {log.tag}
                                         </span>
-                                    ) : (
-                                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1">
-                                            <Zap size={10}/> 인스턴트
-                                        </span>
-                                    )}
-                                </div>
-                                <h3 className="text-2xl font-bold text-slate-900 mt-2">{selectedNode.skillName}</h3>
-                                <p className="text-sm text-slate-500 mt-1">{selectedNode.originLabel}</p>
+                                        <span className="text-sm text-slate-700 font-mono leading-relaxed">{log.msg}</span>
+                                    </div>
+                                ))}
                             </div>
-                            <button type="button" onClick={() => setSelectedNode(null)} className="w-10 h-10 rounded-xl border border-slate-200 text-slate-500 hover:text-slate-900 hover:border-slate-300 flex items-center justify-center">
-                                <X size={16}/>
-                            </button>
                         </div>
 
-                        {/* Body */}
-                        <div className="p-6 space-y-4 text-sm">
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                <div className="text-xs font-semibold text-slate-500">실행 스킬 ID</div>
-                                <div className="mt-1 font-mono text-slate-800">{selectedNode.skill}</div>
+                        {/* Side panel — YAML preview */}
+                        <div className="hidden lg:flex flex-col w-96 bg-white border-l border-slate-200">
+                            <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+                                <h4 className="text-sm font-bold text-slate-700 flex items-center gap-2"><Code size={16}/> 생성된 DIFY YAML</h4>
                             </div>
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                <div className="text-xs font-semibold text-slate-500">라우팅 경로</div>
-                                <div className="mt-1 font-mono text-slate-800 break-all">{selectedNode.route}</div>
-                            </div>
-                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
-                                <div className="text-xs font-semibold text-slate-500">노드 설명</div>
-                                <div className="mt-1 text-slate-700">{selectedNode.detail}</div>
-                            </div>
-                            {executedNodes.has(selectedNode.id) && (
-                                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
-                                    <div className="text-xs font-semibold text-emerald-700">실행 결과</div>
-                                    <div className="mt-1 text-emerald-900 font-semibold">{selectedNode.output}</div>
-                                </div>
-                            )}
+                            <pre className="flex-1 overflow-auto p-4 text-xs text-slate-600 font-mono leading-relaxed whitespace-pre-wrap bg-slate-50">{difyYaml}</pre>
                         </div>
                     </div>
                 </div>
             )}
+
+
+            {/* ═══ Node Detail — Full-screen ═══ */}
+            {selectedNode && (() => {
+                const NodeIcon = selectedNode.icon;
+                const isExecuted = executedNodes.has(selectedNode.id);
+                const isInstant = selectedNode.origin === 'instant';
+                const connectedEdges = edges.filter(([s, t]) => s === selectedNode.id || t === selectedNode.id);
+                const upstreamNodes = connectedEdges.filter(([, t]) => t === selectedNode.id).map(([s]) => plannedSkills.find(sk => sk.id === s)).filter(Boolean);
+                const downstreamNodes = connectedEdges.filter(([s]) => s === selectedNode.id).map(([, t]) => plannedSkills.find(sk => sk.id === t)).filter(Boolean);
+                return (
+                    <div className="fixed inset-0 z-[100] flex flex-col h-screen w-screen bg-[#F4F6F9] animate-in">
+                        {/* Toolbar */}
+                        <div className="bg-white border-b border-slate-200 px-6 py-3 flex justify-between items-center z-20">
+                            <div className="flex items-center gap-4">
+                                <button onClick={() => setSelectedNode(null)} className="p-2 hover:bg-slate-100 rounded-md text-slate-500 transition-colors">
+                                    <ArrowLeft size={20} strokeWidth={2.5}/>
+                                </button>
+                                <div>
+                                    <div className="text-[11px] text-slate-400 font-medium">AI 실험실 / 노드 상세</div>
+                                    <h3 className="font-semibold text-lg text-slate-900 flex items-center gap-2">
+                                        {selectedNode.skillName}
+                                        <span className={`text-[10px] font-semibold border px-2 py-0.5 rounded-md ${typeColors[selectedNode.skillType]}`}>
+                                            {selectedNode.skillType}
+                                        </span>
+                                        {isExecuted && <span className="text-[10px] font-semibold text-emerald-600 border border-emerald-200 px-2 py-0.5 rounded-md bg-emerald-50">Executed</span>}
+                                    </h3>
+                                </div>
+                            </div>
+                            <button onClick={() => setSelectedNode(null)} className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-md text-sm font-semibold shadow-sm">
+                                닫기
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <div className="flex-1 flex flex-col lg:flex-row overflow-hidden">
+                            {/* Main content */}
+                            <div className="flex-1 overflow-y-auto p-6">
+                                <div className="max-w-3xl mx-auto space-y-6">
+
+                                    {/* Node identity card */}
+                                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden">
+                                        <div className={`px-6 py-5 border-b border-slate-100 flex items-center gap-4 ${
+                                            selectedNode.skillType === 'Agent' ? 'bg-blue-50/50' :
+                                            selectedNode.skillType === 'Connector' ? 'bg-purple-50/50' : 'bg-orange-50/50'
+                                        }`}>
+                                            <div className={`w-14 h-14 rounded-2xl flex items-center justify-center shadow-sm ${
+                                                selectedNode.skillType === 'Agent' ? 'bg-blue-100 text-blue-600' :
+                                                selectedNode.skillType === 'Connector' ? 'bg-purple-100 text-purple-600' : 'bg-orange-100 text-orange-600'
+                                            }`}>
+                                                <NodeIcon size={28}/>
+                                            </div>
+                                            <div>
+                                                <div className="flex items-center gap-2 flex-wrap">
+                                                    <span className="text-xs font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-md">{selectedNode.id}</span>
+                                                    {selectedNode.catalogId ? (
+                                                        <span className="text-[10px] font-bold text-violet-600 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                            <Package size={10}/> {selectedNode.catalogId}
+                                                        </span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1">
+                                                            <Zap size={10}/> 인스턴트
+                                                        </span>
+                                                    )}
+                                                </div>
+                                                <h2 className="text-2xl font-bold text-slate-900 mt-1">{selectedNode.skillName}</h2>
+                                                <p className="text-sm text-slate-500">{selectedNode.originLabel}</p>
+                                            </div>
+                                        </div>
+
+                                        <div className="p-6 space-y-4">
+                                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                                    <div className="text-xs font-semibold text-slate-500">실행 스킬 ID</div>
+                                                    <div className="mt-1 font-mono text-slate-800 text-sm">{selectedNode.skill}</div>
+                                                </div>
+                                                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                                    <div className="text-xs font-semibold text-slate-500">라우팅 경로</div>
+                                                    <div className="mt-1 font-mono text-slate-800 text-sm break-all">{selectedNode.route}</div>
+                                                </div>
+                                            </div>
+                                            <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3">
+                                                <div className="text-xs font-semibold text-slate-500">노드 설명</div>
+                                                <div className="mt-1.5 text-slate-700 leading-relaxed">{selectedNode.detail}</div>
+                                            </div>
+                                            {isExecuted && (
+                                                <div className="rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3">
+                                                    <div className="text-xs font-semibold text-emerald-700">실행 결과</div>
+                                                    <div className="mt-1.5 text-emerald-900 font-bold text-lg">{selectedNode.output}</div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {/* Connected nodes */}
+                                    <div className="bg-white rounded-2xl border border-slate-200 shadow-sm p-6">
+                                        <h4 className="text-sm font-bold text-slate-700 flex items-center gap-2 mb-4"><Workflow size={16}/> 연결된 노드</h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                            {upstreamNodes.length > 0 && (
+                                                <div>
+                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Upstream (입력)</div>
+                                                    <div className="space-y-2">
+                                                        {upstreamNodes.map(node => {
+                                                            const UpIcon = node.icon;
+                                                            return (
+                                                                <button key={node.id} onClick={() => setSelectedNode(node)} className="w-full text-left flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:border-violet-300 hover:bg-violet-50/30 transition-all">
+                                                                    <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center"><UpIcon size={14}/></div>
+                                                                    <div className="min-w-0">
+                                                                        <div className="text-xs font-bold text-slate-800 truncate">{node.skillName}</div>
+                                                                        <div className="text-[10px] text-slate-400 font-mono truncate">{node.id}</div>
+                                                                    </div>
+                                                                    <span className={`ml-auto px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border shrink-0 ${typeColors[node.skillType]}`}>{node.skillType}</span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+                                            {downstreamNodes.length > 0 && (
+                                                <div>
+                                                    <div className="text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-2">Downstream (출력)</div>
+                                                    <div className="space-y-2">
+                                                        {downstreamNodes.map(node => {
+                                                            const DownIcon = node.icon;
+                                                            return (
+                                                                <button key={node.id} onClick={() => setSelectedNode(node)} className="w-full text-left flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-slate-50 hover:border-violet-300 hover:bg-violet-50/30 transition-all">
+                                                                    <div className="w-8 h-8 rounded-lg bg-slate-100 text-slate-500 flex items-center justify-center"><DownIcon size={14}/></div>
+                                                                    <div className="min-w-0">
+                                                                        <div className="text-xs font-bold text-slate-800 truncate">{node.skillName}</div>
+                                                                        <div className="text-[10px] text-slate-400 font-mono truncate">{node.id}</div>
+                                                                    </div>
+                                                                    <span className={`ml-auto px-1.5 py-0.5 rounded text-[8px] font-bold uppercase border shrink-0 ${typeColors[node.skillType]}`}>{node.skillType}</span>
+                                                                </button>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Side panel — DIFY YAML for this node */}
+                            <div className="hidden lg:flex flex-col w-96 bg-white border-l border-slate-200">
+                                <div className="px-4 py-3 border-b border-slate-200 bg-slate-50">
+                                    <h4 className="text-sm font-bold text-slate-700 flex items-center gap-2"><Code size={16}/> 노드 YAML 정의</h4>
+                                </div>
+                                <pre className="flex-1 overflow-auto p-4 text-xs text-slate-600 font-mono leading-relaxed whitespace-pre-wrap bg-slate-50">{[
+                                    `- id: ${selectedNode.id}`,
+                                    '  data:',
+                                    '    type: custom',
+                                    `    title: "${selectedNode.skillName}"`,
+                                    `    desc: "${selectedNode.detail}"`,
+                                    `    skill: "${selectedNode.route}"`,
+                                    `    nexon_catalog_id: "${selectedNode.catalogId || 'instant'}"`,
+                                    `    skill_type: "${selectedNode.skillType}"`,
+                                    '    selected: false',
+                                    '    variables: []',
+                                    '  position:',
+                                    `    x: ${nodePositions[selectedNode.id]?.x ?? 0}`,
+                                    `    y: ${nodePositions[selectedNode.id]?.y ?? 0}`,
+                                ].join('\n')}</pre>
+                            </div>
+                        </div>
+                    </div>
+                );
+            })()}
         </div>
     );
 };
