@@ -8,10 +8,10 @@ const {
     ItemDetailModal,
     CreateSelectionModal,
     DeveloperConsole,
-    AINews,
-    IntegrationGuide,
+    SkillTrend,
+    SkillGuide,
     AIWorkflow,
-    AIStudio,
+    AILab,
     FavoritesView,
     HomePage,
 } = window.AppComponents;
@@ -108,10 +108,10 @@ const App = () => {
             const renderContent = () => {
                 switch (currentTab) {
                     case '개발자 콘솔': return <DeveloperConsole setShowCreateModal={setShowCreateModal} setSelectedItem={setSelectedItem} currentTab={currentTab} />;
-                    case '스킬 트렌드': return <AINews setSelectedItem={setSelectedItem} />;
-                    case '스킬 가이드': return <IntegrationGuide />;
+                    case '스킬 트렌드': return <SkillTrend setSelectedItem={setSelectedItem} />;
+                    case '스킬 가이드': return <SkillGuide />;
                     case 'AI 워크플로우': return <AIWorkflow />;
-                    case 'AI 실험실': return <AIStudio />;
+                    case 'AI 실험실': return <AILab />;
                     case '즐겨찾기': return <FavoritesView setSelectedItem={setSelectedItem} />;
                     default: return <HomePage selectedGame={selectedGame} setSelectedGame={setSelectedGame} gameList={GAME_LIST} showStickySearch={showStickySearch} setSelectedItem={setSelectedItem} />;
                 }
