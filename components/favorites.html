@@ -1,6 +1,6 @@
 const { Star, Plus } = window.LucideReact;
 const { FAVORITES_ITEMS } = window.AppData;
-const { SkillCard } = window.AppComponents;
+const { SkillCard, EmptyStateCard } = window.AppComponents;
 
 const FavoritesView = ({ setSelectedItem }) => {
     return (
@@ -32,14 +32,11 @@ const FavoritesView = ({ setSelectedItem }) => {
                         )}
                     />
                 ))}
-                {/* 즐겨찾기 추가 안내 카드 */}
-                <div className="border-4 border-dashed border-slate-200 rounded-[2rem] p-6 flex flex-col items-center justify-center text-center hover:border-blue-300 hover:bg-blue-50/50 transition-all cursor-pointer group min-h-[200px]">
-                    <div className="w-14 h-14 bg-slate-100 rounded-full flex items-center justify-center text-slate-400 mb-4 group-hover:bg-white group-hover:text-blue-500 shadow-sm transition-colors group-hover:scale-110 duration-300">
-                        <Plus size={32} strokeWidth={3} />
-                    </div>
-                    <h3 className="font-bold text-slate-900 mb-1 text-lg">스킬 더 찾아보기</h3>
-                    <p className="text-xs text-slate-400 font-medium">홈 화면에서 별표를 눌러<br/>이곳에 추가해보세요.</p>
-                </div>
+                <EmptyStateCard
+                    icon={Plus}
+                    title="스킬 더 찾아보기"
+                    description={<>홈 화면에서 별표를 눌러<br/>이곳에 추가해보세요.</>}
+                />
             </div>
         </div>
     );

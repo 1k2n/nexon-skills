@@ -1,19 +1,17 @@
 const { useState, useEffect, useCallback, useRef } = window.React;
 const { Gamepad2, ChevronDown, Search, ArrowRight, Star, Share2 } = window.LucideReact;
 const { HOME_INITIAL_ITEMS } = window.AppData;
-const { SkillCard } = window.AppComponents;
+const { SkillCard, LoadingSpinner } = window.AppComponents;
 
 const HomePage = ({ selectedGame, setSelectedGame, gameList, showStickySearch, setSelectedItem }) => {
     const [items, setItems] = useState(HOME_INITIAL_ITEMS);
     const [isLoading, setIsLoading] = useState(false);
     const loadingRef = useRef(isLoading);
 
-    // 로딩 중복 요청 방지용 ref 동기화
     useEffect(() => {
         loadingRef.current = isLoading;
     }, [isLoading]);
 
-    // 더미 아이템 생성 (무한 스크롤 데모용)
     const generateRandomItems = (count) => {
         const types = ['Agent', 'Connector', 'Workflow'];
         const titles = ['Super AI', 'Auto Notion', 'Slack Bot', 'Data Miner', 'Email Wiz', 'Code Fixer', 'Image Gen', 'Text Sum', 'Game Ops', 'Server Mon'];
@@ -134,12 +132,7 @@ const HomePage = ({ selectedGame, setSelectedGame, gameList, showStickySearch, s
                         />
                     ))}
                 </div>
-                {isLoading && (
-                    <div className="flex justify-center items-center py-12">
-                        <div className="loader mr-4"></div>
-                        <span className="text-slate-500 font-bold text-lg">더 많은 스킬을 소환하는 중...</span>
-                    </div>
-                )}
+                {isLoading && <LoadingSpinner text="더 많은 스킬을 소환하는 중..." />}
             </div>
         </div>
     );
