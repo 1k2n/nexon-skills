@@ -1,5 +1,5 @@
 const { useState, useEffect, useCallback, useRef, useMemo } = window.React;
-const { Clock, ExternalLink, RefreshCw, Globe, Rss, TrendingUp, AlertCircle, Search, ChevronRight, Loader2 } = window.LucideReact;
+const { Clock, ExternalLink, RefreshCw, Globe, Rss, TrendingUp, AlertCircle, Search, ChevronRight, Loader2, Languages } = window.LucideReact;
 const { NewsThumbnail, LoadingSpinner } = window.AppComponents;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -64,46 +64,126 @@ const relativeTime = (dateStr) => {
 const cleanHTML = (html) =>
     (html || '').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').trim();
 
+// Extract first image URL from HTML string (Google News descriptions often contain <img> tags)
+const extractImageFromHTML = (html) => {
+    if (!html) return null;
+    const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+    return match?.[1] || null;
+};
+
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const MAX_AGE_DAYS = 30;
+
+// ─── Translation helpers ───
+const TRANS_CACHE_KEY = 'ai-news-trans-v1';
+const getTransCache = () => { try { return JSON.parse(localStorage.getItem(TRANS_CACHE_KEY) || '{}'); } catch { return {}; } };
+const saveTransCache = (c) => { try { const e = Object.entries(c); localStorage.setItem(TRANS_CACHE_KEY, JSON.stringify(e.length > 500 ? Object.fromEntries(e.slice(-300)) : c)); } catch {} };
+
+const translateToKo = async (text) => {
+    if (!text) return '';
+    // Primary: Google Translate via CORS proxy
+    try {
+        const gtUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ko&dt=t&q=${encodeURIComponent(text)}`;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(gtUrl)}`, { signal: controller.signal });
+        clearTimeout(timer);
+        if (res.ok) {
+            const data = await res.json();
+            const result = data[0].map(s => s[0]).join('');
+            if (result) return result;
+        }
+    } catch {}
+    // Fallback: MyMemory API
+    try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.substring(0, 500))}&langpair=en|ko`, { signal: controller.signal });
+        clearTimeout(timer);
+        const data = await res.json();
+        if (data.responseStatus === 200 && data.responseData?.translatedText) return data.responseData.translatedText;
+    } catch {}
+    return '';
+};
+
+const translateEnglishNews = async (allNews) => {
+    const cache = getTransCache();
+    const enNews = allNews.filter(n => n.lang === 'English');
+    const uncached = enNews.filter(n => !cache[n.title]);
+
+    if (uncached.length > 0) {
+        const results = await Promise.allSettled(uncached.map(n => translateToKo(n.title)));
+        results.forEach((r, i) => {
+            if (r.status === 'fulfilled' && r.value) cache[uncached[i].title] = r.value;
+        });
+        const descResults = await Promise.allSettled(uncached.map(n => translateToKo(n.description)));
+        descResults.forEach((r, i) => {
+            if (r.status === 'fulfilled' && r.value) cache[`d:${uncached[i].title}`] = r.value;
+        });
+        saveTransCache(cache);
+    }
+
+    enNews.forEach(n => {
+        n.titleKo = cache[n.title] || '';
+        n.descriptionKo = cache[`d:${n.title}`] || '';
+    });
+};
 
 const parseRSSXml = (xml, feedInfo) => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(xml, 'text/xml');
-    return Array.from(doc.querySelectorAll('item')).slice(0, 20).map(item => {
+    const cutoff = Date.now() - MAX_AGE_DAYS * 86400000;
+    return Array.from(doc.querySelectorAll('item')).slice(0, 30).map(item => {
         const rawTitle = item.querySelector('title')?.textContent || '';
         const link = item.querySelector('link')?.textContent || '';
         const pubDate = item.querySelector('pubDate')?.textContent || '';
-        const desc = cleanHTML(item.querySelector('description')?.textContent || '');
+        const rawDate = new Date(pubDate);
+        if (rawDate.getTime() < cutoff) return null;
+        const rawDesc = item.querySelector('description')?.textContent || '';
+        const imageUrl = extractImageFromHTML(rawDesc)
+            || item.querySelector('enclosure')?.getAttribute('url')
+            || item.getElementsByTagNameNS('http://search.yahoo.com/mrss/', 'content')?.[0]?.getAttribute('url')
+            || null;
+        const desc = cleanHTML(rawDesc);
         const sourceEl = item.querySelector('source');
         const source = sourceEl?.textContent || '';
         const title = source ? rawTitle.replace(new RegExp(`\\s*[-–—]\\s*${escapeRegex(source)}\\s*$`), '') : rawTitle;
         const fullText = rawTitle + ' ' + desc;
         const category = categorize(fullText);
         return {
-            title: title || rawTitle, link, pubDate, source,
+            title: title || rawTitle, link, pubDate, source, imageUrl,
             description: desc.substring(0, 280),
             category, lang: feedInfo.lang,
-            time: relativeTime(pubDate), rawDate: new Date(pubDate),
+            time: relativeTime(pubDate), rawDate,
         };
-    });
+    }).filter(Boolean);
 };
 
-// rss2json.com returns JSON directly
+// rss2json.com returns JSON directly — includes thumbnail/enclosure fields
 const parseRss2Json = (json, feedInfo) => {
-    return (json.items || []).slice(0, 20).map(item => {
+    const cutoff = Date.now() - MAX_AGE_DAYS * 86400000;
+    return (json.items || []).slice(0, 30).map(item => {
         const rawTitle = item.title || '';
-        const desc = cleanHTML(item.description || item.content || '');
+        const rawDate = new Date(item.pubDate);
+        if (rawDate.getTime() < cutoff) return null;
+        const rawContent = item.description || item.content || '';
+        const imageUrl = item.thumbnail
+            || item.enclosure?.link
+            || extractImageFromHTML(rawContent)
+            || null;
+        const desc = cleanHTML(rawContent);
         const source = item.author || '';
         const title = source ? rawTitle.replace(new RegExp(`\\s*[-–—]\\s*${escapeRegex(source)}\\s*$`), '') : rawTitle;
         const fullText = rawTitle + ' ' + desc;
         const category = categorize(fullText);
         return {
-            title: title || rawTitle, link: item.link || '', pubDate: item.pubDate || '', source,
+            title: title || rawTitle, link: item.link || '', pubDate: item.pubDate || '', source, imageUrl,
             description: desc.substring(0, 280),
             category, lang: feedInfo.lang,
-            time: relativeTime(item.pubDate), rawDate: new Date(item.pubDate),
+            time: relativeTime(item.pubDate), rawDate,
         };
-    });
+    }).filter(Boolean);
 };
 
 // Try multiple CORS proxies in order until one succeeds
@@ -133,6 +213,48 @@ const fetchWithFallback = async (feed) => {
         } catch { continue; }
     }
     return [];
+};
+
+// ─── og:image extraction ───
+const OG_CACHE_KEY = 'ai-news-ogimg-v1';
+const getOgCache = () => { try { return JSON.parse(localStorage.getItem(OG_CACHE_KEY) || '{}'); } catch { return {}; } };
+const saveOgCache = (c) => { try { const e = Object.entries(c); localStorage.setItem(OG_CACHE_KEY, JSON.stringify(e.length > 300 ? Object.fromEntries(e.slice(-200)) : c)); } catch {} };
+
+const extractOgImage = async (url) => {
+    if (!url) return null;
+    try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, { signal: controller.signal });
+        clearTimeout(timer);
+        if (!res.ok) return null;
+        const html = await res.text();
+        // og:image or twitter:image
+        const m = html.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']/i)
+               || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)["']/i);
+        return m?.[1] || null;
+    } catch { return null; }
+};
+
+const fetchOgImages = async (articles, onUpdate) => {
+    const cache = getOgCache();
+    const needImage = articles.filter(n => !n.imageUrl && n.link);
+    // Apply cached og:images immediately
+    needImage.forEach(n => { if (cache[n.link]) n.imageUrl = cache[n.link]; });
+    // Fetch uncached — limit to 15 articles, batches of 5
+    const toFetch = needImage.filter(n => !n.imageUrl && !(n.link in cache)).slice(0, 15);
+    if (toFetch.length === 0) return;
+    for (let i = 0; i < toFetch.length; i += 5) {
+        const batch = toFetch.slice(i, i + 5);
+        const results = await Promise.allSettled(batch.map(n => extractOgImage(n.link)));
+        results.forEach((r, j) => {
+            const imgUrl = r.status === 'fulfilled' ? r.value : null;
+            cache[batch[j].link] = imgUrl || '';
+            if (imgUrl) batch[j].imageUrl = imgUrl;
+        });
+        saveOgCache(cache);
+        if (onUpdate) onUpdate();
+    }
 };
 
 const FALLBACK_NEWS = (window.AppData.NEWS_ITEMS || []).map(n => ({
@@ -178,6 +300,8 @@ const LangToggle = ({ value, onChange }) => (
 // Featured (hero) article card
 const FeaturedCard = ({ item, onClick }) => {
     const style = CATEGORY_STYLES[item.category] || CATEGORY_STYLES['AI 일반'];
+    const [imgError, setImgError] = useState(false);
+    const showImage = item.imageUrl && !imgError;
     const gradients = {
         indigo:  'from-indigo-400 to-indigo-600',
         emerald: 'from-emerald-400 to-emerald-600',
@@ -193,9 +317,15 @@ const FeaturedCard = ({ item, onClick }) => {
             <div className="flex flex-col lg:flex-row">
                 <div className="lg:w-2/5 shrink-0">
                     <div className={`h-52 lg:h-full min-h-[220px] bg-gradient-to-br ${grad} relative overflow-hidden flex items-center justify-center`}>
-                        <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px'}} />
-                        <TrendingUp size={80} className="text-white/30" strokeWidth={1.5} />
-                        <div className="absolute top-4 left-4 bg-white/20 backdrop-blur px-3 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-wider">
+                        {showImage ? (
+                            <img src={item.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" onError={() => setImgError(true)} />
+                        ) : (
+                            <>
+                                <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px'}} />
+                                <TrendingUp size={80} className="text-white/30" strokeWidth={1.5} />
+                            </>
+                        )}
+                        <div className="absolute top-4 left-4 bg-white/20 backdrop-blur px-3 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-wider shadow-sm">
                             {item.category}
                         </div>
                         {item.source && (
@@ -211,10 +341,19 @@ const FeaturedCard = ({ item, onClick }) => {
                         <span className="px-2.5 py-0.5 bg-red-50 text-red-600 rounded-full text-[11px] font-bold border border-red-200">TOP</span>
                         <span className="text-[11px] text-slate-400 font-medium">{item.lang}</span>
                     </div>
-                    <h3 className="text-2xl lg:text-3xl font-bold text-slate-900 leading-snug mb-3 group-hover:text-blue-600 transition-colors">
+                    <h3 className="text-2xl lg:text-3xl font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors">
                         {item.title}
                     </h3>
-                    <p className="text-slate-500 text-sm leading-relaxed mb-4 line-clamp-3">{item.description}</p>
+                    {item.titleKo && (
+                        <p className="flex items-center gap-1.5 text-base text-slate-500 font-medium mt-1 mb-2">
+                            <Languages size={14} className="text-blue-400 shrink-0" />
+                            {item.titleKo}
+                        </p>
+                    )}
+                    {!item.titleKo && <div className="mb-3" />}
+                    <p className="text-slate-500 text-sm leading-relaxed mb-4 line-clamp-3">
+                        {item.descriptionKo || item.description}
+                    </p>
                     <div className="flex items-center gap-3 text-xs text-slate-400 font-medium">
                         <span className="flex items-center gap-1"><Clock size={14} /> {item.time}</span>
                         {item.source && <><span>·</span><span>{item.source}</span></>}
@@ -228,21 +367,39 @@ const FeaturedCard = ({ item, onClick }) => {
     );
 };
 
-// Regular news card
+// Regular news card — shows real image when available, falls back to SVG thumbnail
 const NewsCard = ({ item, onClick }) => {
     const style = CATEGORY_STYLES[item.category] || CATEGORY_STYLES['AI 일반'];
+    const [imgError, setImgError] = useState(false);
+    const showImage = item.imageUrl && !imgError;
     return (
         <div className="group cursor-pointer relative hover:z-10" onClick={onClick}>
-            <NewsThumbnail category={style.thumb} />
+            {showImage ? (
+                <div className={`aspect-video bg-slate-100 rounded-3xl mb-4 overflow-hidden relative border-2 border-slate-200 group-hover:scale-105 transition-transform duration-300`}>
+                    <img src={item.imageUrl} alt="" className="w-full h-full object-cover" onError={() => setImgError(true)} />
+                    <div className="absolute top-4 left-4 bg-white/95 backdrop-blur px-3 py-1.5 rounded-full text-[11px] font-bold text-slate-800 uppercase tracking-wider shadow-sm border border-slate-100">{style.thumb}</div>
+                </div>
+            ) : (
+                <NewsThumbnail category={style.thumb} />
+            )}
             <div className="px-1">
                 <div className="flex items-center gap-2 mb-2">
                     <CategoryPill category={item.category} />
                     <span className="text-[10px] text-slate-400 font-medium">{item.lang}</span>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 leading-snug mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
+                <h3 className="text-lg font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">
                     {item.title}
                 </h3>
-                <p className="text-slate-400 text-xs leading-relaxed mb-3 line-clamp-2">{item.description}</p>
+                {item.titleKo && (
+                    <p className="flex items-start gap-1 text-[13px] text-slate-500 font-medium mt-1 mb-1.5 line-clamp-2">
+                        <Languages size={12} className="text-blue-400 shrink-0 mt-0.5" />
+                        {item.titleKo}
+                    </p>
+                )}
+                {!item.titleKo && <div className="mb-2" />}
+                <p className="text-slate-400 text-xs leading-relaxed mb-3 line-clamp-2">
+                    {item.descriptionKo || item.description}
+                </p>
                 <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium pt-3 border-t border-slate-100">
                     <span className="flex items-center gap-1"><Clock size={12} /> {item.time}</span>
                     <div className="flex items-center gap-2">
@@ -289,8 +446,27 @@ const SkillTrend = ({ setSelectedItem }) => {
                 .sort((a, b) => b.rawDate - a.rawDate);
 
             if (allNews.length > 0) {
+                // Apply cached translations + og:images immediately
+                const tCache = getTransCache();
+                const ogCache = getOgCache();
+                allNews.filter(n => n.lang === 'English').forEach(n => {
+                    n.titleKo = tCache[n.title] || '';
+                    n.descriptionKo = tCache[`d:${n.title}`] || '';
+                });
+                allNews.forEach(n => {
+                    if (!n.imageUrl && n.link && ogCache[n.link]) n.imageUrl = ogCache[n.link];
+                });
                 setNews(allNews);
                 setLastUpdated(new Date());
+
+                // Background: translations + og:images in parallel, progressive update
+                const flush = () => setNews([...allNews]);
+                Promise.all([
+                    allNews.some(n => n.lang === 'English' && !n.titleKo)
+                        ? translateEnglishNews(allNews).then(flush) : Promise.resolve(),
+                    allNews.some(n => !n.imageUrl && n.link)
+                        ? fetchOgImages(allNews, flush) : Promise.resolve(),
+                ]).then(flush);
             } else {
                 setNews(FALLBACK_NEWS);
                 setError('라이브 피드를 불러올 수 없어 샘플 데이터를 표시합니다.');
@@ -323,7 +499,8 @@ const SkillTrend = ({ setSelectedItem }) => {
             if (langFilter !== '전체' && item.lang !== langFilter) return false;
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
-                return item.title.toLowerCase().includes(q) || item.description.toLowerCase().includes(q);
+                return item.title.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)
+                    || (item.titleKo || '').toLowerCase().includes(q) || (item.descriptionKo || '').toLowerCase().includes(q);
             }
             return true;
         });
