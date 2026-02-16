@@ -6,10 +6,14 @@ const { NewsThumbnail, LoadingSpinner } = window.AppComponents;
 // CONSTANTS & CONFIG
 // ═══════════════════════════════════════════════════════════════════
 
-const CORS_PROXY = 'https://api.allorigins.win/get?url=';
+const CORS_PROXIES = [
+    { name: 'rss2json',    build: (url) => `https://api.rss2json.com/v1/api.json?rss_url=${encodeURIComponent(url)}`, type: 'json' },
+    { name: 'allorigins',  build: (url) => `https://api.allorigins.win/get?url=${encodeURIComponent(url)}`, type: 'allorigins' },
+    { name: 'corsproxy',   build: (url) => `https://corsproxy.io/?${encodeURIComponent(url)}`, type: 'raw' },
+];
 
 const RSS_FEEDS = [
-    { url: 'https://news.google.com/rss/search?q=AI+%EC%9D%B8%EA%B3%B5%EC%A7%80%EB%8A%A5+%EB%A8%B8%EC%8B%A0%EB%9F%AC%EB%8B%9D+%EB%94%A5%EB%9F%AC%EB%8B%9D&hl=ko&gl=KR&ceid=KR:ko', lang: '한국어' },
+    { url: 'https://news.google.com/rss/search?q=AI+%EC%9D%B8%EA%B3%B5%EC%A7%80%EB%8A%A5+%EB%A8%B8%EC%8B%A0%EB%9F%AC%EB%8B%9D&hl=ko&gl=KR&ceid=KR:ko', lang: '한국어' },
     { url: 'https://news.google.com/rss/search?q=artificial+intelligence+AI+machine+learning&hl=en&gl=US&ceid=US:en', lang: 'English' },
 ];
 
@@ -62,7 +66,7 @@ const cleanHTML = (html) =>
 
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
-const parseRSS = (xml, feedInfo) => {
+const parseRSSXml = (xml, feedInfo) => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(xml, 'text/xml');
     return Array.from(doc.querySelectorAll('item')).slice(0, 20).map(item => {
@@ -78,12 +82,57 @@ const parseRSS = (xml, feedInfo) => {
         return {
             title: title || rawTitle, link, pubDate, source,
             description: desc.substring(0, 280),
-            category,
-            lang: feedInfo.lang,
-            time: relativeTime(pubDate),
-            rawDate: new Date(pubDate),
+            category, lang: feedInfo.lang,
+            time: relativeTime(pubDate), rawDate: new Date(pubDate),
         };
     });
+};
+
+// rss2json.com returns JSON directly
+const parseRss2Json = (json, feedInfo) => {
+    return (json.items || []).slice(0, 20).map(item => {
+        const rawTitle = item.title || '';
+        const desc = cleanHTML(item.description || item.content || '');
+        const source = item.author || '';
+        const title = source ? rawTitle.replace(new RegExp(`\\s*[-–—]\\s*${escapeRegex(source)}\\s*$`), '') : rawTitle;
+        const fullText = rawTitle + ' ' + desc;
+        const category = categorize(fullText);
+        return {
+            title: title || rawTitle, link: item.link || '', pubDate: item.pubDate || '', source,
+            description: desc.substring(0, 280),
+            category, lang: feedInfo.lang,
+            time: relativeTime(item.pubDate), rawDate: new Date(item.pubDate),
+        };
+    });
+};
+
+// Try multiple CORS proxies in order until one succeeds
+const fetchWithFallback = async (feed) => {
+    for (const proxy of CORS_PROXIES) {
+        try {
+            const controller = new AbortController();
+            const timeout = setTimeout(() => controller.abort(), 8000);
+            const res = await fetch(proxy.build(feed.url), { signal: controller.signal });
+            clearTimeout(timeout);
+            if (!res.ok) continue;
+
+            if (proxy.type === 'json') {
+                const json = await res.json();
+                if (json.status !== 'ok' || !json.items?.length) continue;
+                return parseRss2Json(json, feed);
+            }
+            if (proxy.type === 'allorigins') {
+                const json = await res.json();
+                if (!json.contents) continue;
+                return parseRSSXml(json.contents, feed);
+            }
+            // raw proxy
+            const text = await res.text();
+            if (!text || !text.includes('<item')) continue;
+            return parseRSSXml(text, feed);
+        } catch { continue; }
+    }
+    return [];
 };
 
 const FALLBACK_NEWS = (window.AppData.NEWS_ITEMS || []).map(n => ({
@@ -229,12 +278,7 @@ const SkillTrend = ({ setSelectedItem }) => {
         setError(null);
         try {
             const results = await Promise.allSettled(
-                RSS_FEEDS.map(async (feed) => {
-                    const res = await fetch(CORS_PROXY + encodeURIComponent(feed.url));
-                    if (!res.ok) throw new Error(`HTTP ${res.status}`);
-                    const data = await res.json();
-                    return parseRSS(data.contents, feed);
-                })
+                RSS_FEEDS.map(feed => fetchWithFallback(feed))
             );
             const allNews = results
                 .filter(r => r.status === 'fulfilled')
