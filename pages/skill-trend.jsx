@@ -64,46 +64,71 @@ const relativeTime = (dateStr) => {
 const cleanHTML = (html) =>
     (html || '').replace(/<[^>]*>/g, '').replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&quot;/g, '"').replace(/&#39;/g, "'").replace(/&nbsp;/g, ' ').trim();
 
+// Extract first image URL from HTML string (Google News descriptions often contain <img> tags)
+const extractImageFromHTML = (html) => {
+    if (!html) return null;
+    const match = html.match(/<img[^>]+src=["']([^"']+)["']/i);
+    return match?.[1] || null;
+};
+
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+const MAX_AGE_DAYS = 30;
 
 const parseRSSXml = (xml, feedInfo) => {
     const parser = new DOMParser();
     const doc = parser.parseFromString(xml, 'text/xml');
-    return Array.from(doc.querySelectorAll('item')).slice(0, 20).map(item => {
+    const cutoff = Date.now() - MAX_AGE_DAYS * 86400000;
+    return Array.from(doc.querySelectorAll('item')).slice(0, 30).map(item => {
         const rawTitle = item.querySelector('title')?.textContent || '';
         const link = item.querySelector('link')?.textContent || '';
         const pubDate = item.querySelector('pubDate')?.textContent || '';
-        const desc = cleanHTML(item.querySelector('description')?.textContent || '');
+        const rawDate = new Date(pubDate);
+        if (rawDate.getTime() < cutoff) return null;
+        const rawDesc = item.querySelector('description')?.textContent || '';
+        const imageUrl = extractImageFromHTML(rawDesc)
+            || item.querySelector('enclosure')?.getAttribute('url')
+            || item.getElementsByTagNameNS('http://search.yahoo.com/mrss/', 'content')?.[0]?.getAttribute('url')
+            || null;
+        const desc = cleanHTML(rawDesc);
         const sourceEl = item.querySelector('source');
         const source = sourceEl?.textContent || '';
         const title = source ? rawTitle.replace(new RegExp(`\\s*[-–—]\\s*${escapeRegex(source)}\\s*$`), '') : rawTitle;
         const fullText = rawTitle + ' ' + desc;
         const category = categorize(fullText);
         return {
-            title: title || rawTitle, link, pubDate, source,
+            title: title || rawTitle, link, pubDate, source, imageUrl,
             description: desc.substring(0, 280),
             category, lang: feedInfo.lang,
-            time: relativeTime(pubDate), rawDate: new Date(pubDate),
+            time: relativeTime(pubDate), rawDate,
         };
-    });
+    }).filter(Boolean);
 };
 
-// rss2json.com returns JSON directly
+// rss2json.com returns JSON directly — includes thumbnail/enclosure fields
 const parseRss2Json = (json, feedInfo) => {
-    return (json.items || []).slice(0, 20).map(item => {
+    const cutoff = Date.now() - MAX_AGE_DAYS * 86400000;
+    return (json.items || []).slice(0, 30).map(item => {
         const rawTitle = item.title || '';
-        const desc = cleanHTML(item.description || item.content || '');
+        const rawDate = new Date(item.pubDate);
+        if (rawDate.getTime() < cutoff) return null;
+        const rawContent = item.description || item.content || '';
+        const imageUrl = item.thumbnail
+            || item.enclosure?.link
+            || extractImageFromHTML(rawContent)
+            || null;
+        const desc = cleanHTML(rawContent);
         const source = item.author || '';
         const title = source ? rawTitle.replace(new RegExp(`\\s*[-–—]\\s*${escapeRegex(source)}\\s*$`), '') : rawTitle;
         const fullText = rawTitle + ' ' + desc;
         const category = categorize(fullText);
         return {
-            title: title || rawTitle, link: item.link || '', pubDate: item.pubDate || '', source,
+            title: title || rawTitle, link: item.link || '', pubDate: item.pubDate || '', source, imageUrl,
             description: desc.substring(0, 280),
             category, lang: feedInfo.lang,
-            time: relativeTime(item.pubDate), rawDate: new Date(item.pubDate),
+            time: relativeTime(item.pubDate), rawDate,
         };
-    });
+    }).filter(Boolean);
 };
 
 // Try multiple CORS proxies in order until one succeeds
@@ -178,6 +203,8 @@ const LangToggle = ({ value, onChange }) => (
 // Featured (hero) article card
 const FeaturedCard = ({ item, onClick }) => {
     const style = CATEGORY_STYLES[item.category] || CATEGORY_STYLES['AI 일반'];
+    const [imgError, setImgError] = useState(false);
+    const showImage = item.imageUrl && !imgError;
     const gradients = {
         indigo:  'from-indigo-400 to-indigo-600',
         emerald: 'from-emerald-400 to-emerald-600',
@@ -193,9 +220,15 @@ const FeaturedCard = ({ item, onClick }) => {
             <div className="flex flex-col lg:flex-row">
                 <div className="lg:w-2/5 shrink-0">
                     <div className={`h-52 lg:h-full min-h-[220px] bg-gradient-to-br ${grad} relative overflow-hidden flex items-center justify-center`}>
-                        <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px'}} />
-                        <TrendingUp size={80} className="text-white/30" strokeWidth={1.5} />
-                        <div className="absolute top-4 left-4 bg-white/20 backdrop-blur px-3 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-wider">
+                        {showImage ? (
+                            <img src={item.imageUrl} alt="" className="absolute inset-0 w-full h-full object-cover" onError={() => setImgError(true)} />
+                        ) : (
+                            <>
+                                <div className="absolute inset-0 opacity-10" style={{backgroundImage: 'radial-gradient(circle, white 1px, transparent 1px)', backgroundSize: '20px 20px'}} />
+                                <TrendingUp size={80} className="text-white/30" strokeWidth={1.5} />
+                            </>
+                        )}
+                        <div className="absolute top-4 left-4 bg-white/20 backdrop-blur px-3 py-1.5 rounded-full text-[11px] font-bold text-white uppercase tracking-wider shadow-sm">
                             {item.category}
                         </div>
                         {item.source && (
@@ -228,12 +261,21 @@ const FeaturedCard = ({ item, onClick }) => {
     );
 };
 
-// Regular news card
+// Regular news card — shows real image when available, falls back to SVG thumbnail
 const NewsCard = ({ item, onClick }) => {
     const style = CATEGORY_STYLES[item.category] || CATEGORY_STYLES['AI 일반'];
+    const [imgError, setImgError] = useState(false);
+    const showImage = item.imageUrl && !imgError;
     return (
         <div className="group cursor-pointer relative hover:z-10" onClick={onClick}>
-            <NewsThumbnail category={style.thumb} />
+            {showImage ? (
+                <div className={`aspect-video bg-slate-100 rounded-3xl mb-4 overflow-hidden relative border-2 border-slate-200 group-hover:scale-105 transition-transform duration-300`}>
+                    <img src={item.imageUrl} alt="" className="w-full h-full object-cover" onError={() => setImgError(true)} />
+                    <div className="absolute top-4 left-4 bg-white/95 backdrop-blur px-3 py-1.5 rounded-full text-[11px] font-bold text-slate-800 uppercase tracking-wider shadow-sm border border-slate-100">{style.thumb}</div>
+                </div>
+            ) : (
+                <NewsThumbnail category={style.thumb} />
+            )}
             <div className="px-1">
                 <div className="flex items-center gap-2 mb-2">
                     <CategoryPill category={item.category} />
