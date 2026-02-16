@@ -1,5 +1,5 @@
 const { useState, useEffect, useCallback, useRef, useMemo } = window.React;
-const { Clock, ExternalLink, RefreshCw, Globe, Rss, TrendingUp, AlertCircle, Search, ChevronRight, Loader2 } = window.LucideReact;
+const { Clock, ExternalLink, RefreshCw, Globe, Rss, TrendingUp, AlertCircle, Search, ChevronRight, Loader2, Languages } = window.LucideReact;
 const { NewsThumbnail, LoadingSpinner } = window.AppComponents;
 
 // ═══════════════════════════════════════════════════════════════════
@@ -74,6 +74,61 @@ const extractImageFromHTML = (html) => {
 const escapeRegex = (s) => s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 
 const MAX_AGE_DAYS = 30;
+
+// ─── Translation helpers ───
+const TRANS_CACHE_KEY = 'ai-news-trans-v1';
+const getTransCache = () => { try { return JSON.parse(localStorage.getItem(TRANS_CACHE_KEY) || '{}'); } catch { return {}; } };
+const saveTransCache = (c) => { try { const e = Object.entries(c); localStorage.setItem(TRANS_CACHE_KEY, JSON.stringify(e.length > 500 ? Object.fromEntries(e.slice(-300)) : c)); } catch {} };
+
+const translateToKo = async (text) => {
+    if (!text) return '';
+    // Primary: Google Translate via CORS proxy
+    try {
+        const gtUrl = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=ko&dt=t&q=${encodeURIComponent(text)}`;
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(gtUrl)}`, { signal: controller.signal });
+        clearTimeout(timer);
+        if (res.ok) {
+            const data = await res.json();
+            const result = data[0].map(s => s[0]).join('');
+            if (result) return result;
+        }
+    } catch {}
+    // Fallback: MyMemory API
+    try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 6000);
+        const res = await fetch(`https://api.mymemory.translated.net/get?q=${encodeURIComponent(text.substring(0, 500))}&langpair=en|ko`, { signal: controller.signal });
+        clearTimeout(timer);
+        const data = await res.json();
+        if (data.responseStatus === 200 && data.responseData?.translatedText) return data.responseData.translatedText;
+    } catch {}
+    return '';
+};
+
+const translateEnglishNews = async (allNews) => {
+    const cache = getTransCache();
+    const enNews = allNews.filter(n => n.lang === 'English');
+    const uncached = enNews.filter(n => !cache[n.title]);
+
+    if (uncached.length > 0) {
+        const results = await Promise.allSettled(uncached.map(n => translateToKo(n.title)));
+        results.forEach((r, i) => {
+            if (r.status === 'fulfilled' && r.value) cache[uncached[i].title] = r.value;
+        });
+        const descResults = await Promise.allSettled(uncached.map(n => translateToKo(n.description)));
+        descResults.forEach((r, i) => {
+            if (r.status === 'fulfilled' && r.value) cache[`d:${uncached[i].title}`] = r.value;
+        });
+        saveTransCache(cache);
+    }
+
+    enNews.forEach(n => {
+        n.titleKo = cache[n.title] || '';
+        n.descriptionKo = cache[`d:${n.title}`] || '';
+    });
+};
 
 const parseRSSXml = (xml, feedInfo) => {
     const parser = new DOMParser();
@@ -244,10 +299,19 @@ const FeaturedCard = ({ item, onClick }) => {
                         <span className="px-2.5 py-0.5 bg-red-50 text-red-600 rounded-full text-[11px] font-bold border border-red-200">TOP</span>
                         <span className="text-[11px] text-slate-400 font-medium">{item.lang}</span>
                     </div>
-                    <h3 className="text-2xl lg:text-3xl font-bold text-slate-900 leading-snug mb-3 group-hover:text-blue-600 transition-colors">
+                    <h3 className="text-2xl lg:text-3xl font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors">
                         {item.title}
                     </h3>
-                    <p className="text-slate-500 text-sm leading-relaxed mb-4 line-clamp-3">{item.description}</p>
+                    {item.titleKo && (
+                        <p className="flex items-center gap-1.5 text-base text-slate-500 font-medium mt-1 mb-2">
+                            <Languages size={14} className="text-blue-400 shrink-0" />
+                            {item.titleKo}
+                        </p>
+                    )}
+                    {!item.titleKo && <div className="mb-3" />}
+                    <p className="text-slate-500 text-sm leading-relaxed mb-4 line-clamp-3">
+                        {item.descriptionKo || item.description}
+                    </p>
                     <div className="flex items-center gap-3 text-xs text-slate-400 font-medium">
                         <span className="flex items-center gap-1"><Clock size={14} /> {item.time}</span>
                         {item.source && <><span>·</span><span>{item.source}</span></>}
@@ -281,10 +345,19 @@ const NewsCard = ({ item, onClick }) => {
                     <CategoryPill category={item.category} />
                     <span className="text-[10px] text-slate-400 font-medium">{item.lang}</span>
                 </div>
-                <h3 className="text-lg font-bold text-slate-900 leading-snug mb-2 group-hover:text-blue-600 transition-colors line-clamp-2">
+                <h3 className="text-lg font-bold text-slate-900 leading-snug group-hover:text-blue-600 transition-colors line-clamp-2">
                     {item.title}
                 </h3>
-                <p className="text-slate-400 text-xs leading-relaxed mb-3 line-clamp-2">{item.description}</p>
+                {item.titleKo && (
+                    <p className="flex items-start gap-1 text-[13px] text-slate-500 font-medium mt-1 mb-1.5 line-clamp-2">
+                        <Languages size={12} className="text-blue-400 shrink-0 mt-0.5" />
+                        {item.titleKo}
+                    </p>
+                )}
+                {!item.titleKo && <div className="mb-2" />}
+                <p className="text-slate-400 text-xs leading-relaxed mb-3 line-clamp-2">
+                    {item.descriptionKo || item.description}
+                </p>
                 <div className="flex items-center justify-between text-[11px] text-slate-400 font-medium pt-3 border-t border-slate-100">
                     <span className="flex items-center gap-1"><Clock size={12} /> {item.time}</span>
                     <div className="flex items-center gap-2">
@@ -331,8 +404,20 @@ const SkillTrend = ({ setSelectedItem }) => {
                 .sort((a, b) => b.rawDate - a.rawDate);
 
             if (allNews.length > 0) {
+                // Apply cached translations immediately, then show
+                const cache = getTransCache();
+                allNews.filter(n => n.lang === 'English').forEach(n => {
+                    n.titleKo = cache[n.title] || '';
+                    n.descriptionKo = cache[`d:${n.title}`] || '';
+                });
                 setNews(allNews);
                 setLastUpdated(new Date());
+
+                // Translate uncached English articles in background, then update
+                const hasUncached = allNews.some(n => n.lang === 'English' && !n.titleKo);
+                if (hasUncached) {
+                    translateEnglishNews(allNews).then(() => setNews([...allNews]));
+                }
             } else {
                 setNews(FALLBACK_NEWS);
                 setError('라이브 피드를 불러올 수 없어 샘플 데이터를 표시합니다.');
@@ -365,7 +450,8 @@ const SkillTrend = ({ setSelectedItem }) => {
             if (langFilter !== '전체' && item.lang !== langFilter) return false;
             if (searchQuery) {
                 const q = searchQuery.toLowerCase();
-                return item.title.toLowerCase().includes(q) || item.description.toLowerCase().includes(q);
+                return item.title.toLowerCase().includes(q) || item.description.toLowerCase().includes(q)
+                    || (item.titleKo || '').toLowerCase().includes(q) || (item.descriptionKo || '').toLowerCase().includes(q);
             }
             return true;
         });
