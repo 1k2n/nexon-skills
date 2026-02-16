@@ -215,6 +215,48 @@ const fetchWithFallback = async (feed) => {
     return [];
 };
 
+// ─── og:image extraction ───
+const OG_CACHE_KEY = 'ai-news-ogimg-v1';
+const getOgCache = () => { try { return JSON.parse(localStorage.getItem(OG_CACHE_KEY) || '{}'); } catch { return {}; } };
+const saveOgCache = (c) => { try { const e = Object.entries(c); localStorage.setItem(OG_CACHE_KEY, JSON.stringify(e.length > 300 ? Object.fromEntries(e.slice(-200)) : c)); } catch {} };
+
+const extractOgImage = async (url) => {
+    if (!url) return null;
+    try {
+        const controller = new AbortController();
+        const timer = setTimeout(() => controller.abort(), 8000);
+        const res = await fetch(`https://corsproxy.io/?${encodeURIComponent(url)}`, { signal: controller.signal });
+        clearTimeout(timer);
+        if (!res.ok) return null;
+        const html = await res.text();
+        // og:image or twitter:image
+        const m = html.match(/<meta[^>]+(?:property|name)=["'](?:og:image|twitter:image)["'][^>]+content=["']([^"']+)["']/i)
+               || html.match(/<meta[^>]+content=["']([^"']+)["'][^>]+(?:property|name)=["'](?:og:image|twitter:image)["']/i);
+        return m?.[1] || null;
+    } catch { return null; }
+};
+
+const fetchOgImages = async (articles, onUpdate) => {
+    const cache = getOgCache();
+    const needImage = articles.filter(n => !n.imageUrl && n.link);
+    // Apply cached og:images immediately
+    needImage.forEach(n => { if (cache[n.link]) n.imageUrl = cache[n.link]; });
+    // Fetch uncached — limit to 15 articles, batches of 5
+    const toFetch = needImage.filter(n => !n.imageUrl && !(n.link in cache)).slice(0, 15);
+    if (toFetch.length === 0) return;
+    for (let i = 0; i < toFetch.length; i += 5) {
+        const batch = toFetch.slice(i, i + 5);
+        const results = await Promise.allSettled(batch.map(n => extractOgImage(n.link)));
+        results.forEach((r, j) => {
+            const imgUrl = r.status === 'fulfilled' ? r.value : null;
+            cache[batch[j].link] = imgUrl || '';
+            if (imgUrl) batch[j].imageUrl = imgUrl;
+        });
+        saveOgCache(cache);
+        if (onUpdate) onUpdate();
+    }
+};
+
 const FALLBACK_NEWS = (window.AppData.NEWS_ITEMS || []).map(n => ({
     title: n.title, link: '', pubDate: '', source: 'NEXON Skills',
     description: n.content, category: categorize(n.title + ' ' + n.content),
@@ -404,20 +446,27 @@ const SkillTrend = ({ setSelectedItem }) => {
                 .sort((a, b) => b.rawDate - a.rawDate);
 
             if (allNews.length > 0) {
-                // Apply cached translations immediately, then show
-                const cache = getTransCache();
+                // Apply cached translations + og:images immediately
+                const tCache = getTransCache();
+                const ogCache = getOgCache();
                 allNews.filter(n => n.lang === 'English').forEach(n => {
-                    n.titleKo = cache[n.title] || '';
-                    n.descriptionKo = cache[`d:${n.title}`] || '';
+                    n.titleKo = tCache[n.title] || '';
+                    n.descriptionKo = tCache[`d:${n.title}`] || '';
+                });
+                allNews.forEach(n => {
+                    if (!n.imageUrl && n.link && ogCache[n.link]) n.imageUrl = ogCache[n.link];
                 });
                 setNews(allNews);
                 setLastUpdated(new Date());
 
-                // Translate uncached English articles in background, then update
-                const hasUncached = allNews.some(n => n.lang === 'English' && !n.titleKo);
-                if (hasUncached) {
-                    translateEnglishNews(allNews).then(() => setNews([...allNews]));
-                }
+                // Background: translations + og:images in parallel, progressive update
+                const flush = () => setNews([...allNews]);
+                Promise.all([
+                    allNews.some(n => n.lang === 'English' && !n.titleKo)
+                        ? translateEnglishNews(allNews).then(flush) : Promise.resolve(),
+                    allNews.some(n => !n.imageUrl && n.link)
+                        ? fetchOgImages(allNews, flush) : Promise.resolve(),
+                ]).then(flush);
             } else {
                 setNews(FALLBACK_NEWS);
                 setError('라이브 피드를 불러올 수 없어 샘플 데이터를 표시합니다.');
