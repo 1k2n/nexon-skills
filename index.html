@@ -22,20 +22,26 @@
 <body class="bg-[#F8FAFC] text-slate-800 antialiased bg-grid-pattern">
     <div id="root"></div>
 
-    <!-- React Application Logic -->
+    <!-- Setup: React, ReactDOM, Lucide Icons -->
     <script type="module" src="./components/setup.js"></script>
-    <script type="text/babel" data-type="module" data-presets="react" src="./components/app-data.html"></script>
-    <script type="text/babel" data-type="module" data-presets="react" src="./components/shared-components.html"></script>
-    <script type="text/babel" data-type="module" data-presets="react" src="./components/modals.html"></script>
-    <script type="text/babel" data-type="module" data-presets="react" src="./components/gnb.html"></script>
-    <script type="text/babel" data-type="module" data-presets="react" src="./components/developer-console.html"></script>
-    <script type="text/babel" data-type="module" data-presets="react" src="./components/workflow-editor.html"></script>
-    <script type="text/babel" data-type="module" data-presets="react" src="./components/ai-workflow.html"></script>
-    <script type="text/babel" data-type="module" data-presets="react" src="./components/skill-trend.html"></script>
-    <script type="text/babel" data-type="module" data-presets="react" src="./components/ai-lab.html"></script>
-    <script type="text/babel" data-type="module" data-presets="react" src="./components/skill-guide.html"></script>
-    <script type="text/babel" data-type="module" data-presets="react" src="./components/favorites.html"></script>
-    <script type="text/babel" data-type="module" data-presets="react" src="./components/home.html"></script>
-    <script type="text/babel" data-type="module" data-presets="react" src="./components/app-root.html"></script>
+
+    <!-- Data & Shared Components -->
+    <script type="text/babel" data-type="module" data-presets="react" src="./components/app-data.js"></script>
+    <script type="text/babel" data-type="module" data-presets="react" src="./components/shared-components.jsx"></script>
+    <script type="text/babel" data-type="module" data-presets="react" src="./components/modals.jsx"></script>
+    <script type="text/babel" data-type="module" data-presets="react" src="./components/gnb.jsx"></script>
+    <script type="text/babel" data-type="module" data-presets="react" src="./components/workflow-editor.jsx"></script>
+
+    <!-- Pages -->
+    <script type="text/babel" data-type="module" data-presets="react" src="./pages/developer-console.jsx"></script>
+    <script type="text/babel" data-type="module" data-presets="react" src="./pages/ai-workflow.jsx"></script>
+    <script type="text/babel" data-type="module" data-presets="react" src="./pages/skill-trend.jsx"></script>
+    <script type="text/babel" data-type="module" data-presets="react" src="./pages/ai-lab.jsx"></script>
+    <script type="text/babel" data-type="module" data-presets="react" src="./pages/skill-guide.jsx"></script>
+    <script type="text/babel" data-type="module" data-presets="react" src="./pages/favorites.jsx"></script>
+    <script type="text/babel" data-type="module" data-presets="react" src="./pages/home.jsx"></script>
+
+    <!-- App Root -->
+    <script type="text/babel" data-type="module" data-presets="react" src="./components/app-root.jsx"></script>
 </body>
 </html>
