@@ -573,28 +573,38 @@ const AILab = () => {
                                     const tBorder = typeNodeBorder[item.skillType] || typeNodeBorder.Agent;
                                     return (
                                         <button key={item.id} onClick={() => setSelectedNode(isSelected ? null : item)}
-                                            className={`text-left p-4 rounded-2xl border-2 transition-all duration-300 hover:shadow-md ${
+                                            className={`text-left rounded-2xl border-2 transition-all duration-300 hover:shadow-md overflow-hidden ${
                                                 isSelected ? 'ring-2 ring-amber-300 border-amber-300 bg-amber-50/30' :
+                                                hasPending ? 'border-amber-300 bg-amber-50/20 shadow-[0_0_0_1px_rgba(245,158,11,0.15)]' :
                                                 'border-slate-200 bg-white ' + tBorder.idle
                                             }`}>
-                                            <div className="flex items-center justify-between">
-                                                <div className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-100 text-slate-500">
-                                                    <Icon size={18}/>
+                                            {hasPending && (
+                                                <div className="bg-gradient-to-r from-amber-500 to-orange-400 px-3 py-1.5 flex items-center gap-1.5">
+                                                    <Shield size={11} className="text-white"/>
+                                                    <span className="text-[10px] font-bold text-white tracking-wide">권한 요청 필요</span>
+                                                    <span className="ml-auto text-[9px] text-amber-100 font-medium">{item.permissions.filter(p => p.status === 'pending').length}건 대기</span>
                                                 </div>
-                                                <div className="flex items-center gap-1.5">
-                                                    {hasPending && <AlertCircle size={14} className="text-amber-500"/>}
-                                                    <TypeBadge type={item.skillType} size="xs" />
+                                            )}
+                                            <div className="p-4">
+                                                <div className="flex items-center justify-between">
+                                                    <div className={`w-9 h-9 rounded-xl flex items-center justify-center ${hasPending ? 'bg-amber-100 text-amber-600' : 'bg-slate-100 text-slate-500'}`}>
+                                                        <Icon size={18}/>
+                                                    </div>
+                                                    <div className="flex items-center gap-1.5">
+                                                        {hasPending && <AlertCircle size={14} className="text-amber-500 animate-pulse"/>}
+                                                        <TypeBadge type={item.skillType} size="xs" />
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            <div className="mt-3 font-bold text-sm text-slate-800">{item.skillName}</div>
-                                            <div className="text-[11px] text-slate-400 mt-1 font-mono truncate">{item.skill}</div>
-                                            <div className="mt-2.5 flex items-center gap-1.5">
-                                                {isInstant ? (
-                                                    <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1"><Zap size={10}/> 인스턴트</span>
-                                                ) : (
-                                                    <span className="text-[10px] font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-md flex items-center gap-1"><Package size={10}/> 카탈로그</span>
-                                                )}
-                                                {item.catalogId && <span className="text-[10px] text-slate-400 font-mono">{item.catalogId}</span>}
+                                                <div className="mt-3 font-bold text-sm text-slate-800">{item.skillName}</div>
+                                                <div className="text-[11px] text-slate-400 mt-1 font-mono truncate">{item.skill}</div>
+                                                <div className="mt-2.5 flex items-center gap-1.5">
+                                                    {isInstant ? (
+                                                        <span className="text-[10px] font-bold text-amber-700 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md flex items-center gap-1"><Zap size={10}/> 인스턴트</span>
+                                                    ) : (
+                                                        <span className="text-[10px] font-bold text-violet-700 bg-violet-50 border border-violet-200 px-2 py-0.5 rounded-md flex items-center gap-1"><Package size={10}/> 카탈로그</span>
+                                                    )}
+                                                    {item.catalogId && <span className="text-[10px] text-slate-400 font-mono">{item.catalogId}</span>}
+                                                </div>
                                             </div>
                                         </button>
                                     );
