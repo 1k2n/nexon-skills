@@ -1,4 +1,4 @@
-const { X, Star, Share2, Play, Download, Search, ChevronRight, Plus, Minus, Maximize2, ArrowLeft, Copy, Check, Loader2 } = window.LucideReact;
+const { X, Star, Share2, Play, Download, Search, ChevronRight, Plus, Minus, Maximize2, ArrowLeft, Copy, Check, Loader2, Wrench, Globe, Lock, Calendar, Heart } = window.LucideReact;
 
 // ═══════════════════════════════════════════════════════════════════
 // SKILL TYPE STYLES (스킬 타입별 공통 스타일)
@@ -8,6 +8,13 @@ const SKILL_TYPE_STYLES = {
     Connector: 'bg-purple-100 text-purple-700 border-purple-200',
     Workflow: 'bg-orange-100 text-orange-700 border-orange-200',
     default: 'bg-slate-100 text-slate-700 border-slate-200',
+};
+
+const SKILL_TYPE_ACCENT = {
+    Agent: { bar: 'bg-blue-400', icon: 'bg-blue-100 text-blue-600' },
+    Connector: { bar: 'bg-green-400', icon: 'bg-green-100 text-green-600' },
+    Workflow: { bar: 'bg-orange-400', icon: 'bg-orange-100 text-orange-600' },
+    default: { bar: 'bg-slate-400', icon: 'bg-slate-100 text-slate-600' },
 };
 window.AppComponents.SKILL_TYPE_STYLES = SKILL_TYPE_STYLES;
 
@@ -396,37 +403,68 @@ window.AppComponents.SkillCard = ({
     showBookmark = false,
     className = '',
 }) => {
-    const authorInitial = item.author?.[0] ?? '?';
-
     return (
         <div
             onClick={onClick}
-            className={`group bg-white border-2 border-slate-100 rounded-[2.5rem] p-7 shadow-sm hover:-translate-y-2 transition-all duration-300 cursor-pointer animate-fade-in relative ${className}`}
+            className={`group bg-white border border-slate-200 rounded-2xl hover:shadow-md transition-all duration-200 cursor-pointer animate-fade-in relative p-5 ${className}`}
         >
-            {showBookmark && (
-                <div className="absolute top-0 right-0 p-5">
-                    <Star size={24} className="text-yellow-400 fill-yellow-400" />
-                </div>
-            )}
-            <div className="flex justify-between items-start mb-5">
-                <window.AppComponents.TypeBadge type={item.type} />
-                {headerRight}
-            </div>
-            <h3 className="text-2xl font-bold text-slate-900 mb-3 group-hover:text-blue-600 transition-colors pr-6">
-                {item.title}
-            </h3>
-            <p className="text-slate-500 text-sm leading-relaxed mb-6 line-clamp-2 h-10 font-normal">
-                {item.desc}
-            </p>
-            <div className="flex items-center justify-between pt-5 border-t-2 border-slate-50">
-                <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-[10px] font-bold text-slate-600 border-2 border-white shadow-sm">
-                        {authorInitial}
+                {/* 헤더: TypeBadge + 제목 + 액션 */}
+                <div className="flex items-start justify-between gap-3 mb-3">
+                    <div className="flex items-center gap-2.5 min-w-0">
+                        <window.AppComponents.TypeBadge type={item.type} size="sm" />
+                        <h3 className="text-base font-bold text-slate-800 group-hover:text-blue-600 transition-colors truncate">
+                            {item.title}
+                        </h3>
                     </div>
-                    <span className="text-xs text-slate-500 font-bold">{item.author}</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                        {headerRight}
+                        {showBookmark && (
+                            <Heart size={18} className="text-red-400 fill-red-400" />
+                        )}
+                    </div>
                 </div>
-                {footerRight}
-            </div>
+
+                {/* 설명 */}
+                <p className="text-slate-500 text-sm leading-relaxed line-clamp-2 mb-3">
+                    {item.desc}
+                </p>
+
+                {/* 메타 정보: 활성 · 공개 · 날짜 · 작성자 */}
+                <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-2.5 flex-wrap">
+                    <span className="inline-flex items-center gap-1 text-green-500 font-medium">
+                        <span className="w-1.5 h-1.5 rounded-full bg-green-400" />활성
+                    </span>
+                    {item.visibility && (
+                        <>
+                            <span>·</span>
+                            <span className="inline-flex items-center gap-0.5">
+                                {item.visibility === '공개' ? <Globe size={11} /> : <Lock size={11} />}
+                                {item.visibility}
+                            </span>
+                        </>
+                    )}
+                    {item.registeredAt && (
+                        <>
+                            <span>·</span>
+                            <span>{item.registeredAt}</span>
+                        </>
+                    )}
+                    {item.author && (
+                        <>
+                            <span>·</span>
+                            <span>{item.author}</span>
+                        </>
+                    )}
+                </div>
+
+                {/* 태그 */}
+                {item.tags && item.tags.length > 0 && (
+                    <div className="flex items-center gap-2 flex-wrap">
+                        {item.tags.map((tag, i) => (
+                            <span key={i} className="text-xs text-slate-400">#{tag}</span>
+                        ))}
+                    </div>
+                )}
         </div>
     );
 };

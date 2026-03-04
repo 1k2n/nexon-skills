@@ -1,5 +1,5 @@
 const { useState, useEffect, useCallback, useRef } = window.React;
-const { Gamepad2, ChevronDown, Search, ArrowRight, Star, Share2, X, Sparkles } = window.LucideReact;
+const { Gamepad2, ChevronDown, Search, ArrowRight, Star, Share2, X, Sparkles, Heart } = window.LucideReact;
 const { HOME_INITIAL_ITEMS } = window.AppData;
 const { SkillCard, LoadingSpinner } = window.AppComponents;
 
@@ -155,23 +155,17 @@ const HomePage = ({ selectedGame, setSelectedGame, gameList, showStickySearch, s
                         <p className="text-slate-400 mt-1">선택한 필터에 해당하는 에이전트와 커넥터를 한 번에 확인해보세요</p>
                     </div>
                     {filteredItems.length > 0 ? (
-                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                             {filteredItems.map((item, idx) => (
                                 <SkillCard
                                     key={idx}
                                     item={item}
                                     onClick={() => setSelectedItem(item)}
-                                    className="hover:shadow-[0px_8px_0px_#cbd5e1] hover:z-10"
                                     headerRight={(
-                                        <div className="flex items-center gap-1.5 text-slate-400 text-sm font-bold bg-slate-50 px-3 py-1 rounded-full">
-                                            <Star size={16} className="fill-slate-200 group-hover:fill-yellow-400 group-hover:text-yellow-400 transition-colors" strokeWidth={2.5} />
-                                            <span>{(item.stars / 1000).toFixed(1)}k</span>
+                                        <div className="flex items-center gap-1.5 text-slate-400 text-sm font-bold">
+                                            <Star size={14} className="fill-slate-200 group-hover:fill-yellow-400 group-hover:text-yellow-400 transition-colors" strokeWidth={2.5} />
+                                            <span className="text-xs">{(item.stars / 1000).toFixed(1)}k</span>
                                         </div>
-                                    )}
-                                    footerRight={(
-                                        <button className="text-slate-300 hover:text-blue-600 transition-colors bg-slate-50 p-2 rounded-xl hover:bg-blue-50">
-                                            <Share2 size={18} strokeWidth={2.5}/>
-                                        </button>
                                     )}
                                 />
                             ))}
@@ -197,23 +191,17 @@ const HomePage = ({ selectedGame, setSelectedGame, gameList, showStickySearch, s
                     <div className="flex justify-between items-center mb-8">
                         <h2 className="text-3xl font-bold text-slate-900 flex items-center gap-2">🔥 지금 뜨는 인기 스킬</h2>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {items.map((item, idx) => (
                             <SkillCard
                                 key={idx}
                                 item={item}
                                 onClick={() => setSelectedItem(item)}
-                                className="hover:shadow-[0px_8px_0px_#cbd5e1] hover:z-10"
                                 headerRight={(
-                                    <div className="flex items-center gap-1.5 text-slate-400 text-sm font-bold bg-slate-50 px-3 py-1 rounded-full">
-                                        <Star size={16} className="fill-slate-200 group-hover:fill-yellow-400 group-hover:text-yellow-400 transition-colors" strokeWidth={2.5} />
-                                        <span>{(item.stars / 1000).toFixed(1)}k</span>
+                                    <div className="flex items-center gap-2">
+                                        <Share2 size={16} className="text-slate-300 hover:text-slate-500 transition-colors cursor-pointer" />
+                                        <Heart size={16} className="text-red-300 hover:text-red-500 hover:fill-red-500 transition-colors cursor-pointer" />
                                     </div>
-                                )}
-                                footerRight={(
-                                    <button className="text-slate-300 hover:text-blue-600 transition-colors bg-slate-50 p-2 rounded-xl hover:bg-blue-50">
-                                        <Share2 size={18} strokeWidth={2.5}/>
-                                    </button>
                                 )}
                             />
                         ))}
