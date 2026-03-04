@@ -34,7 +34,7 @@ window.AppComponents.GNB = ({
                                 <div key={menu.name} className="relative group">
                                     <button
                                         onClick={() => handleNavClick(menu.name)}
-                                        className={`flex items-center gap-2 px-4 py-2.5 text-sm font-semibold rounded-xl transition-all ${
+                                        className={`flex items-center gap-2 px-4 py-2.5 text-base font-semibold rounded-xl transition-all ${
                                             currentTab === menu.name ? 'text-blue-600 bg-white shadow-sm' : 'text-slate-500 hover:text-slate-900 hover:bg-slate-200/50'
                                         }`}
                                     >
