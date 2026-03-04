@@ -22,17 +22,17 @@ window.AppData.NEWS_ITEMS = [
 ];
 
 window.AppData.FAVORITES_ITEMS = [
-    { type: 'Agent', title: 'Code Reviewer Pro', desc: 'GitHub PR을 분석하여 잠재적인 버그와 성능 이슈를 코멘트로 남깁니다.', author: 'DevTools', stars: 1800 },
-    { type: 'Connector', title: 'Notion to Slack', desc: '노션 페이지 변경 사항을 슬랙 채널로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850 },
-    { type: 'Workflow', title: 'Daily News Summary', desc: '매일 아침 30분, 주요 뉴스 사이트를 크롤링하여 요약 리포트를 메일로 발송합니다.', author: 'NEXON Skills Official', stars: 3200 },
-    { type: 'Agent', title: 'SQL Query Assistant', desc: '자연어를 입력하면 최적화된 SQL 쿼리로 변환해주는 데이터 분석 보조 도구입니다.', author: 'DataTeam', stars: 2100 },
+    { type: 'Agent', title: 'Code Reviewer Pro', desc: 'GitHub PR을 분석하여 잠재적인 버그와 성능 이슈를 코멘트로 남깁니다.', author: 'DevTools', stars: 1800, toolCount: 5, visibility: '공개', registeredAt: '2026.01.15', tags: ['github', '코드리뷰', 'DevTools'] },
+    { type: 'Connector', title: 'Notion to Slack', desc: '노션 페이지 변경 사항을 슬랙 채널로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850, toolCount: 2, visibility: '공개', registeredAt: '2026.02.03', tags: ['노션', '슬랙', '알림'] },
+    { type: 'Workflow', title: 'Daily News Summary', desc: '매일 아침 30분, 주요 뉴스 사이트를 크롤링하여 요약 리포트를 메일로 발송합니다.', author: 'NEXON Skills Official', stars: 3200, toolCount: 8, visibility: '공개', registeredAt: '2025.12.20', tags: ['뉴스', '요약', '자동화'] },
+    { type: 'Agent', title: 'SQL Query Assistant', desc: '자연어를 입력하면 최적화된 SQL 쿼리로 변환해주는 데이터 분석 보조 도구입니다.', author: 'DataTeam', stars: 2100, toolCount: 3, visibility: '공개', registeredAt: '2026.01.28', tags: ['SQL', '데이터', '분석'] },
 ];
 
 window.AppData.HOME_INITIAL_ITEMS = [
-    { type: 'Agent', title: 'Data Wizard Bot', desc: '복잡한 로그 데이터를 미니맵처럼 한눈에 파악하고 시각화합니다.', author: 'DataGuild', stars: 1240 },
-    { type: 'Connector', title: 'Notion Guild Messenger', desc: '노션 페이지 변경 사항을 길드 채널(슬랙)로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850 },
-    { type: 'Workflow', title: 'Daily Quest Summary', desc: '매일 아침 30분, 주요 뉴스 퀘스트를 클리어하고 요약 리포트를 전송합니다.', author: 'NEXON Skills Official', stars: 3200 },
-    { type: 'Agent', title: 'Code Reviewer Pro', desc: 'GitHub PR을 분석하여 잠재적인 버그와 성능 이슈를 코멘트로 남깁니다.', author: 'DevTools', stars: 1800 },
-    { type: 'Connector', title: 'Gmail <-> Trello', desc: '중요 메일을 자동으로 트렐로 카드로 변환하여 할 일 목록에 추가합니다.', author: 'ProductivityKing', stars: 620 },
-    { type: 'Workflow', title: 'Insta Marketing Auto', desc: '트렌드 키워드를 분석하여 인스타그램 포스팅 문구와 이미지를 생성하고 업로드합니다.', author: 'MarketingAI', stars: 940 },
+    { type: 'Agent', title: 'Data Wizard Bot', desc: '복잡한 로그 데이터를 미니맵처럼 한눈에 파악하고 시각화합니다.', author: 'DataGuild', stars: 1240, toolCount: 4, visibility: '공개', registeredAt: '2026.02.10', tags: ['데이터', '시각화', '로그분석'] },
+    { type: 'Connector', title: 'Notion Guild Messenger', desc: '노션 페이지 변경 사항을 길드 채널(슬랙)로 실시간 알림 전송합니다.', author: 'Connectify', stars: 850, toolCount: 2, visibility: '공개', registeredAt: '2026.01.22', tags: ['노션', '슬랙', '알림'] },
+    { type: 'Workflow', title: 'Daily Quest Summary', desc: '매일 아침 30분, 주요 뉴스 퀘스트를 클리어하고 요약 리포트를 전송합니다.', author: 'NEXON Skills Official', stars: 3200, toolCount: 7, visibility: '공개', registeredAt: '2025.12.15', tags: ['뉴스', '요약', '자동화'] },
+    { type: 'Agent', title: 'Code Reviewer Pro', desc: 'GitHub PR을 분석하여 잠재적인 버그와 성능 이슈를 코멘트로 남깁니다.', author: 'DevTools', stars: 1800, toolCount: 5, visibility: '비공개', registeredAt: '2026.01.30', tags: ['github', '코드리뷰', 'DevTools'] },
+    { type: 'Connector', title: 'Gmail <-> Trello', desc: '중요 메일을 자동으로 트렐로 카드로 변환하여 할 일 목록에 추가합니다.', author: 'ProductivityKing', stars: 620, toolCount: 3, visibility: '공개', registeredAt: '2026.02.18', tags: ['gmail', 'trello', '업무자동화'] },
+    { type: 'Workflow', title: 'Insta Marketing Auto', desc: '트렌드 키워드를 분석하여 인스타그램 포스팅 문구와 이미지를 생성하고 업로드합니다.', author: 'MarketingAI', stars: 940, toolCount: 6, visibility: '비공개', registeredAt: '2026.03.01', tags: ['마케팅', '인스타그램', 'AI생성'] },
 ];
